@@ -130,24 +130,33 @@ class Database:
                     conn.execute(f"ALTER TABLE documents ADD COLUMN {col} TEXT DEFAULT ''")
                 except sqlite3.OperationalError:
                     pass
-            conn.commit()
             # Migration: orig_price / orig_price_unit für EP-Einheit aus Verwaltung
             for col in ("orig_price", "orig_price_unit"):
                 try:
                     conn.execute(f"ALTER TABLE positions ADD COLUMN {col} TEXT DEFAULT ''")
                 except sqlite3.OperationalError:
                     pass  # Spalte existiert bereits
-            # Migration: pos_type CHECK um 'text' erweitern (für alte DBs)
+            # Migration: pos_type CHECK um 'text' erweitern + Spalten ergänzen
+            conn.execute("PRAGMA foreign_keys=OFF")
             try:
-                conn.execute("INSERT INTO positions (doc_id, pos_type, description) VALUES (-1, 'text', '__migrate__')")
-                conn.execute("DELETE FROM positions WHERE id IN (SELECT id FROM positions WHERE description='__migrate__')")
+                conn.execute("INSERT INTO positions (doc_id, pos_type, description) VALUES (-2, 'text', '__migrate__')")
+                conn.execute("DELETE FROM positions WHERE description='__migrate__'")
             except sqlite3.IntegrityError:
+                cur = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='positions'")
+                old_sql = cur.fetchone()["sql"]
+                new_sql = old_sql.replace(
+                    "CHECK(pos_type IN('tool','material'))",
+                    "CHECK(pos_type IN('tool','material','text'))"
+                )
+                if "orig_price" not in old_sql:
+                    new_sql = new_sql.replace(
+                        "sort_order INTEGER DEFAULT 0",
+                        "sort_order INTEGER DEFAULT 0,\n                    orig_price TEXT DEFAULT '',\n                    orig_price_unit TEXT DEFAULT ''"
+                    )
                 conn.execute("PRAGMA writable_schema=ON")
-                conn.execute("""UPDATE sqlite_master SET sql=REPLACE(sql,
-                    'CHECK(pos_type IN(''tool'',''material''))',
-                    'CHECK(pos_type IN(''tool'',''material'',''text''))'
-                ) WHERE type='table' AND name='positions'""")
+                conn.execute("UPDATE sqlite_master SET sql=? WHERE type='table' AND name='positions'", (new_sql,))
                 conn.execute("PRAGMA writable_schema=OFF")
+            conn.execute("PRAGMA foreign_keys=ON")
         finally:
             conn.close()
 
