@@ -67,36 +67,39 @@ class FerdlWorksApp(ctk.CTk):
     # ===================== MENU =====================
     def _build_menu(self):
         self.menu_bar = CTkMenuBar(self)
+        self.menu_bar.pack(fill="x", padx=0, pady=0)
+
         datei_items = [
-            {"label": "Einstellungen...", "key": "Strg+E", "command": self._open_settings},
+            {"label": "Kunden verwalten...", "key": "Strg+K", "command": self._open_customer_mgmt},
             {"label": "---"},
             {"label": "Beenden", "key": "Strg+Q", "command": self._on_close},
         ]
-        daten_items = [
+        werkzeuge_items = [
+            {"label": "Werkzeuge verwalten...", "key": "Strg+W", "command": self._open_tool_mgmt},
+            {"label": "Materialien verwalten...", "key": "Strg+M", "command": self._open_material_mgmt},
+        ]
+        einstellungen_items = [
+            {"label": "Einstellungen...", "key": "Strg+E", "command": self._open_settings},
+            {"label": "---"},
             {"label": "Datensicherung erstellen...", "command": self._backup_data},
             {"label": "Datensicherung wiederherstellen...", "command": self._restore_data},
             {"label": "---"},
             {"label": "Google Drive Backup...", "command": self._cloud_gdrive},
             {"label": "OneDrive Backup...", "command": self._cloud_onedrive},
         ]
-        verwaltung_items = [
-            {"label": "Kunden verwalten...", "command": self._open_customer_mgmt},
-            {"label": "Werkzeuge verwalten...", "command": self._open_tool_mgmt},
-            {"label": "Materialien verwalten...", "command": self._open_material_mgmt},
-        ]
         hilfe_items = [
+            {"label": "Auf Updates pr\xfcfen...", "key": "Strg+U", "command": self._check_update},
+            {"label": "---"},
             {"label": "Logdatei \xf6ffnen", "command": self._open_log},
             {"label": "Logdatei senden...", "command": self._send_log},
             {"label": "---"},
-            {"label": "Auf Updates pr\xfcfen...", "command": self._check_update},
+            {"label": "Info...", "command": self._show_info},
             {"label": "---"},
             {"label": "Deinstallieren...", "command": self._uninstall},
-            {"label": "---"},
-            {"label": "Info...", "command": self._show_info},
         ]
         self.menu_bar.add_menu("  Datei  ", datei_items)
-        self.menu_bar.add_menu("  Verwaltung  ", verwaltung_items)
-        self.menu_bar.add_menu("  Daten  ", daten_items)
+        self.menu_bar.add_menu("  Werkzeuge & Material  ", werkzeuge_items)
+        self.menu_bar.add_menu("  Einstellungen  ", einstellungen_items)
         self.menu_bar.add_menu("  Hilfe  ", hilfe_items)
 
     def _show_version(self):
