@@ -566,17 +566,25 @@ class FerdlWorksApp(ctk.CTk):
         self._editing_pos_idx = idx
         self.art_entry.delete(0, "end")
         self.art_entry.insert(0, pos.description)
-        # Artikel per Suche ermitteln und vorauswählen
-        results = self.db.combined_search(pos.description[:20])
+        # Artikel per Datenbank ermitteln, Fallback auf minimale Daten
         found = None
-        for r in results:
-            if r["id"] == pos.ref_id:
-                found = r
-                break
-        if not found and results:
-            found = results[0]
-        if found:
-            self._selected_article = found
+        if pos.ref_id:
+            if pos.pos_type == "material":
+                found = self.db.material_get(pos.ref_id)
+                if found:
+                    found["item_type"] = "Material"
+                    found["price_per_m2"] = found.get("price_per_m2", 0) or found.get("price", 0)
+            else:
+                found = self.db.tool_get(pos.ref_id)
+                if found:
+                    found["item_type"] = "Werkzeug"
+                    found["price"] = found.get("price", 0)
+                    found["price_per_m2"] = 0
+        if not found:
+            found = {"id": pos.ref_id or 0, "name": pos.description,
+                     "item_type": "Material" if pos.pos_type == "material" else "Werkzeug",
+                     "price": 0, "price_per_m2": 0, "price_unit": "h"}
+        self._selected_article = found
         if pos.pos_type == "material":
             self._show_mat_units()
             ed = pos.extra_data or {}
