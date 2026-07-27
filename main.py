@@ -223,6 +223,8 @@ class FerdlWorksApp(ctk.CTk):
             self.pos_tree.column(c, width=widths[c], minwidth=30, anchor="w" if c in ("pos", "beschreibung") else "e")
         self.pos_tree.bind("<Delete>", lambda e: self._remove_selected_position())
         self.pos_tree.bind("<Double-1>", lambda e: self._edit_position())
+        self.pos_tree.bind("<Button-3>", self._pos_context_menu)
+        self.pos_tree.bind("<Button-2>", self._pos_context_menu)
         vsb = ttk.Scrollbar(pos_frame, orient="vertical", command=self.pos_tree.yview)
         self.pos_tree.configure(yscrollcommand=vsb.set)
         self.pos_tree.pack(fill="both", expand=True, padx=10, pady=2)
@@ -546,6 +548,18 @@ class FerdlWorksApp(ctk.CTk):
                 f"{p.price_per_unit:.2f}\u20ac", f"{p.total:.2f}\u20ac"
             ))
         self._recalc_totals()
+
+    def _pos_context_menu(self, event):
+        # select the clicked row
+        iid = self.pos_tree.identify_row(event.y)
+        if not iid:
+            return
+        self.pos_tree.selection_set(iid)
+        menu = tk.Menu(self, tearoff=False, font=("Segoe UI", 10))
+        menu.add_command(label="Bearbeiten", command=self._edit_position)
+        menu.add_command(label="Löschen", command=self._remove_selected_position)
+        menu.tk_popup(event.x_root, event.y_root)
+        menu.grab_release()
 
     def _remove_selected_position(self):
         sel = self.pos_tree.selection()
