@@ -45,15 +45,7 @@ jobs:
       - name: Install Inno Setup
         shell: pwsh
         run: |
-          $release = Invoke-RestMethod "https://api.github.com/repos/jrsoftware/issrc/releases/latest"
-          $asset = $release.assets | Where-Object { $_.name -like "is-*-*.exe" } | Select-Object -First 1
-          if (-not $asset) {
-            Write-Error "Kein Inno Setup 7 Installer Asset gefunden"
-            exit 1
-          }
-          $installer = "$env:TEMP\innosetup7.exe"
-          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $installer
-          Start-Process $installer -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /ALLUSERS /DIR=C:\Program Files (x86)\Inno Setup 7" -Wait
+          choco install innosetup --no-progress -y
 
       - name: Build Installer
         shell: pwsh
