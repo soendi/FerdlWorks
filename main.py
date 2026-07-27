@@ -107,6 +107,7 @@ class FerdlWorksApp(ctk.CTk):
         self.configure(menu=mb)
         self.bind_all("<Control-n>", lambda e: self._new_doc_prompt())
         self.bind_all("<Control-d>", lambda e: self._open_doc_overview())
+        self.bind_all("<Control-s>", lambda e: self._save_doc())
         self.bind_all("<Control-q>", lambda e: self._on_close())
         self.bind_all("<Control-e>", lambda e: self._open_settings())
         self.bind_all("<Control-u>", lambda e: self._check_update())
@@ -366,8 +367,10 @@ class FerdlWorksApp(ctk.CTk):
         self._do_hide_art_dropdown()
         if self._selected_article["item_type"] == "Material":
             self._show_mat_units()
+            self.dl_length.focus_set()
         elif self._selected_article["item_type"] == "Werkzeug":
             self._show_tool_units()
+            self.dl_time.focus_set()
         else:
             self._hide_units()
 
