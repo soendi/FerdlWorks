@@ -118,7 +118,7 @@ class FerdlWorksApp(ctk.CTk):
         self.cust_entry.bind("<FocusOut>", lambda e: self._hide_cust_dropdown())
         self.doc_type_var = ctk.StringVar(value="RG")
 
-        # Dropdown-Liste Kunde (wird ein/ausgeblendet)
+        # Dropdown-Liste Kunde (wird ein/ausgeblendet) - direkt unter Customer-Frame
         self._cust_dropdown_frame = ctk.CTkFrame(main, corner_radius=4, height=0)
         self.cust_dropdown = tk.Listbox(self._cust_dropdown_frame, height=5,
                                         font=("Segoe UI", 10), exportselection=False,
@@ -175,7 +175,7 @@ class FerdlWorksApp(ctk.CTk):
                                             width=80, fg_color="#5c0000", hover_color="#8b0000")
         self.art_insert_btn.pack(side="left", padx=5)
 
-        # Dropdown-Liste Artikel
+        # Dropdown-Liste Artikel (wird ein/ausgeblendet) - direkt unter Article-Frame
         self._art_dropdown_frame = ctk.CTkFrame(main, corner_radius=4, height=0)
         self.art_dropdown = tk.Listbox(self._art_dropdown_frame, height=5,
                                        font=("Segoe UI", 10), exportselection=False,
@@ -229,7 +229,7 @@ class FerdlWorksApp(ctk.CTk):
             self._hide_cust_dropdown()
 
     def _show_cust_dropdown(self):
-        self._cust_dropdown_frame.pack(fill="x", padx=8, pady=(0, 2), after=self.cust_entry.master.master)
+        self._cust_dropdown_frame.pack(fill="x", padx=8, pady=(0, 2))
 
     def _hide_cust_dropdown(self, event=None):
         self._cust_dropdown_frame.pack_forget()
