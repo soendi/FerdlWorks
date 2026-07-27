@@ -503,8 +503,9 @@ class FerdlWorksApp(ctk.CTk):
                 {"price_unit": item.get("price_unit", "h"), "price": item.get("price", 0)}
             ))
         elif item["item_type"] == "Text":
+            desc = item.get("content") or item["name"]
             self._positions.append(PositionItem(
-                "text", item["id"], item["name"], 0, "", 0, 0
+                "text", item["id"], desc, 0, "", 0, 0
             ))
 
     def _update_position(self):
@@ -539,8 +540,9 @@ class FerdlWorksApp(ctk.CTk):
                 {"price_unit": item.get("price_unit", "h"), "price": item.get("price", 0)}
             )
         elif item["item_type"] == "Text":
+            desc = item.get("content") or item["name"]
             self._positions[idx] = PositionItem(
-                "text", item["id"], item["name"], 0, "", 0, 0
+                "text", item["id"], desc, 0, "", 0, 0
             )
         self._editing_pos_idx = None
         self.art_insert_btn.configure(text="Einfügen")
