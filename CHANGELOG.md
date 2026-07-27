@@ -1,16 +1,18 @@
 # Changelog
 
+## v1.0.1
+
+- Fixed: GitHub Actions workflow – Icon generation, Inno Setup installation, and release permissions
+- Improved: Build pipeline reliability
+
 ## v1.0.0
-- Erste Veröffentlichung
-- Kundenverwaltung mit Adressdaten
-- Werkzeug-Datenbank mit Preis/h oder Preis/min
-- Material-Datenbank mit m²-Preis inkl. Länge/Breite Berechnung
-- Rechnungen (RG) und Lieferscheine (LS) mit fortlaufender Nummer
-- PDF-Generierung mit Briefkopf, Positionen, Rabatt und MwSt.
-- E-Mail-Versand der PDFs per SMTP
-- Druckfunktion mit Druckerauswahl
-- Datenbank-Backup (lokal, Google Drive, OneDrive)
-- Auto-Update über GitHub Releases
-- Autostart (Registry oder TaskSchedule bei Bedarf)
-- Rot/schwarzes Design mit CustomTkinter
-- Installer mit Inno Setup (Elevation, UTF-8 BOM)
+
+- Initial release
+- Invoice (RG) and delivery note (LS) creation with sequential numbering
+- Customer, tool, and material databases with CRUD dialogs
+- PDF generation with ReportLab
+- Email sending via SMTP
+- Cloud backup to Google Drive and OneDrive
+- Auto-update via GitHub Releases
+- Password-protected login
+- Customizable settings (sender address, VAT, printer, etc.)
