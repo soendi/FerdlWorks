@@ -189,6 +189,11 @@ class FerdlWorksApp(ctk.CTk):
                                             width=80, fg_color="#5c0000", hover_color="#8b0000")
         self.art_insert_btn.pack(side="right", padx=5)
 
+        self.art_text_btn = ctk.CTkButton(art, text="Als Text eintragen", command=self._insert_as_text,
+                                          width=140, fg_color="#555555", hover_color="#777777")
+        self.art_text_btn.pack(side="right", padx=2)
+        self.art_text_btn.pack_forget()  # erstmal unsichtbar
+
         # Dropdown-Liste Artikel (schwebend über anderen Elementen)
         self._art_dropdown_frame = tk.Frame(self, bg="#2a2a2a", highlightbackground="#555555", highlightthickness=1)
         self.art_dropdown = tk.Listbox(self._art_dropdown_frame, height=5,
@@ -394,8 +399,13 @@ class FerdlWorksApp(ctk.CTk):
             self.art_dropdown.insert("end", f"{item['item_type']:10s} | {item['name']}")
         if query and self._art_results:
             self._show_art_dropdown()
+            self.art_text_btn.pack_forget()
+        elif query and not self._art_results:
+            self._do_hide_art_dropdown()
+            self.art_text_btn.pack(side="right", padx=2)
         else:
             self._do_hide_art_dropdown()
+            self.art_text_btn.pack_forget()
 
     def _show_art_dropdown(self):
         self._art_dropdown_idx = -1
@@ -468,6 +478,16 @@ class FerdlWorksApp(ctk.CTk):
         price_per_display = rate_per_min * 60 if display_unit == "h" else rate_per_min
         unit_label = "Std." if display_unit == "h" else "Min."
         return time_val, unit_label, price_per_display, total, int(minutes)
+
+    def _insert_as_text(self):
+        text = self.art_entry.get().strip()
+        if not text:
+            return
+        self._positions.append(PositionItem("text", None, text, 0, "", 0, 0))
+        self._refresh_positions()
+        self._hide_units()
+        self.art_entry.delete(0, "end")
+        self.art_text_btn.pack_forget()
 
     def _insert_article(self):
         if self._editing_pos_idx is not None:
