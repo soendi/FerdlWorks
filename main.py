@@ -158,7 +158,7 @@ class FerdlWorksApp(ctk.CTk):
                      text_color=("#8b0000", "#8b0000")).pack(side="left", padx=(10, 5))
         self.art_entry = ctk.CTkEntry(art, width=500, placeholder_text="Werkzeug, Material oder Text eingeben...")
         self.art_entry.pack(side="left", padx=5, pady=4)
-        self.art_entry.bind("<KeyRelease>", lambda e: self._search_articles())
+        self.art_entry.bind("<KeyRelease>", lambda e: self._search_articles() if e.keysym not in ("Up", "Down", "Return", "Escape") else None)
 
         # Kontext-Felder (abhängig vom ausgewählten Artikel-Typ, versteckt)
         self._art_mat_f = ctk.CTkFrame(art, fg_color="transparent")
