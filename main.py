@@ -586,10 +586,11 @@ class FerdlWorksApp(ctk.CTk):
                 ep_str = ""
             else:
                 ep_str = f"{p.price_per_unit:.2f}\u20ac/{p.unit.lower().replace('std.', 'h').replace('min.', 'min')}"
-            self.pos_tree.insert("", "end", iid=str(i), values=(
-                str(i + 1), p.description, qty_str, p.unit,
-                ep_str, f"{p.total:.2f}\u20ac"
-            ))
+            if p.pos_type == "text":
+                vals = ("", p.description, "", "", "", "")
+            else:
+                vals = (str(i + 1), p.description, qty_str, p.unit, ep_str, f"{p.total:.2f}\u20ac")
+            self.pos_tree.insert("", "end", iid=str(i), values=vals)
         self._recalc_totals()
 
     def _pos_context_menu(self, event):
