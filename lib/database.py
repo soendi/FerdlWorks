@@ -99,6 +99,8 @@ class Database:
                     price_per_unit REAL DEFAULT 0,
                     total REAL DEFAULT 0,
                     sort_order INTEGER DEFAULT 0,
+                    orig_price TEXT DEFAULT '',
+                    orig_price_unit TEXT DEFAULT '',
                     FOREIGN KEY (doc_id) REFERENCES documents(id) ON DELETE CASCADE
                 );
 
@@ -121,6 +123,12 @@ class Database:
                 );
             """)
             conn.commit()
+            # Migration: orig_price / orig_price_unit für EP-Einheit aus Verwaltung
+            for col in ("orig_price", "orig_price_unit"):
+                try:
+                    conn.execute(f"ALTER TABLE positions ADD COLUMN {col} TEXT DEFAULT ''")
+                except sqlite3.OperationalError:
+                    pass  # Spalte existiert bereits
             # Migration: pos_type CHECK um 'text' erweitern (für alte DBs)
             try:
                 conn.execute("INSERT INTO positions (doc_id, pos_type, description) VALUES (-1, 'text', '__migrate__')")
@@ -389,11 +397,12 @@ class Database:
                 doc_id = cur.lastrowid
             for i, pos in enumerate(positions):
                 conn.execute("""INSERT INTO positions (doc_id, pos_type, ref_id, description,
-                    quantity, unit, price_per_unit, total, sort_order)
-                    VALUES (?,?,?,?,?,?,?,?,?)""",
+                    quantity, unit, price_per_unit, total, sort_order, orig_price, orig_price_unit)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
                     (doc_id, pos["pos_type"], pos.get("ref_id"), pos["description"],
                      pos.get("quantity", 1), pos.get("unit", ""),
-                     pos.get("price_per_unit", 0), pos.get("total", 0), i))
+                     pos.get("price_per_unit", 0), pos.get("total", 0), i,
+                     pos.get("orig_price", 0), pos.get("orig_price_unit", "")))
             conn.commit()
             return self.doc_get(doc_id)
         finally:

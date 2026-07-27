@@ -59,6 +59,7 @@ class FerdlWorksApp(ctk.CTk):
         self._build_menu()
         self._build_ui()
         self.bind("<Button-1>", self._on_global_click, add="+")
+        self._new_doc()
         self.logger.info(f"{APP_NAME} v{VERSION} gestartet (Master-Mode: {master_mode})")
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
@@ -791,6 +792,7 @@ class FerdlWorksApp(ctk.CTk):
         data = self._get_doc_data()
         pos_data = []
         for p in self._positions:
+            ed = p.extra_data or {}
             pos_data.append({
                 "pos_type": p.pos_type,
                 "ref_id": p.ref_id,
@@ -799,6 +801,8 @@ class FerdlWorksApp(ctk.CTk):
                 "unit": p.unit,
                 "price_per_unit": p.price_per_unit,
                 "total": p.total,
+                "orig_price": ed.get("price") or ed.get("orig_price", 0),
+                "orig_price_unit": ed.get("price_unit") or ed.get("orig_price_unit", ""),
             })
         data["id"] = self._current_doc_id
         result = self.db.doc_save(data, pos_data)
@@ -823,9 +827,12 @@ class FerdlWorksApp(ctk.CTk):
             self._set_cust_display(customer)
         self._positions.clear()
         for p in doc.get("positions", []):
+            ed = {}
+            if p.get("orig_price_unit"):
+                ed = {"price_unit": p["orig_price_unit"], "price": float(p.get("orig_price", 0) or 0)}
             self._positions.append(PositionItem(
                 p["pos_type"], p["ref_id"], p["description"],
-                p["quantity"], p["unit"], p["price_per_unit"], p["total"]
+                p["quantity"], p["unit"], p["price_per_unit"], p["total"], ed
             ))
         self._refresh_positions()
         self.doc_status_label.configure(text=doc["doc_number"])
