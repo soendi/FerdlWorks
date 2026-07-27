@@ -1,0 +1,70 @@
+﻿; Inno Setup Script f�r FerdlWorks
+; UTF-8 mit BOM - Unicode unterst�tzt Umlaute
+
+#define MyAppName "FerdlWorks"
+#define MyAppVersion "1.0.0"
+#define MyAppPublisher "Sonderegger Software"
+#define MyAppURL "https://github.com/SondereggerSoftware/FerdlWorks"
+#define MyAppExeName "FerdlWorks.exe"
+
+[Setup]
+AppId={{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}
+AppName={#MyAppName}
+AppVersion={#MyAppVersion}
+AppPublisher={#MyAppPublisher}
+AppPublisherURL={#MyAppURL}
+AppSupportURL={#MyAppURL}
+AppUpdatesURL={#MyAppURL}
+DefaultDirName={autopf}\{#MyAppName}
+DefaultGroupName={#MyAppName}
+DisableProgramGroupPage=yes
+PrivilegesRequired=admin
+OutputDir=.
+OutputBaseFilename={#MyAppName}-Setup
+SetupIconFile=..\assets\ferdlworks.ico
+UninstallDisplayIcon={app}\ferdlworks.ico
+UninstallDisplayName={#MyAppName}
+Compression=lzma2/ultra
+SolidCompression=yes
+WizardStyle=modern
+DisableWelcomePage=no
+DisableDirPage=no
+AlwaysShowDirOnReadyPage=yes
+
+[Languages]
+Name: "german"; MessagesFile: "compiler:Languages\German.isl"
+
+[Files]
+Source: "..\dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\assets\ferdlworks.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\assets\ferdlworks_theme.json"; DestDir: "{app}\assets"; Flags: ignoreversion
+Source: "..\lib\*"; DestDir: "{app}\lib"; Flags: ignoreversion recursesubdirs
+Source: "..\data\*"; DestDir: "{app}\data"; Flags: ignoreversion recursesubdirs; Check: DirExists(ExpandConstant('{src}\..\data'))
+
+[Dirs]
+Name: "{app}\data"; Permissions: users-modify
+
+[Registry]
+Root: HKCU; Subkey: "SOFTWARE\SondereggerSoftware\{#MyAppName}"; Flags: uninsdeletekeyifempty
+Root: HKCU; Subkey: "SOFTWARE\SondereggerSoftware\{#MyAppName}"; ValueType: string; ValueName: "InstallPath"; ValueData: "{app}"; Flags: uninsdeletevalue
+Root: HKCU; Subkey: "SOFTWARE\SondereggerSoftware\{#MyAppName}"; ValueType: string; ValueName: "UninstallPath"; ValueData: "{app}\unins000.exe"; Flags: uninsdeletevalue
+
+[Icons]
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; IconFilename: "{app}\ferdlworks.ico"
+Name: "{group}\Deinstallieren"; Filename: "{app}\unins000.exe"; IconFilename: "{app}\ferdlworks.ico"
+Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; IconFilename: "{app}\ferdlworks.ico"
+
+[Run]
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
+
+[Code]
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep = usPostUninstall then
+  begin
+    if MsgBox('Möchten Sie auch Ihre persönlichen Einstellungen (Registry) löschen?', mbConfirmation, MB_YESNO) = IDYES then
+    begin
+      RegDeleteKeyIncludingSubkeys(HKCU, 'SOFTWARE\SondereggerSoftware\FerdlWorks');
+    end;
+  end;
+end;

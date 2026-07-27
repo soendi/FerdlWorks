@@ -1,0 +1,110 @@
+{
+    "CTk": {
+        "fg_color": ["#1a1a1a", "#1a1a1a"],
+        "bg_color": ["#1a1a1a", "#1a1a1a"],
+        "text_color": ["#e0e0e0", "#e0e0e0"]
+    },
+    "CTkFrame": {
+        "fg_color": ["#1a1a1a", "#1a1a1a"],
+        "border_color": ["#8b0000", "#8b0000"],
+        "top_fg_color": ["#1a1a1a", "#1a1a1a"]
+    },
+    "CTkButton": {
+        "fg_color": ["#8b0000", "#8b0000"],
+        "hover_color": ["#b22222", "#b22222"],
+        "text_color": ["#ffffff", "#ffffff"],
+        "border_color": ["#5c0000", "#5c0000"],
+        "border_width": 1
+    },
+    "CTkEntry": {
+        "fg_color": ["#2a2a2a", "#2a2a2a"],
+        "border_color": ["#8b0000", "#8b0000"],
+        "text_color": ["#e0e0e0", "#e0e0e0"],
+        "placeholder_text_color": ["#666666", "#666666"]
+    },
+    "CTkLabel": {
+        "text_color": ["#e0e0e0", "#e0e0e0"],
+        "fg_color": ["transparent", "transparent"]
+    },
+    "CTkOptionMenu": {
+        "fg_color": ["#2a2a2a", "#2a2a2a"],
+        "button_color": ["#8b0000", "#8b0000"],
+        "button_hover_color": ["#b22222", "#b22222"],
+        "text_color": ["#e0e0e0", "#e0e0e0"],
+        "dropdown_fg_color": ["#1a1a1a", "#1a1a1a"],
+        "dropdown_hover_color": ["#8b0000", "#8b0000"],
+        "dropdown_text_color": ["#e0e0e0", "#e0e0e0"]
+    },
+    "CTkComboBox": {
+        "fg_color": ["#2a2a2a", "#2a2a2a"],
+        "border_color": ["#8b0000", "#8b0000"],
+        "button_color": ["#8b0000", "#8b0000"],
+        "button_hover_color": ["#b22222", "#b22222"],
+        "text_color": ["#e0e0e0", "#e0e0e0"],
+        "dropdown_fg_color": ["#1a1a1a", "#1a1a1a"],
+        "dropdown_hover_color": ["#8b0000", "#8b0000"],
+        "dropdown_text_color": ["#e0e0e0", "#e0e0e0"]
+    },
+    "CTkScrollbar": {
+        "fg_color": ["#2a2a2a", "#2a2a2a"],
+        "button_color": ["#8b0000", "#8b0000"],
+        "button_hover_color": ["#b22222", "#b22222"],
+        "border_spacing": 0,
+        "corner_radius": 2,
+        "minimum_pixel_length": 30
+    },
+    "CTkCheckbox": {
+        "fg_color": ["#8b0000", "#8b0000"],
+        "hover_color": ["#b22222", "#b22222"],
+        "border_color": ["#5c0000", "#5c0000"],
+        "text_color": ["#e0e0e0", "#e0e0e0"]
+    },
+    "CTkRadioButton": {
+        "fg_color": ["#8b0000", "#8b0000"],
+        "hover_color": ["#b22222", "#b22222"],
+        "border_color": ["#5c0000", "#5c0000"],
+        "text_color": ["#e0e0e0", "#e0e0e0"]
+    },
+    "CTkSwitch": {
+        "fg_color": ["#2a2a2a", "#2a2a2a"],
+        "progress_color": ["#8b0000", "#8b0000"],
+        "button_color": ["#5c0000", "#5c0000"],
+        "button_hover_color": ["#b22222", "#b22222"],
+        "text_color": ["#e0e0e0", "#e0e0e0"]
+    },
+    "CTkTextbox": {
+        "fg_color": ["#2a2a2a", "#2a2a2a"],
+        "border_color": ["#8b0000", "#8b0000"],
+        "text_color": ["#e0e0e0", "#e0e0e0"],
+        "scrollbar_button_color": ["#8b0000", "#8b0000"],
+        "scrollbar_button_hover_color": ["#b22222", "#b22222"]
+    },
+    "CTkProgressBar": {
+        "fg_color": ["#2a2a2a", "#2a2a2a"],
+        "progress_color": ["#8b0000", "#8b0000"],
+        "border_color": ["#5c0000", "#5c0000"]
+    },
+    "CTkTabview": {
+        "fg_color": ["#1a1a1a", "#1a1a1a"],
+        "segmented_button_fg_color": ["#2a2a2a", "#2a2a2a"],
+        "segmented_button_selected_color": ["#8b0000", "#8b0000"],
+        "segmented_button_selected_hover_color": ["#b22222", "#b22222"],
+        "segmented_button_unselected_color": ["#2a2a2a", "#2a2a2a"],
+        "segmented_button_unselected_hover_color": ["#3a3a3a", "#3a3a3a"],
+        "text_color": ["#e0e0e0", "#e0e0e0"]
+    },
+    "CTkSegmentedButton": {
+        "fg_color": ["#2a2a2a", "#2a2a2a"],
+        "selected_color": ["#8b0000", "#8b0000"],
+        "selected_hover_color": ["#b22222", "#b22222"],
+        "unselected_color": ["#2a2a2a", "#2a2a2a"],
+        "unselected_hover_color": ["#3a3a3a", "#3a3a3a"],
+        "text_color": ["#e0e0e0", "#e0e0e0"]
+    },
+    "CTkSlider": {
+        "fg_color": ["#2a2a2a", "#2a2a2a"],
+        "progress_color": ["#8b0000", "#8b0000"],
+        "button_color": ["#8b0000", "#8b0000"],
+        "button_hover_color": ["#b22222", "#b22222"]
+    }
+}

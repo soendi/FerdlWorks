@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Datenbank
+data/*.db
+data/*.sqlite
+
+# Installer
+installer/*.exe
+installer\*.exe
+
+# Assets generated
+assets/*.ico
+assets\*.ico
+
+# OS
+Thumbs.db
+.DS_Store
