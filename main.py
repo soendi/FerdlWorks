@@ -68,6 +68,7 @@ class FerdlWorksApp(ctk.CTk):
     def _build_menu(self):
         mb = tk.Menu(self, font=("Segoe UI", 10))
         datei = tk.Menu(mb, tearoff=False, font=("Segoe UI", 10))
+        datei.add_command(label="Neue Rechnung", command=self._new_doc_prompt, accelerator="Strg+N")
         datei.add_command(label="Rechnungen & Lieferscheine...", command=self._open_doc_overview, accelerator="Strg+D")
         datei.add_separator()
         datei.add_command(label="Einstellungen...", command=self._open_settings, accelerator="Strg+E")
@@ -101,6 +102,7 @@ class FerdlWorksApp(ctk.CTk):
         hilfe.add_command(label="Deinstallieren...", command=self._uninstall)
         mb.add_cascade(label="Hilfe", menu=hilfe)
         self.configure(menu=mb)
+        self.bind_all("<Control-n>", lambda e: self._new_doc_prompt())
         self.bind_all("<Control-d>", lambda e: self._open_doc_overview())
         self.bind_all("<Control-q>", lambda e: self._on_close())
         self.bind_all("<Control-e>", lambda e: self._open_settings())
@@ -737,6 +739,17 @@ class FerdlWorksApp(ctk.CTk):
                      text_color=("#555555", "#888888")).pack(side="right", padx=10)
 
     # ===================== DOKUMENT-LOGIK =====================
+    def _new_doc_prompt(self):
+        if self._positions:
+            doc_type = {"RG": "Rechnung", "LS": "Lieferschein"}.get(self.doc_type_var.get(), "Rechnung")
+            ans = messagebox.askyesnocancel("Nicht gespeicherte Änderungen",
+                                            f"Möchten Sie die aktuelle {doc_type} speichern?")
+            if ans is None:
+                return
+            if ans:
+                self._save_doc()
+        self._new_doc()
+
     def _new_doc(self):
         self._current_doc_id = None
         self._positions.clear()
