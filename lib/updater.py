@@ -96,3 +96,28 @@ def install_update(installer_path):
     except Exception as ex:
         logger.error(f"Installation fehlgeschlagen: {ex}")
         return False
+
+
+def install_and_restart(installer_path, app_exe_path):
+    logger = get_logger()
+    if not installer_path or not os.path.exists(installer_path):
+        return False
+    logger.info(f"Starte Update-Installation mit Neustart: {installer_path} -> {app_exe_path}")
+    try:
+        bat_path = installer_path.replace(".exe", "_update.bat")
+        with open(bat_path, "w", encoding="utf-8") as f:
+            f.write(f"""@echo off
+ping -n 4 127.0.0.1 > nul
+start /wait "" "{installer_path}" /SILENT /SUPPRESSMSGBOXES /NORESTART
+start "" "{app_exe_path}"
+del "%~f0"
+""")
+        subprocess.Popen(
+            [bat_path],
+            shell=True,
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+        return True
+    except Exception as ex:
+        logger.error(f"Update mit Neustart fehlgeschlagen: {ex}")
+        return False

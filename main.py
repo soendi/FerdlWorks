@@ -18,7 +18,7 @@ from lib.tool_database import ToolDatabase
 from lib.material_database import MaterialDatabase
 from lib.pdf_gen import generate_pdf
 from lib.email_sender import send_email
-from lib.updater import check_for_update, download_installer, install_update
+from lib.updater import check_for_update, download_installer, install_update, install_and_restart
 from lib.autostart import autostart_enable, autostart_disable, autostart_is_enabled
 from lib.cloud_backup import gdrive_backup, gdrive_authorize, onedrive_backup, onedrive_authorize
 from version import VERSION, APP_NAME, COMPANY_NAME
@@ -116,14 +116,7 @@ class FerdlWorksApp(ctk.CTk):
                                        textvariable=self.cust_var)
         self.cust_entry.pack(side="left", padx=5, pady=4)
         self.cust_entry.bind("<FocusOut>", lambda e: self._hide_cust_dropdown())
-        # Dokument-Typ rechts
-        dtype_f = ctk.CTkFrame(cust, fg_color="transparent")
-        dtype_f.pack(side="right", padx=10)
         self.doc_type_var = ctk.StringVar(value="RG")
-        ctk.CTkRadioButton(dtype_f, text="Rechnung", variable=self.doc_type_var, value="RG",
-                           font=("Segoe UI", 11)).pack(side="left", padx=5)
-        ctk.CTkRadioButton(dtype_f, text="Lieferschein", variable=self.doc_type_var, value="LS",
-                           font=("Segoe UI", 11)).pack(side="left", padx=5)
 
         # Dropdown-Liste Kunde (wird ein/ausgeblendet)
         self._cust_dropdown_frame = ctk.CTkFrame(main, corner_radius=4, height=0)
@@ -322,6 +315,21 @@ class FerdlWorksApp(ctk.CTk):
             self.dl_qm_label.configure(text="m\xb2:0,00")
 
     # ===================== EINFÜGEN / ÜBERNEHMEN =====================
+    def _calc_tool_position(self, item):
+        try:
+            time_val = float(self.dl_time.get().replace(",", "."))
+        except ValueError:
+            time_val = 1
+        display_unit = self.dl_time_unit.get()
+        stored_unit = item.get("price_unit", "h")
+        price = item.get("price", 0)
+        rate_per_min = price / 60 if stored_unit == "h" else price
+        minutes = time_val * 60 if display_unit == "h" else time_val
+        total = minutes * rate_per_min
+        price_per_display = rate_per_min * 60 if display_unit == "h" else rate_per_min
+        unit_label = "Std." if display_unit == "h" else "Min."
+        return time_val, unit_label, price_per_display, total, int(minutes)
+
     def _insert_article(self):
         if self._editing_pos_idx is not None:
             self._update_position()
@@ -357,15 +365,7 @@ class FerdlWorksApp(ctk.CTk):
                     "material", item["id"], item["name"], 1, "m\u00b2", price_m2, price_m2
                 ))
         else:
-            try:
-                time_val = float(self.dl_time.get().replace(",", "."))
-            except ValueError:
-                time_val = 1
-            unit = self.dl_time_unit.get()
-            price = item.get("price", 0)
-            price_per = price / 60 if unit == "min" else price
-            unit_label = "Std." if unit == "h" else "Min."
-            total = time_val * price_per
+            time_val, unit_label, price_per, total, _ = self._calc_tool_position(item)
             desc = f"{item['name']} ({time_val:.0f}{unit_label[0]})"
             self._positions.append(PositionItem(
                 "tool", item["id"], desc, time_val, unit_label, price_per, total
@@ -397,15 +397,7 @@ class FerdlWorksApp(ctk.CTk):
                     "material", item["id"], item["name"], 1, "m\u00b2", price_m2, price_m2
                 )
         else:
-            try:
-                time_val = float(self.dl_time.get().replace(",", "."))
-            except ValueError:
-                time_val = 1
-            unit = self.dl_time_unit.get()
-            price = item.get("price", 0)
-            price_per = price / 60 if unit == "min" else price
-            unit_label = "Std." if unit == "h" else "Min."
-            total = time_val * price_per
+            time_val, unit_label, price_per, total, _ = self._calc_tool_position(item)
             desc = f"{item['name']} ({time_val:.0f}{unit_label[0]})"
             self._positions[idx] = PositionItem(
                 "tool", item["id"], desc, time_val, unit_label, price_per, total
@@ -508,7 +500,7 @@ class FerdlWorksApp(ctk.CTk):
         rf = ctk.CTkFrame(parent, fg_color="transparent")
         rf.pack(side="right", padx=8, pady=6)
         self._sum_labels = {}
-        for text in ["Netto:", "MwSt.:", "Brutto:"]:
+        for text in ["Netto:", "MwSt:", "Brutto:"]:
             f = ctk.CTkFrame(rf, fg_color="transparent")
             f.pack(side="left", padx=10)
             ctk.CTkLabel(f, text=text, font=("Segoe UI", 10)).pack(side="left")
@@ -521,8 +513,6 @@ class FerdlWorksApp(ctk.CTk):
         bf = ctk.CTkFrame(parent, fg_color="transparent")
         bf.pack(side="bottom", fill="x", padx=8, pady=6)
         actions = [
-            ("Neu", self._new_doc),
-            ("\xd6ffnen", self._open_doc_search),
             ("Speichern", self._save_doc),
             ("PDF", self._save_pdf),
             ("E-Mail", self._send_email_doc),
@@ -789,9 +779,14 @@ class FerdlWorksApp(ctk.CTk):
         path = download_installer(release, lambda p: dlg.set_progress(p))
         dlg.close()
         if path:
-            if install_update(path):
-                self.logger.info(f"Update auf v{tag} gestartet")
-                sys.exit(0)
+            app_path = reg_read("InstallPath", "")
+            if app_path:
+                app_exe = os.path.join(app_path, "FerdlWorks.exe")
+            else:
+                app_exe = sys.executable
+            if install_and_restart(path, app_exe):
+                self.logger.info(f"Update auf v{tag} gestartet, Neustart folgt")
+                self.destroy()
             else:
                 messagebox.showerror("Fehler", "Installation fehlgeschlagen.")
         else:
