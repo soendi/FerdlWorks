@@ -128,7 +128,7 @@ class FerdlWorksApp(ctk.CTk):
         cust_top = ctk.CTkFrame(cust, fg_color="transparent")
         cust_top.pack(fill="x", padx=10, pady=(8, 0))
         ctk.CTkLabel(cust_top, text="Kunde:", font=("Segoe UI", 13, "bold"),
-                     text_color=("#8b0000", "#8b0000")).pack(side="left", padx=(0, 5))
+                     text_color=("#8b0000", "#8b0000"), width=70, anchor="w").pack(side="left")
         self.cust_entry = ctk.CTkEntry(cust_top, width=500, placeholder_text="Kunde eingeben...")
         self.cust_entry.bind("<KeyRelease>", lambda e: self._filter_customers() if e.keysym not in ("Up", "Down", "Return", "Escape") else None)
         self.cust_entry.pack(side="left", padx=5)
@@ -164,7 +164,7 @@ class FerdlWorksApp(ctk.CTk):
         art = ctk.CTkFrame(main, corner_radius=6)
         art.pack(fill="x", padx=8, pady=1)
         ctk.CTkLabel(art, text="Artikel:", font=("Segoe UI", 13, "bold"),
-                     text_color=("#8b0000", "#8b0000")).pack(side="left", padx=(10, 5))
+                     text_color=("#8b0000", "#8b0000"), width=70, anchor="w").pack(side="left", padx=(10, 0))
         self.art_entry = ctk.CTkEntry(art, width=500, placeholder_text="Werkzeug, Material oder Text eingeben...")
         self.art_entry.pack(side="left", padx=5, pady=4)
         self.art_entry.bind("<KeyRelease>", lambda e: self._search_articles() if e.keysym not in ("Up", "Down", "Return", "Escape") else None)
@@ -221,6 +221,21 @@ class FerdlWorksApp(ctk.CTk):
         self._selected_article = None
         self._art_dropdown_idx = -1
         self._hide_units()
+
+        # --- Notiz + Rabatt ---
+        note_frame = ctk.CTkFrame(main, corner_radius=6)
+        note_frame.pack(fill="x", padx=8, pady=(2, 1))
+        ctk.CTkLabel(note_frame, text="Notiz:", font=("Segoe UI", 13), width=70, anchor="w").pack(side="left", padx=(10, 0))
+        self.doc_note = ctk.CTkTextbox(note_frame, width=400, height=80)
+        self.doc_note.pack(side="left", padx=5, pady=4)
+        ctk.CTkLabel(note_frame, text="Rabatt:", font=("Segoe UI", 13)).pack(side="left", padx=(15, 5))
+        self.discount_var = ctk.StringVar(value="0")
+        self.discount_entry = ctk.CTkEntry(note_frame, width=60, textvariable=self.discount_var)
+        self.discount_entry.pack(side="left", padx=2)
+        self.discount_entry.bind("<KeyRelease>", lambda e: self._recalc_totals())
+        self.discount_type_var = ctk.StringVar(value="%")
+        ctk.CTkOptionMenu(note_frame, variable=self.discount_type_var, values=["%", "\u20ac"],
+                          width=50, command=lambda v: self._recalc_totals()).pack(side="left")
 
         # --- Positionen (unten) ---
         pos_frame = ctk.CTkFrame(main, corner_radius=6)
@@ -707,15 +722,9 @@ class FerdlWorksApp(ctk.CTk):
 
     # ===================== FOOTER =====================
     def _build_footer(self, parent):
-        # --- Zeile 1: Notiz (links) + Summen (rechts) ---
-        row1 = ctk.CTkFrame(parent, fg_color="transparent")
-        row1.pack(fill="x", padx=8, pady=(6, 2))
-        ctk.CTkLabel(row1, text="Notiz:", font=("Segoe UI", 13)).pack(side="left")
-        self.doc_note = ctk.CTkEntry(row1, width=300)
-        self.doc_note.pack(side="left", padx=5)
         # Summen rechts
-        rf = ctk.CTkFrame(row1, fg_color="transparent")
-        rf.pack(side="right")
+        rf = ctk.CTkFrame(parent, fg_color="transparent")
+        rf.pack(side="right", padx=8, pady=6)
         self._sum_labels = {}
         self._rabatt_row = None
         for text in ["Netto:", "MwSt:", "Brutto:"]:
@@ -737,25 +746,14 @@ class FerdlWorksApp(ctk.CTk):
         self._sum_labels["mwst"].master.grid(row=2, column=0, sticky="ew", padx=2, pady=1)
         self._sum_labels["brutto"].master.grid(row=3, column=0, sticky="ew", padx=2, pady=1)
 
-        # --- Zeile 2: Rabatt-Feld + Typ (links) + Buttons (rechts) ---
-        row2 = ctk.CTkFrame(parent, fg_color="transparent")
-        row2.pack(fill="x", padx=8, pady=(2, 6))
-        ctk.CTkLabel(row2, text="Rabatt:", font=("Segoe UI", 13)).pack(side="left")
-        self.discount_var = ctk.StringVar(value="0")
-        self.discount_entry = ctk.CTkEntry(row2, width=60, textvariable=self.discount_var)
-        self.discount_entry.pack(side="left", padx=5)
-        self.discount_entry.bind("<KeyRelease>", lambda e: self._recalc_totals())
-        self.discount_type_var = ctk.StringVar(value="%")
-        ctk.CTkOptionMenu(row2, variable=self.discount_type_var, values=["%", "\u20ac"],
-                          width=50, command=lambda v: self._recalc_totals()).pack(side="left", padx=(0, 15))
-        # Buttons rechts
+        # Buttons links
         btns = [("PDF", self._save_pdf), ("E-Mail", self._send_email_doc),
                 ("Drucken", self._print_doc), ("L\xf6schen", self._delete_doc)]
         for text, cmd in btns:
             fg = "#5c0000" if text in ["L\xf6schen"] else "#8b0000"
-            ctk.CTkButton(row2, text=text, command=cmd, width=80,
+            ctk.CTkButton(parent, text=text, command=cmd, width=80,
                           fg_color=fg, hover_color="#b22222",
-                          font=("Segoe UI", 13)).pack(side="right", padx=3)
+                          font=("Segoe UI", 13)).pack(side="left", padx=3, pady=6)
 
     # ===================== STATUSBAR =====================
     def _build_statusbar(self):
@@ -784,7 +782,7 @@ class FerdlWorksApp(ctk.CTk):
         self._refresh_positions()
         self.cust_entry.delete(0, "end")
         self.art_entry.delete(0, "end")
-        self.doc_note.delete(0, "end")
+        self.doc_note.delete("1.0", "end")
         self.discount_var.set("0")
         self.doc_type_var.set("RG")
         self._customer_id = None
@@ -822,7 +820,7 @@ class FerdlWorksApp(ctk.CTk):
             "total_net": net_after,
             "total_tax": total_tax,
             "total_gross": total_gross,
-            "note": self.doc_note.get(),
+            "note": self.doc_note.get("1.0", "end-1c"),
         }
 
     def _do_save(self, silent=False):
@@ -871,8 +869,8 @@ class FerdlWorksApp(ctk.CTk):
             return
         self._current_doc_id = doc["id"]
         self.doc_type_var.set(doc["doc_type"])
-        self.doc_note.delete(0, "end")
-        self.doc_note.insert(0, doc.get("note", ""))
+        self.doc_note.delete("1.0", "end")
+        self.doc_note.insert("1.0", doc.get("note", ""))
         self.discount_var.set(str(doc.get("discount_value", "0")).replace(".", ","))
         self.discount_type_var.set("%" if doc.get("discount_type", "percent") == "percent" else "\u20ac")
         customer = doc.get("customer")
