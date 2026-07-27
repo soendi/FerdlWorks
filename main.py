@@ -693,11 +693,11 @@ class FerdlWorksApp(ctk.CTk):
         total_tax = netto_nach_rabatt * tax_rate / 100
         total_gross = netto_nach_rabatt + total_tax
         self._sum_labels["netto"].configure(text=f"{total_net:.2f}\u20ac".replace(".", ","))
-        if discount_val > 0 and self._rabatt_frame and self._rabatt_lbl:
-            self._rabatt_frame.pack(fill="x", before=self._mwst_frame)
+        if discount_val > 0 and self._rabatt_row and self._rabatt_lbl:
+            self._rabatt_row.grid()
             self._rabatt_lbl.configure(text=f"-{rabatt:.2f}\u20ac".replace(".", ","))
-        elif self._rabatt_frame:
-            self._rabatt_frame.pack_forget()
+        elif self._rabatt_row:
+            self._rabatt_row.grid_remove()
         self._sum_labels["mwst"].configure(text=f"{total_tax:.2f}\u20ac".replace(".", ","))
         self._sum_labels["brutto"].configure(text=f"{total_gross:.2f}\u20ac".replace(".", ","))
 
@@ -717,8 +717,9 @@ class FerdlWorksApp(ctk.CTk):
         rf = ctk.CTkFrame(parent, fg_color="transparent")
         rf.pack(side="right", padx=8, pady=6)
         self._sum_labels = {}
-        self._mwst_frame = None
-        for text in ["Netto:", "MwSt:", "Brutto:"]:
+        self._rabatt_row = None
+        labels = ["Netto:", "MwSt:", "Brutto:"]
+        for text in labels:
             f = ctk.CTkFrame(rf, fg_color="transparent")
             ctk.CTkLabel(f, text=text, font=("Segoe UI", 13)).pack(side="left")
             lbl = ctk.CTkLabel(f, text="0,00 \u20ac", font=("Segoe UI", 13, "bold"),
@@ -726,20 +727,17 @@ class FerdlWorksApp(ctk.CTk):
             lbl.pack(side="right", padx=4)
             key = text.replace(":", "").replace(" ", "_").lower()
             self._sum_labels[key] = lbl
-            if text == "MwSt:":
-                self._mwst_frame = f
-        # Rabatt-Frame (zunächst unsichtbar)
-        self._rabatt_frame = ctk.CTkFrame(rf, fg_color="transparent")
-        ctk.CTkLabel(self._rabatt_frame, text="Rabatt:", font=("Segoe UI", 13)).pack(side="left")
-        self._rabatt_lbl = ctk.CTkLabel(self._rabatt_frame, text="0,00 \u20ac", font=("Segoe UI", 13),
+        # Grid: Netto row 0, Rabatt row 1 (hidden), MwSt row 2, Brutto row 3
+        self._sum_labels["netto"].master.grid(row=0, column=0, sticky="ew", padx=2, pady=1)
+        self._rabatt_row = ctk.CTkFrame(rf, fg_color="transparent")
+        self._rabatt_row.grid(row=1, column=0, sticky="ew", padx=2, pady=1)
+        ctk.CTkLabel(self._rabatt_row, text="Rabatt:", font=("Segoe UI", 13)).pack(side="left")
+        self._rabatt_lbl = ctk.CTkLabel(self._rabatt_row, text="0,00 \u20ac", font=("Segoe UI", 13),
                                         text_color=("#8b0000", "#8b0000"), width=80, anchor="e")
         self._rabatt_lbl.pack(side="right", padx=4)
-        # Pack-Reihenfolge: Netto, Rabatt (versteckt), MwSt, Brutto
-        self._sum_labels["netto"].master.pack(fill="x")  # Netto
-        self._rabatt_frame.pack(fill="x", before=self._mwst_frame)  # nach Netto, vor MwSt
-        self._rabatt_frame.pack_forget()  # erstmal unsichtbar
-        self._mwst_frame.pack(fill="x")  # MwSt
-        self._sum_labels["brutto"].master.pack(fill="x")  # Brutto
+        self._rabatt_row.grid_remove()  # erstmal unsichtbar
+        self._sum_labels["mwst"].master.grid(row=2, column=0, sticky="ew", padx=2, pady=1)
+        self._sum_labels["brutto"].master.grid(row=3, column=0, sticky="ew", padx=2, pady=1)
 
         bf = ctk.CTkFrame(parent, fg_color="transparent")
         bf.pack(side="bottom", fill="x", padx=8, pady=6)
