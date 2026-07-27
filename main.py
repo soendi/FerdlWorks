@@ -118,10 +118,8 @@ class FerdlWorksApp(ctk.CTk):
         cust_top.pack(fill="x", padx=10, pady=(8, 0))
         ctk.CTkLabel(cust_top, text="Kunde:", font=("Segoe UI", 11, "bold"),
                      text_color=("#8b0000", "#8b0000")).pack(side="left", padx=(0, 5))
-        self.cust_var = ctk.StringVar()
-        self.cust_var.trace_add("write", lambda *a: self._filter_customers())
-        self.cust_entry = ctk.CTkEntry(cust_top, width=500, placeholder_text="Kunde eingeben...",
-                                       textvariable=self.cust_var)
+        self.cust_entry = ctk.CTkEntry(cust_top, width=500, placeholder_text="Kunde eingeben...")
+        self.cust_entry.bind("<KeyRelease>", lambda e: self._filter_customers() if e.keysym not in ("Up", "Down", "Return", "Escape") else None)
         self.cust_entry.pack(side="left", padx=5)
         # Buttons Neu / Bearbeiten
         self.cust_btn_new = ctk.CTkButton(cust_top, text="Neu", width=60, 
@@ -252,7 +250,7 @@ class FerdlWorksApp(ctk.CTk):
                 self._do_hide_art_dropdown()
 
     def _filter_customers(self):
-        query = self.cust_var.get().strip()
+        query = self.cust_entry.get().strip()
         self._cust_data = self.db.customer_search(query) if query else []
         self.cust_dropdown.delete(0, "end")
         for c in self._cust_data:
@@ -303,7 +301,7 @@ class FerdlWorksApp(ctk.CTk):
         if self._cust_dropdown_idx < 0 or self._cust_dropdown_idx >= len(self._cust_data):
             return
         self._customer_id = self._cust_data[self._cust_dropdown_idx]["id"]
-        self.cust_var.set(self.cust_dropdown.get(self._cust_dropdown_idx))
+        self.cust_entry.delete(0, "end"); self.cust_entry.insert(0, self.cust_dropdown.get(self._cust_dropdown_idx))
         self._do_hide_cust_dropdown()
 
     def _nav_art_down(self, event=None):
@@ -353,7 +351,7 @@ class FerdlWorksApp(ctk.CTk):
         if idx < len(self._cust_data):
             self._cust_dropdown_idx = idx
             self._customer_id = self._cust_data[idx]["id"]
-            self.cust_var.set(self.cust_dropdown.get(idx))
+            self.cust_entry.delete(0, "end"); self.cust_entry.insert(0, self.cust_dropdown.get(idx))
             self._do_hide_cust_dropdown()
 
     def _get_selected_customer_id(self):
@@ -366,7 +364,7 @@ class FerdlWorksApp(ctk.CTk):
             self._customer_id = dlg.result["id"]
             name = (dlg.result.get("company") or
                     f"{dlg.result.get('last_name', '')} {dlg.result.get('first_name', '')}".strip())
-            self.cust_var.set(name)
+            self.cust_entry.delete(0, "end"); self.cust_entry.insert(0, name)
 
     def _edit_customer_from_main(self):
         cid = self._get_selected_customer_id()
@@ -378,7 +376,7 @@ class FerdlWorksApp(ctk.CTk):
         if dlg.result:
             name = (dlg.result.get("company") or
                     f"{dlg.result.get('last_name', '')} {dlg.result.get('first_name', '')}".strip())
-            self.cust_var.set(name)
+            self.cust_entry.delete(0, "end"); self.cust_entry.insert(0, name)
 
     # ===================== ARTIKEL-DROPDOWN =====================
     def _search_articles(self):
@@ -706,7 +704,7 @@ class FerdlWorksApp(ctk.CTk):
         self._current_doc_id = None
         self._positions.clear()
         self._refresh_positions()
-        self.cust_var.set("")
+        self.cust_entry.delete(0, "end")
         self.art_entry.delete(0, "end")
         self.doc_note.delete(0, "end")
         self.discount_var.set("0")
@@ -785,7 +783,7 @@ class FerdlWorksApp(ctk.CTk):
         if customer:
             self._customer_id = customer["id"]
             name = customer.get("company") or f"{customer.get('last_name', '')} {customer.get('first_name', '')}".strip()
-            self.cust_var.set(name)
+            self.cust_entry.delete(0, "end"); self.cust_entry.insert(0, name)
         self._positions.clear()
         for p in doc.get("positions", []):
             self._positions.append(PositionItem(
