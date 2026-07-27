@@ -122,7 +122,8 @@ class FerdlWorksApp(ctk.CTk):
         self.cust_entry = ctk.CTkEntry(cust_top, width=500, placeholder_text="Kunde eingeben...",
                                        textvariable=self.cust_var)
         self.cust_entry.pack(side="left", padx=5)
-        self.cust_entry.bind("<FocusOut>", lambda e: self._hide_cust_dropdown())
+        self.cust_entry.bind("<FocusOut>", lambda e: self._on_cust_focus_out())
+        self.cust_entry.bind("<Button-1>", lambda e: self._filter_customers())
         # Buttons Neu / Bearbeiten
         self.cust_btn_new = ctk.CTkButton(cust_top, text="Neu", width=60, 
                                           command=self._new_customer_from_main,
@@ -158,7 +159,6 @@ class FerdlWorksApp(ctk.CTk):
         self.art_entry = ctk.CTkEntry(art, width=500, placeholder_text="Werkzeug, Material oder Text eingeben...")
         self.art_entry.pack(side="left", padx=5, pady=4)
         self.art_entry.bind("<KeyRelease>", lambda e: self._search_articles())
-        self.art_entry.bind("<FocusOut>", lambda e: self._hide_art_dropdown())
 
         # Kontext-Felder (abhängig vom ausgewählten Artikel-Typ, versteckt)
         self._art_mat_f = ctk.CTkFrame(art, fg_color="transparent")
@@ -257,6 +257,16 @@ class FerdlWorksApp(ctk.CTk):
 
     def _hide_cust_dropdown(self, event=None):
         self.after(100, self._do_hide_cust_dropdown)
+
+    def _on_cust_focus_out(self):
+        if not self.cust_var.get().strip():
+            self.cust_var.set("")
+        self.after(50, self._check_hide_cust_dropdown)
+
+    def _check_hide_cust_dropdown(self):
+        f = self.focus_get()
+        if f not in (self.cust_dropdown, self._cust_dropdown_frame, self.cust_entry, self.art_entry, self.art_dropdown, self._art_dropdown_frame):
+            self._do_hide_cust_dropdown()
 
     def _do_hide_cust_dropdown(self):
         self._cust_dropdown_frame.place_forget()
