@@ -54,24 +54,24 @@ class FerdlWorksApp(ctk.CTk):
         self.geometry("1024x720")
         self._current_doc_id = None
         self._positions = []
+        self._editing_pos_idx = None
         self._build_menu()
         self._build_ui()
         self.logger.info(f"{APP_NAME} v{VERSION} gestartet (Master-Mode: {master_mode})")
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
-    # ===================== STANDARD-MENÜ =====================
+    # ===================== MENÜ =====================
     def _build_menu(self):
         mb = tk.Menu(self, font=("Segoe UI", 10))
         datei = tk.Menu(mb, tearoff=False, font=("Segoe UI", 10))
-        datei.add_command(label="Kundenkartei...", command=self._open_customer_mgmt, accelerator="Strg+K")
-        datei.add_separator()
         datei.add_command(label="Beenden", command=self._on_close, accelerator="Strg+Q")
         mb.add_cascade(label="Datei", menu=datei)
 
-        wkz = tk.Menu(mb, tearoff=False, font=("Segoe UI", 10))
-        wkz.add_command(label="Werkzeuge verwalten...", command=self._open_tool_mgmt)
-        wkz.add_command(label="Material verwalten...", command=self._open_material_mgmt)
-        mb.add_cascade(label="Werkzeuge & Material", menu=wkz)
+        verw = tk.Menu(mb, tearoff=False, font=("Segoe UI", 10))
+        verw.add_command(label="Kundenverwaltung...", command=self._open_customer_mgmt)
+        verw.add_command(label="Materialverwaltung...", command=self._open_material_mgmt)
+        verw.add_command(label="Werkzeugverwaltung...", command=self._open_tool_mgmt)
+        mb.add_cascade(label="Verwaltung", menu=verw)
 
         einst = tk.Menu(mb, tearoff=False, font=("Segoe UI", 10))
         einst.add_command(label="Einstellungen...", command=self._open_settings, accelerator="Strg+E")
@@ -93,9 +93,6 @@ class FerdlWorksApp(ctk.CTk):
         hilfe.add_command(label="Deinstallieren...", command=self._uninstall)
         mb.add_cascade(label="Hilfe", menu=hilfe)
         self.configure(menu=mb)
-
-        # Tastaturkürzel
-        self.bind_all("<Control-k>", lambda e: self._open_customer_mgmt())
         self.bind_all("<Control-q>", lambda e: self._on_close())
         self.bind_all("<Control-e>", lambda e: self._open_settings())
         self.bind_all("<Control-u>", lambda e: self._check_update())
@@ -105,27 +102,18 @@ class FerdlWorksApp(ctk.CTk):
         main = ctk.CTkFrame(self)
         main.pack(fill="both", expand=True, padx=5, pady=5)
 
-        # --- Kunde ---
+        # --- Kunde (Entry + Dropdown) ---
         cust = ctk.CTkFrame(main, corner_radius=6)
-        cust.pack(fill="x", padx=8, pady=(4, 2))
-        ctk.CTkLabel(cust, text="Kunde:", font=("Segoe UI", 12, "bold"),
+        cust.pack(fill="x", padx=8, pady=(4, 1))
+        ctk.CTkLabel(cust, text="Kunde:", font=("Segoe UI", 11, "bold"),
                      text_color=("#8b0000", "#8b0000")).pack(side="left", padx=(10, 5))
         self.cust_var = ctk.StringVar()
         self.cust_var.trace_add("write", lambda *a: self._filter_customers())
-        self.cust_entry = ctk.CTkEntry(cust, width=220, placeholder_text="Namen eingeben...",
+        self.cust_entry = ctk.CTkEntry(cust, width=300, placeholder_text="Namen eingeben...",
                                        textvariable=self.cust_var)
-        self.cust_entry.pack(side="left", padx=5)
-        self.cust_listbox = tk.Listbox(cust, height=5, width=40,
-                                       font=("Segoe UI", 10), exportselection=False)
-        self.cust_listbox.pack(side="left", padx=2, fill="y")
-        self.cust_listbox.bind("<<ListboxSelect>>", lambda e: self._pick_customer())
-        self._cust_data = []
-        ctk.CTkButton(cust, text="Neu", width=50, command=self._new_customer,
-                       fg_color="#5c0000", hover_color="#8b0000").pack(side="left", padx=2)
-        ctk.CTkButton(cust, text="Bearbeiten", width=80, command=self._edit_customer,
-                       fg_color="#5c0000", hover_color="#8b0000").pack(side="left", padx=2)
-        self._customer_id = None
-        # Dokument-Typ
+        self.cust_entry.pack(side="left", padx=5, pady=4)
+        self.cust_entry.bind("<FocusOut>", lambda e: self._hide_cust_dropdown())
+        # Dokument-Typ rechts
         dtype_f = ctk.CTkFrame(cust, fg_color="transparent")
         dtype_f.pack(side="right", padx=10)
         self.doc_type_var = ctk.StringVar(value="RG")
@@ -134,7 +122,77 @@ class FerdlWorksApp(ctk.CTk):
         ctk.CTkRadioButton(dtype_f, text="Lieferschein", variable=self.doc_type_var, value="LS",
                            font=("Segoe UI", 11)).pack(side="left", padx=5)
 
-        # --- Positionen (Tabelle) ---
+        # Dropdown-Liste Kunde (wird ein/ausgeblendet)
+        self._cust_dropdown_frame = ctk.CTkFrame(main, corner_radius=4, height=0)
+        self.cust_dropdown = tk.Listbox(self._cust_dropdown_frame, height=5,
+                                        font=("Segoe UI", 10), exportselection=False,
+                                        bg="#2a2a2a", fg="#e0e0e0", selectbackground="#8b0000",
+                                        borderwidth=0, highlightthickness=0)
+        self.cust_dropdown.pack(fill="x", padx=2, pady=2)
+        self.cust_dropdown.bind("<<ListboxSelect>>", lambda e: self._pick_customer())
+        self.cust_dropdown.bind("<FocusOut>", lambda e: self._hide_cust_dropdown())
+        self._cust_data = []
+        self._customer_id = None
+
+        # --- Artikel-Suche (Entry + Dropdown + Einheiten) ---
+        art = ctk.CTkFrame(main, corner_radius=6)
+        art.pack(fill="x", padx=8, pady=1)
+        ctk.CTkLabel(art, text="Artikel:", font=("Segoe UI", 11, "bold"),
+                     text_color=("#8b0000", "#8b0000")).pack(side="left", padx=(10, 5))
+        self.art_entry = ctk.CTkEntry(art, width=250, placeholder_text="Werkzeug oder Material...")
+        self.art_entry.pack(side="left", padx=5, pady=4)
+        self.art_entry.bind("<KeyRelease>", lambda e: self._search_articles())
+        self.art_entry.bind("<FocusOut>", lambda e: self._hide_art_dropdown())
+
+        # Einheiten + Einfügen (rechts neben Entry, versteckt)
+        self.art_units = ctk.CTkFrame(art, fg_color="transparent")
+        self.art_units.pack(side="left", padx=5)
+
+        self._art_mat_f = ctk.CTkFrame(self.art_units, fg_color="transparent")
+        ctk.CTkLabel(self._art_mat_f, text="L:", font=("Segoe UI", 10)).pack(side="left")
+        self.dl_length = ctk.CTkEntry(self._art_mat_f, width=55)
+        self.dl_length.pack(side="left", padx=2)
+        self.dl_length.bind("<KeyRelease>", lambda e: self._calc_detail_qm())
+        ctk.CTkLabel(self._art_mat_f, text="B:", font=("Segoe UI", 10)).pack(side="left")
+        self.dl_width = ctk.CTkEntry(self._art_mat_f, width=55)
+        self.dl_width.pack(side="left", padx=2)
+        self.dl_width.bind("<KeyRelease>", lambda e: self._calc_detail_qm())
+        ctk.CTkLabel(self._art_mat_f, text="M:", font=("Segoe UI", 10)).pack(side="left")
+        self.dl_qty = ctk.CTkEntry(self._art_mat_f, width=45)
+        self.dl_qty.insert(0, "1")
+        self.dl_qty.pack(side="left", padx=2)
+        self.dl_qty.bind("<KeyRelease>", lambda e: self._calc_detail_qm())
+        self.dl_qm_label = ctk.CTkLabel(self._art_mat_f, text="m\xb2:0,00", font=("Segoe UI", 9, "bold"),
+                                        text_color=("#8b0000", "#8b0000"))
+        self.dl_qm_label.pack(side="left", padx=4)
+
+        self._art_tool_f = ctk.CTkFrame(self.art_units, fg_color="transparent")
+        ctk.CTkLabel(self._art_tool_f, text="Zeit:", font=("Segoe UI", 10)).pack(side="left")
+        self.dl_time = ctk.CTkEntry(self._art_tool_f, width=55)
+        self.dl_time.insert(0, "1")
+        self.dl_time.pack(side="left", padx=2)
+        self.dl_time_unit = ctk.StringVar(value="h")
+        ctk.CTkOptionMenu(self._art_tool_f, variable=self.dl_time_unit, values=["h", "min"],
+                          width=55).pack(side="left", padx=2)
+
+        self.art_insert_btn = ctk.CTkButton(self.art_units, text="Einfügen", command=self._insert_article,
+                                            width=80, fg_color="#5c0000", hover_color="#8b0000")
+        self.art_insert_btn.pack(side="left", padx=5)
+
+        # Dropdown-Liste Artikel
+        self._art_dropdown_frame = ctk.CTkFrame(main, corner_radius=4, height=0)
+        self.art_dropdown = tk.Listbox(self._art_dropdown_frame, height=5,
+                                       font=("Segoe UI", 10), exportselection=False,
+                                       bg="#2a2a2a", fg="#e0e0e0", selectbackground="#8b0000",
+                                       borderwidth=0, highlightthickness=0)
+        self.art_dropdown.pack(fill="x", padx=2, pady=2)
+        self.art_dropdown.bind("<<ListboxSelect>>", lambda e: self._select_article())
+        self.art_dropdown.bind("<FocusOut>", lambda e: self._hide_art_dropdown())
+        self._art_results = []
+        self._selected_article = None
+        self._hide_units()
+
+        # --- Positionen (unten) ---
         pos_frame = ctk.CTkFrame(main, corner_radius=6)
         pos_frame.pack(fill="both", expand=True, padx=8, pady=2)
         ctk.CTkLabel(pos_frame, text="Positionen", font=("Segoe UI", 11, "bold"),
@@ -142,165 +200,113 @@ class FerdlWorksApp(ctk.CTk):
         cols = ("pos", "beschreibung", "menge", "einheit", "ep", "gesamt")
         heads = {"pos": "Pos.", "beschreibung": "Beschreibung", "menge": "Menge",
                  "einheit": "Einheit", "ep": "EP", "gesamt": "Gesamt"}
-        widths = {"pos": 40, "beschreibung": 300, "menge": 60, "einheit": 60, "ep": 80, "gesamt": 90}
+        widths = {"pos": 40, "beschreibung": 350, "menge": 60, "einheit": 60, "ep": 80, "gesamt": 90}
         self.pos_tree = ttk.Treeview(pos_frame, columns=cols, show="headings", height=5)
         for c in cols:
             self.pos_tree.heading(c, text=heads[c])
             self.pos_tree.column(c, width=widths[c], minwidth=30, anchor="w" if c in ("pos", "beschreibung") else "e")
         self.pos_tree.bind("<Delete>", lambda e: self._remove_selected_position())
+        self.pos_tree.bind("<Double-1>", lambda e: self._edit_position())
         vsb = ttk.Scrollbar(pos_frame, orient="vertical", command=self.pos_tree.yview)
         self.pos_tree.configure(yscrollcommand=vsb.set)
         self.pos_tree.pack(fill="both", expand=True, padx=10, pady=2)
         vsb.pack(side="right", fill="y")
         vsb.place(in_=self.pos_tree, relx=1.0, rely=0, relheight=1.0, x=0)
 
-        # --- Artikel-Suche (kombiniert: Werkzeug + Material) ---
-        search_frame = ctk.CTkFrame(main, corner_radius=6)
-        search_frame.pack(fill="x", padx=8, pady=2)
-        self._build_search_panel(search_frame)
-
-        # --- Detail-Panel (kontextabhängig) ---
-        self.detail_frame = ctk.CTkFrame(main, corner_radius=6, height=60)
-        self.detail_frame.pack(fill="x", padx=8, pady=2)
-        self._build_detail_panel(self.detail_frame)
-        self._hide_detail()
-
         # --- Footer ---
         footer = ctk.CTkFrame(main, corner_radius=6)
         footer.pack(fill="x", padx=8, pady=4)
         self._build_footer(footer)
 
-    # ===================== KUNDENSUCHE =====================
+    # ===================== KUNDEN-DROPDOWN =====================
     def _filter_customers(self):
-        query = self.cust_var.get()
-        self._cust_data = self.db.customer_search(query)
-        self.cust_listbox.delete(0, "end")
+        query = self.cust_var.get().strip()
+        self._cust_data = self.db.customer_search(query) if query else []
+        self.cust_dropdown.delete(0, "end")
         for c in self._cust_data:
             name = c.get("company") or f"{c.get('last_name', '')} {c.get('first_name', '')}".strip()
             orts = c.get("city", "")
-            self.cust_listbox.insert("end", f"{name}  ({orts})" if orts else name)
+            self.cust_dropdown.insert("end", f"{name}  ({orts})" if orts else name)
+        if query and self._cust_data:
+            self._show_cust_dropdown()
+        else:
+            self._hide_cust_dropdown()
+
+    def _show_cust_dropdown(self):
+        self._cust_dropdown_frame.pack(fill="x", padx=8, pady=(0, 2), after=self.cust_entry.master.master)
+
+    def _hide_cust_dropdown(self, event=None):
+        self._cust_dropdown_frame.pack_forget()
+        # clear selection highlight
+        self.cust_dropdown.selection_clear(0, "end")
 
     def _pick_customer(self):
-        sel = self.cust_listbox.curselection()
+        sel = self.cust_dropdown.curselection()
         if not sel:
             return
         idx = sel[0]
         if idx < len(self._cust_data):
             self._customer_id = self._cust_data[idx]["id"]
-            self.cust_var.set(self.cust_listbox.get(idx))
+            self.cust_var.set(self.cust_dropdown.get(idx))
+            self._hide_cust_dropdown()
 
     def _get_selected_customer_id(self):
         return self._customer_id
 
-    def _new_customer(self):
-        dlg = CustomerDialog(self)
-        self.wait_window(dlg)
-        if dlg.result:
-            self._filter_customers()
-
-    def _edit_customer(self):
-        if not self._customer_id:
-            return
-        dlg = CustomerDialog(self, self._customer_id)
-        self.wait_window(dlg)
-        if dlg.result:
-            self._filter_customers()
-
-    # ===================== ARTIKEL-SUCHE =====================
-    def _build_search_panel(self, parent):
-        row = ctk.CTkFrame(parent, fg_color="transparent")
-        row.pack(fill="x", padx=10, pady=(6, 2))
-        ctk.CTkLabel(row, text="Artikel suchen:", font=("Segoe UI", 11, "bold"),
-                     text_color=("#8b0000", "#8b0000")).pack(side="left", padx=(0, 8))
-        self.art_var = ctk.StringVar()
-        self.art_var.trace_add("write", lambda *a: self._search_articles())
-        ctk.CTkEntry(row, textvariable=self.art_var, width=280,
-                      placeholder_text="Werkzeug oder Material...").pack(side="left", padx=5)
-
-        # Ergebnisliste (2 Spalten)
-        result_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        result_frame.pack(fill="x", padx=10, pady=(2, 6))
-        self.art_listbox = tk.Listbox(result_frame, height=4, font=("Segoe UI", 10),
-                                       exportselection=False)
-        self.art_listbox.pack(side="left", fill="x", expand=True)
-        self.art_listbox.bind("<<ListboxSelect>>", lambda e: self._select_article())
-        self._art_results = []
-
+    # ===================== ARTIKEL-DROPDOWN =====================
     def _search_articles(self):
-        query = self.art_var.get()
+        query = self.art_entry.get().strip()
         self._art_results = self.db.combined_search(query) if query else []
-        self.art_listbox.delete(0, "end")
+        self.art_dropdown.delete(0, "end")
         for item in self._art_results:
-            self.art_listbox.insert("end", f"{item['name']:40s}  |  {item['item_type']}")
-        self._hide_detail()
+            self.art_dropdown.insert("end", f"{item['name']:40s}  |  {item['item_type']}")
+        if query and self._art_results:
+            self._show_art_dropdown()
+        else:
+            self._hide_art_dropdown()
+
+    def _show_art_dropdown(self):
+        self._art_dropdown_frame.pack(fill="x", padx=8, pady=(0, 2), after=self.art_entry.master.master)
+
+    def _hide_art_dropdown(self, event=None):
+        self._art_dropdown_frame.pack_forget()
+        self.art_dropdown.selection_clear(0, "end")
 
     def _select_article(self):
-        sel = self.art_listbox.curselection()
+        sel = self.art_dropdown.curselection()
         if not sel:
             return
         idx = sel[0]
         if idx >= len(self._art_results):
             return
-        item = self._art_results[idx]
-        self._selected_article = item
-        if item["item_type"] == "Material":
-            self._show_material_detail(item)
+        self._selected_article = self._art_results[idx]
+        self.art_entry.delete(0, "end")
+        self.art_entry.insert(0, self._selected_article["name"])
+        self._hide_art_dropdown()
+        if self._selected_article["item_type"] == "Material":
+            self._show_mat_units()
         else:
-            self._show_tool_detail(item)
+            self._show_tool_units()
 
-    # ===================== DETAIL-PANEL =====================
-    def _build_detail_panel(self, parent):
-        self.detail_container = ctk.CTkFrame(parent, fg_color="transparent")
-        self.detail_container.pack(fill="x", padx=10, pady=4)
-        self._mat_detail = ctk.CTkFrame(self.detail_container, fg_color="transparent")
-        self._tool_detail = ctk.CTkFrame(self.detail_container, fg_color="transparent")
-
-        # Material-Details
-        ctk.CTkLabel(self._mat_detail, text="Länge (cm):", font=("Segoe UI", 10)).grid(row=0, column=0, padx=4, pady=4)
-        self.dl_length = ctk.CTkEntry(self._mat_detail, width=70)
-        self.dl_length.grid(row=0, column=1, padx=4, pady=4)
-        self.dl_length.bind("<KeyRelease>", lambda e: self._calc_detail_qm())
-        ctk.CTkLabel(self._mat_detail, text="Breite (cm):", font=("Segoe UI", 10)).grid(row=0, column=2, padx=4, pady=4)
-        self.dl_width = ctk.CTkEntry(self._mat_detail, width=70)
-        self.dl_width.grid(row=0, column=3, padx=4, pady=4)
-        self.dl_width.bind("<KeyRelease>", lambda e: self._calc_detail_qm())
-        ctk.CTkLabel(self._mat_detail, text="Menge:", font=("Segoe UI", 10)).grid(row=0, column=4, padx=4, pady=4)
-        self.dl_qty = ctk.CTkEntry(self._mat_detail, width=60)
+    def _show_mat_units(self):
+        self._art_tool_f.pack_forget()
+        self._art_mat_f.pack(side="left")
+        self.art_insert_btn.configure(text="Übernehmen" if self._editing_pos_idx is not None else "Einfügen")
+        self.dl_length.delete(0, "end")
+        self.dl_width.delete(0, "end")
+        self.dl_qty.delete(0, "end")
         self.dl_qty.insert(0, "1")
-        self.dl_qty.grid(row=0, column=5, padx=4, pady=4)
-        self.dl_qty.bind("<KeyRelease>", lambda e: self._calc_detail_qm())
-        ctk.CTkLabel(self._mat_detail, text="m²:", font=("Segoe UI", 10, "bold"),
-                     text_color=("#8b0000", "#8b0000")).grid(row=0, column=6, padx=4, pady=4)
-        self.dl_qm_label = ctk.CTkLabel(self._mat_detail, text="0,00", font=("Segoe UI", 10, "bold"))
-        self.dl_qm_label.grid(row=0, column=7, padx=4, pady=4)
-        ctk.CTkButton(self._mat_detail, text="Einfügen", command=self._insert_material,
-                       width=80).grid(row=0, column=8, padx=10, pady=4)
 
-        # Werkzeug-Details
-        ctk.CTkLabel(self._tool_detail, text="Zeit:", font=("Segoe UI", 10)).grid(row=0, column=0, padx=4, pady=4)
-        self.dl_time = ctk.CTkEntry(self._tool_detail, width=70)
+    def _show_tool_units(self):
+        self._art_mat_f.pack_forget()
+        self._art_tool_f.pack(side="left")
+        self.art_insert_btn.configure(text="Übernehmen" if self._editing_pos_idx is not None else "Einfügen")
+        self.dl_time.delete(0, "end")
         self.dl_time.insert(0, "1")
-        self.dl_time.grid(row=0, column=1, padx=4, pady=4)
-        self.dl_time_unit = ctk.StringVar(value="h")
-        ctk.CTkOptionMenu(self._tool_detail, variable=self.dl_time_unit, values=["h", "min"],
-                          width=60).grid(row=0, column=2, padx=4, pady=4)
-        ctk.CTkButton(self._tool_detail, text="Einfügen", command=self._insert_tool,
-                       width=80).grid(row=0, column=3, padx=10, pady=4)
 
-    def _show_material_detail(self, item):
-        self._tool_detail.pack_forget()
-        self._mat_detail.pack(fill="x")
-        self._selected_article = item
-
-    def _show_tool_detail(self, item):
-        self._mat_detail.pack_forget()
-        self._tool_detail.pack(fill="x")
-        self._selected_article = item
-
-    def _hide_detail(self):
-        self._mat_detail.pack_forget()
-        self._tool_detail.pack_forget()
-        self._selected_article = None
+    def _hide_units(self):
+        self._art_mat_f.pack_forget()
+        self._art_tool_f.pack_forget()
 
     def _calc_detail_qm(self):
         try:
@@ -308,60 +314,101 @@ class FerdlWorksApp(ctk.CTk):
             width = float(self.dl_width.get().replace(",", ".")) / 100
             qty = float(self.dl_qty.get().replace(",", "."))
             qm = length * width * qty
-            self.dl_qm_label.configure(text=f"{qm:.2f}".replace(".", ","))
+            self.dl_qm_label.configure(text=f"m\xb2:{qm:.2f}".replace(".", ","))
         except ValueError:
-            self.dl_qm_label.configure(text="0,00")
+            self.dl_qm_label.configure(text="m\xb2:0,00")
 
-    def _insert_material(self):
+    # ===================== EINFÜGEN / ÜBERNEHMEN =====================
+    def _insert_article(self):
+        if self._editing_pos_idx is not None:
+            self._update_position()
+        else:
+            self._add_position()
+        self._refresh_positions()
+        self._hide_units()
+        self._selected_article = None
+        self.art_entry.delete(0, "end")
+
+    def _add_position(self):
         item = self._selected_article
         if not item:
             return
-        try:
-            length = float(self.dl_length.get().replace(",", ".")) if self.dl_length.get() else 0
-            width = float(self.dl_width.get().replace(",", ".")) if self.dl_width.get() else 0
-            qty = float(self.dl_qty.get().replace(",", ".")) if self.dl_qty.get() else 1
-        except ValueError:
-            length = width = qty = 0
-        price_m2 = item.get("price_per_m2", 0) or item.get("price", 0)
-        if length > 0 and width > 0:
-            qm = (length / 100) * (width / 100) * qty
-            desc = f"{item['name']} ({length:.0f}x{width:.0f}cm x{qty:.0f})"
-            total = qm * price_m2
-            self._positions.append(PositionItem(
-                "material", item["id"], desc, qm, "m\u00b2", price_m2, total,
-                {"length": length, "width": width, "qty": qty}
-            ))
+        if item["item_type"] == "Material":
+            try:
+                length = float(self.dl_length.get().replace(",", ".")) if self.dl_length.get() else 0
+                width = float(self.dl_width.get().replace(",", ".")) if self.dl_width.get() else 0
+                qty = float(self.dl_qty.get().replace(",", ".")) if self.dl_qty.get() else 1
+            except ValueError:
+                length = width = qty = 0
+            price_m2 = item.get("price_per_m2", 0) or item.get("price", 0)
+            if length > 0 and width > 0:
+                qm = (length / 100) * (width / 100) * qty
+                desc = f"{item['name']} ({length:.0f}x{width:.0f}cm x{qty:.0f})"
+                total = qm * price_m2
+                self._positions.append(PositionItem(
+                    "material", item["id"], desc, qm, "m\u00b2", price_m2, total,
+                    {"length": length, "width": width, "qty": qty}
+                ))
+            else:
+                self._positions.append(PositionItem(
+                    "material", item["id"], item["name"], 1, "m\u00b2", price_m2, price_m2
+                ))
         else:
+            try:
+                time_val = float(self.dl_time.get().replace(",", "."))
+            except ValueError:
+                time_val = 1
+            unit = self.dl_time_unit.get()
+            price = item.get("price", 0)
+            price_per = price / 60 if unit == "min" else price
+            unit_label = "Std." if unit == "h" else "Min."
+            total = time_val * price_per
+            desc = f"{item['name']} ({time_val:.0f}{unit_label[0]})"
             self._positions.append(PositionItem(
-                "material", item["id"], item["name"], 1, "m\u00b2", price_m2, price_m2
+                "tool", item["id"], desc, time_val, unit_label, price_per, total
             ))
-        self._refresh_positions()
-        self._hide_detail()
-        self.art_var.set("")
 
-    def _insert_tool(self):
+    def _update_position(self):
         item = self._selected_article
         if not item:
             return
-        try:
-            time_val = float(self.dl_time.get().replace(",", "."))
-        except ValueError:
-            time_val = 1
-        unit = self.dl_time_unit.get()
-        price = item.get("price", 0)
-        if unit == "min":
-            price_per = price / 60
+        idx = self._editing_pos_idx
+        if item["item_type"] == "Material":
+            try:
+                length = float(self.dl_length.get().replace(",", ".")) if self.dl_length.get() else 0
+                width = float(self.dl_width.get().replace(",", ".")) if self.dl_width.get() else 0
+                qty = float(self.dl_qty.get().replace(",", ".")) if self.dl_qty.get() else 1
+            except ValueError:
+                length = width = qty = 0
+            price_m2 = item.get("price_per_m2", 0) or item.get("price", 0)
+            if length > 0 and width > 0:
+                qm = (length / 100) * (width / 100) * qty
+                desc = f"{item['name']} ({length:.0f}x{width:.0f}cm x{qty:.0f})"
+                total = qm * price_m2
+                self._positions[idx] = PositionItem(
+                    "material", item["id"], desc, qm, "m\u00b2", price_m2, total,
+                    {"length": length, "width": width, "qty": qty}
+                )
+            else:
+                self._positions[idx] = PositionItem(
+                    "material", item["id"], item["name"], 1, "m\u00b2", price_m2, price_m2
+                )
         else:
-            price_per = price
-        unit_label = "Std." if unit == "h" else "Min."
-        total = time_val * price_per
-        desc = f"{item['name']} ({time_val:.0f}{unit_label[0]})"
-        self._positions.append(PositionItem(
-            "tool", item["id"], desc, time_val, unit_label, price_per, total
-        ))
-        self._refresh_positions()
-        self._hide_detail()
-        self.art_var.set("")
+            try:
+                time_val = float(self.dl_time.get().replace(",", "."))
+            except ValueError:
+                time_val = 1
+            unit = self.dl_time_unit.get()
+            price = item.get("price", 0)
+            price_per = price / 60 if unit == "min" else price
+            unit_label = "Std." if unit == "h" else "Min."
+            total = time_val * price_per
+            desc = f"{item['name']} ({time_val:.0f}{unit_label[0]})"
+            self._positions[idx] = PositionItem(
+                "tool", item["id"], desc, time_val, unit_label, price_per, total
+            )
+        self._editing_pos_idx = None
+        self.art_insert_btn.configure(text="Einfügen")
 
     # ===================== POSITIONEN =====================
     def _refresh_positions(self):
@@ -382,6 +429,48 @@ class FerdlWorksApp(ctk.CTk):
             if 0 <= idx < len(self._positions):
                 self._positions.pop(idx)
                 self._refresh_positions()
+
+    def _edit_position(self):
+        sel = self.pos_tree.selection()
+        if not sel:
+            return
+        idx = int(sel[0])
+        if idx >= len(self._positions):
+            return
+        pos = self._positions[idx]
+        self._editing_pos_idx = idx
+        self.art_entry.delete(0, "end")
+        self.art_entry.insert(0, pos.description)
+        # Artikel per Suche ermitteln und vorauswählen
+        results = self.db.combined_search(pos.description[:20])
+        found = None
+        for r in results:
+            if r["id"] == pos.ref_id:
+                found = r
+                break
+        if not found and results:
+            found = results[0]
+        if found:
+            self._selected_article = found
+        if pos.pos_type == "material":
+            self._show_mat_units()
+            ed = pos.extra_data or {}
+            if ed.get("length"):
+                self.dl_length.delete(0, "end")
+                self.dl_length.insert(0, str(ed["length"]))
+            if ed.get("width"):
+                self.dl_width.delete(0, "end")
+                self.dl_width.insert(0, str(ed["width"]))
+            if ed.get("qty"):
+                self.dl_qty.delete(0, "end")
+                self.dl_qty.insert(0, str(ed["qty"]))
+            self._calc_detail_qm()
+        else:
+            self._show_tool_units()
+            self.dl_time.delete(0, "end")
+            self.dl_time.insert(0, str(int(pos.quantity)))
+            self.dl_time_unit.set("h" if pos.unit == "Std." else "min")
+        self.art_insert_btn.configure(text="Übernehmen")
 
     # ===================== SUMMEN =====================
     def _recalc_totals(self):
@@ -449,13 +538,16 @@ class FerdlWorksApp(ctk.CTk):
         self._positions.clear()
         self._refresh_positions()
         self.cust_var.set("")
-        self.art_var.set("")
+        self.art_entry.delete(0, "end")
         self.doc_note.delete(0, "end")
         self.discount_var.set("0")
         self.doc_type_var.set("RG")
         self._customer_id = None
         self._cust_data = []
-        self.cust_listbox.delete(0, "end")
+        self._editing_pos_idx = None
+        self._hide_units()
+        self._hide_cust_dropdown()
+        self._hide_art_dropdown()
 
     def _get_doc_data(self):
         settings = self.db.settings_get_all()
