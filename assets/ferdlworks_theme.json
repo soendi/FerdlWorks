@@ -101,6 +101,10 @@
         "unselected_hover_color": ["#3a3a3a", "#3a3a3a"],
         "text_color": ["#e0e0e0", "#e0e0e0"]
     },
+    "CTkToplevel": {
+        "fg_color": ["#1a1a1a", "#1a1a1a"],
+        "bg_color": ["#1a1a1a", "#1a1a1a"]
+    },
     "CTkSlider": {
         "fg_color": ["#2a2a2a", "#2a2a2a"],
         "progress_color": ["#8b0000", "#8b0000"],
