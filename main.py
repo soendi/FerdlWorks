@@ -7,8 +7,6 @@ from tkinter import messagebox, ttk
 from PIL import Image
 from datetime import datetime
 
-ctk.set_default_font(ctk.CTkFont(family="Segoe UI", size=13))
-
 from lib.logger import setup_logger, get_logger, get_log_path
 from lib.registry import reg_write, reg_read, reg_delete_all
 from lib.icon import create_icon
@@ -702,10 +700,10 @@ class FerdlWorksApp(ctk.CTk):
     def _build_footer(self, parent):
         lf = ctk.CTkFrame(parent, fg_color="transparent")
         lf.pack(side="left", fill="x", expand=True, padx=8, pady=6)
-        ctk.CTkLabel(lf, text="Notiz:", font=("Segoe UI", 13)).pack(side="left", padx=(0, 5))
+        ctk.CTkLabel(lf, text="Notiz:", font=("Segoe UI", 10)).pack(side="left", padx=(0, 5))
         self.doc_note = ctk.CTkEntry(lf, width=250)
         self.doc_note.pack(side="left", padx=5)
-        ctk.CTkLabel(lf, text="Rabatt %:", font=("Segoe UI", 13)).pack(side="left", padx=(15, 5))
+        ctk.CTkLabel(lf, text="Rabatt %:", font=("Segoe UI", 10)).pack(side="left", padx=(15, 5))
         self.discount_var = ctk.StringVar(value="0")
         self.discount_entry = ctk.CTkEntry(lf, width=50, textvariable=self.discount_var)
         self.discount_entry.pack(side="left", padx=5)
@@ -717,8 +715,8 @@ class FerdlWorksApp(ctk.CTk):
         for text in ["Netto:", "MwSt:", "Brutto:"]:
             f = ctk.CTkFrame(rf, fg_color="transparent")
             f.pack(fill="x")
-            ctk.CTkLabel(f, text=text, font=("Segoe UI", 13)).pack(side="left")
-            lbl = ctk.CTkLabel(f, text="0,00 \u20ac", font=("Segoe UI", 13, "bold"),
+            ctk.CTkLabel(f, text=text, font=("Segoe UI", 10)).pack(side="left")
+            lbl = ctk.CTkLabel(f, text="0,00 \u20ac", font=("Segoe UI", 10, "bold"),
                                text_color=("#8b0000", "#8b0000"), width=80, anchor="e")
             lbl.pack(side="right", padx=4)
             key = text.replace(":", "").replace(" ", "_").lower()
@@ -736,15 +734,15 @@ class FerdlWorksApp(ctk.CTk):
             fg = "#5c0000" if text in ["L\xf6schen"] else "#8b0000"
             ctk.CTkButton(bf, text=text, command=cmd, width=80,
                           fg_color=fg, hover_color="#b22222",
-                          font=("Segoe UI", 13)).pack(side="left", padx=3)
+                          font=("Segoe UI", 10)).pack(side="left", padx=3)
 
     # ===================== STATUSBAR =====================
     def _build_statusbar(self):
         bar = ctk.CTkFrame(self, height=24, corner_radius=0, fg_color=("#e0e0e0", "#1a1a1a"))
         bar.pack(fill="x", side="bottom")
-        ctk.CTkLabel(bar, text="SondereggerSoftware", font=("Segoe UI", 13),
+        ctk.CTkLabel(bar, text="SondereggerSoftware", font=("Segoe UI", 9),
                      text_color=("#555555", "#888888")).pack(side="left", padx=10)
-        ctk.CTkLabel(bar, text=f"v{VERSION}", font=("Segoe UI", 13),
+        ctk.CTkLabel(bar, text=f"v{VERSION}", font=("Segoe UI", 9),
                      text_color=("#555555", "#888888")).pack(side="right", padx=10)
 
     # ===================== DOKUMENT-LOGIK =====================
