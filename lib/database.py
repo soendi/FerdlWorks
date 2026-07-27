@@ -252,6 +252,23 @@ class Database:
         finally:
             conn.close()
 
+    # --- Kombinierte Suche (Werkzeug + Material) ---
+    def combined_search(self, query=""):
+        conn = self._connect()
+        try:
+            like = f"%{query}%"
+            rows = conn.execute("""
+                SELECT id, name, 'Werkzeug' as item_type, price, price_unit, 0 as price_per_m2
+                FROM tools WHERE name LIKE ? OR description LIKE ?
+                UNION ALL
+                SELECT id, name, 'Material' as item_type, price_per_m2 as price, '' as price_unit, price_per_m2
+                FROM materials WHERE name LIKE ? OR description LIKE ?
+                ORDER BY name LIMIT 100
+            """, (like, like, like, like)).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            conn.close()
+
     # --- Dokumente (RG/LS) ---
     def doc_get_next_number(self, doc_type):
         conn = self._connect()

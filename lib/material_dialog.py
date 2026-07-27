@@ -26,7 +26,7 @@ class MaterialDialog(ctk.CTkToplevel):
         self.entries = {}
         for i, (key, label) in enumerate(fields):
             ctk.CTkLabel(self, text=label, width=100, anchor="w").grid(row=i, column=0, padx=(15, 5), pady=5, sticky="w")
-            if key == "price_per_m3":
+            if key == "price_per_m2":
                 entry = ctk.CTkEntry(self, width=200)
                 entry.insert(0, str(data.get(key, "0")).replace(".", ","))
                 entry.grid(row=i, column=1, padx=5, pady=5, sticky="w")
@@ -42,7 +42,7 @@ class MaterialDialog(ctk.CTkToplevel):
         ctk.CTkButton(btn_frame, text="Abbrechen", command=self.destroy, width=120).pack(side="left", padx=10)
 
     def _save(self):
-        price_str = self.entries["price_per_m3"].get().replace(",", ".")
+        price_str = self.entries["price_per_m2"].get().replace(",", ".")
         try:
             price = float(price_str)
         except ValueError:
@@ -50,7 +50,7 @@ class MaterialDialog(ctk.CTkToplevel):
         data = {
             "name": self.entries["name"].get(),
             "description": self.entries["description"].get(),
-            "price_per_m3": price,
+            "price_per_m2": price,
             "note": self.entries["note"].get(),
             "id": self.material_id,
         }
