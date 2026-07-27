@@ -709,18 +709,17 @@ class FerdlWorksApp(ctk.CTk):
         self._sum_labels = {}
         for text in ["Netto:", "MwSt:", "Brutto:"]:
             f = ctk.CTkFrame(rf, fg_color="transparent")
-            f.pack(side="left", padx=10)
+            f.pack(fill="x")
             ctk.CTkLabel(f, text=text, font=("Segoe UI", 10)).pack(side="left")
             lbl = ctk.CTkLabel(f, text="0,00 \u20ac", font=("Segoe UI", 10, "bold"),
-                               text_color=("#8b0000", "#8b0000"), width=70, anchor="e")
-            lbl.pack(side="left", padx=4)
+                               text_color=("#8b0000", "#8b0000"), width=80, anchor="e")
+            lbl.pack(side="right", padx=4)
             key = text.replace(":", "").replace(" ", "_").lower()
             self._sum_labels[key] = lbl
 
         bf = ctk.CTkFrame(parent, fg_color="transparent")
         bf.pack(side="bottom", fill="x", padx=8, pady=6)
         actions = [
-            ("Speichern", self._save_doc),
             ("PDF", self._save_pdf),
             ("E-Mail", self._send_email_doc),
             ("Drucken", self._print_doc),
@@ -798,14 +797,16 @@ class FerdlWorksApp(ctk.CTk):
             "note": self.doc_note.get(),
         }
 
-    def _save_doc(self):
+    def _do_save(self, silent=False):
         cid = self._get_selected_customer_id()
         if not cid:
-            messagebox.showwarning("Fehler", "Bitte wählen Sie einen Kunden aus.")
-            return
+            if not silent:
+                messagebox.showwarning("Fehler", "Bitte wählen Sie einen Kunden aus.")
+            return None
         if not self._positions:
-            messagebox.showwarning("Fehler", "Keine Positionen vorhanden.")
-            return
+            if not silent:
+                messagebox.showwarning("Fehler", "Keine Positionen vorhanden.")
+            return None
         data = self._get_doc_data()
         pos_data = []
         for p in self._positions:
@@ -828,8 +829,13 @@ class FerdlWorksApp(ctk.CTk):
         if result:
             self._current_doc_id = result["id"]
             self.logger.info(f"Dokument {result['doc_number']} gespeichert")
-            messagebox.showinfo("Gespeichert", f"{'Rechnung' if result['doc_type'] == 'RG' else 'Lieferschein'} {result['doc_number']} gespeichert.")
+            if not silent:
+                messagebox.showinfo("Gespeichert", f"{'Rechnung' if result['doc_type'] == 'RG' else 'Lieferschein'} {result['doc_number']} gespeichert.")
             self._load_doc(result["id"])
+        return result
+
+    def _save_doc(self):
+        self._do_save(silent=False)
 
     def _load_doc(self, doc_id):
         doc = self.db.doc_get(doc_id)
@@ -876,8 +882,8 @@ class FerdlWorksApp(ctk.CTk):
     # ===================== PDF / E-MAIL / DRUCKEN =====================
     def _save_pdf(self):
         if not self._current_doc_id:
-            messagebox.showwarning("Fehler", "Bitte zuerst speichern.")
-            return
+            if not self._do_save(silent=True):
+                return
         doc = self.db.doc_get(self._current_doc_id)
         if not doc:
             return
@@ -885,16 +891,17 @@ class FerdlWorksApp(ctk.CTk):
         path = generate_pdf(doc)
         if path:
             self.logger.info(f"PDF erstellt: {path}")
-            if messagebox.askyesno("PDF", "PDF geöffnet? In Ordner öffnen?"):
-                try:
-                    os.startfile(os.path.dirname(path))
-                except Exception:
-                    pass
+            try:
+                os.startfile(path)
+            except Exception:
+                pass
 
     def _send_email_doc(self):
-        if not self._current_doc_id:
-            messagebox.showwarning("Fehler", "Bitte zuerst speichern.")
+        if not messagebox.askyesno("E-Mail", "PDF als E-Mail versenden?"):
             return
+        if not self._current_doc_id:
+            if not self._do_save(silent=True):
+                return
         doc = self.db.doc_get(self._current_doc_id)
         if not doc:
             return
