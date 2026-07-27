@@ -41,6 +41,7 @@ pyinstaller --noconfirm --onefile --windowed `
     --hidden-import "winreg" `
     --hidden-import "packaging" `
     --hidden-import "packaging.version" `
+    --collect-all "reportlab" `
     main.py
 
 Write-Host "EXE gebaut: dist\FerdlWorks.exe"
