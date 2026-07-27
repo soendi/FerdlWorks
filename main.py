@@ -7,6 +7,8 @@ from tkinter import messagebox, ttk
 from PIL import Image
 from datetime import datetime
 
+ctk.set_default_font(ctk.CTkFont(family="Segoe UI", size=13))
+
 from lib.logger import setup_logger, get_logger, get_log_path
 from lib.registry import reg_write, reg_read, reg_delete_all
 from lib.icon import create_icon
@@ -69,8 +71,8 @@ class FerdlWorksApp(ctk.CTk):
 
     # ===================== MENÜ =====================
     def _build_menu(self):
-        mb = tk.Menu(self, font=("Segoe UI", 10))
-        datei = tk.Menu(mb, tearoff=False, font=("Segoe UI", 10))
+        mb = tk.Menu(self, font=("Segoe UI", 13))
+        datei = tk.Menu(mb, tearoff=False, font=("Segoe UI", 13))
         datei.add_command(label="Neue Rechnung", command=self._new_doc_prompt, accelerator="Strg+N")
         datei.add_command(label="Speichern", command=self._save_doc, accelerator="Strg+S")
         datei.add_separator()
@@ -78,7 +80,7 @@ class FerdlWorksApp(ctk.CTk):
         datei.add_separator()
         datei.add_command(label="Einstellungen...", command=self._open_settings, accelerator="Strg+E")
         datei.add_separator()
-        backup = tk.Menu(datei, tearoff=False, font=("Segoe UI", 10))
+        backup = tk.Menu(datei, tearoff=False, font=("Segoe UI", 13))
         backup.add_command(label="Datensicherung erstellen...", command=self._backup_data)
         backup.add_command(label="Datensicherung wiederherstellen...", command=self._restore_data)
         backup.add_separator()
@@ -89,7 +91,7 @@ class FerdlWorksApp(ctk.CTk):
         datei.add_command(label="Beenden", command=self._on_close, accelerator="Strg+Q")
         mb.add_cascade(label="Datei", menu=datei)
 
-        verw = tk.Menu(mb, tearoff=False, font=("Segoe UI", 10))
+        verw = tk.Menu(mb, tearoff=False, font=("Segoe UI", 13))
         verw.add_command(label="Kundenverwaltung...", command=self._open_customer_mgmt)
         verw.add_command(label="Materialverwaltung...", command=self._open_material_mgmt)
         verw.add_command(label="Werkzeugverwaltung...", command=self._open_tool_mgmt)
@@ -97,7 +99,7 @@ class FerdlWorksApp(ctk.CTk):
         verw.add_command(label="Texteverwaltung...", command=self._open_text_mgmt)
         mb.add_cascade(label="Verwaltung", menu=verw)
 
-        hilfe = tk.Menu(mb, tearoff=False, font=("Segoe UI", 10))
+        hilfe = tk.Menu(mb, tearoff=False, font=("Segoe UI", 13))
         hilfe.add_command(label="Auf Updates prüfen...", command=self._check_update, accelerator="Strg+U")
         hilfe.add_separator()
         hilfe.add_command(label="Logdatei öffnen", command=self._open_log)
@@ -126,7 +128,7 @@ class FerdlWorksApp(ctk.CTk):
         # Top row: Label + Entry + Buttons
         cust_top = ctk.CTkFrame(cust, fg_color="transparent")
         cust_top.pack(fill="x", padx=10, pady=(8, 0))
-        ctk.CTkLabel(cust_top, text="Kunde:", font=("Segoe UI", 11, "bold"),
+        ctk.CTkLabel(cust_top, text="Kunde:", font=("Segoe UI", 13, "bold"),
                      text_color=("#8b0000", "#8b0000")).pack(side="left", padx=(0, 5))
         self.cust_entry = ctk.CTkEntry(cust_top, width=500, placeholder_text="Kunde eingeben...")
         self.cust_entry.bind("<KeyRelease>", lambda e: self._filter_customers() if e.keysym not in ("Up", "Down", "Return", "Escape") else None)
@@ -145,7 +147,7 @@ class FerdlWorksApp(ctk.CTk):
         # Dropdown-Liste Kunde (schwebend über anderen Elementen)
         self._cust_dropdown_frame = tk.Frame(self, bg="#2a2a2a", highlightbackground="#555555", highlightthickness=1)
         self.cust_dropdown = tk.Listbox(self._cust_dropdown_frame, height=5,
-                                        font=("Segoe UI", 10), exportselection=False,
+                                        font=("Segoe UI", 13), exportselection=False,
                                         bg="#2a2a2a", fg="#e0e0e0", selectbackground="#8b0000",
                                         borderwidth=0, highlightthickness=0)
         self.cust_dropdown.pack(fill="x", padx=2, pady=2)
@@ -162,7 +164,7 @@ class FerdlWorksApp(ctk.CTk):
         # --- Artikel-Suche (Entry + Dropdown + Einheiten) ---
         art = ctk.CTkFrame(main, corner_radius=6)
         art.pack(fill="x", padx=8, pady=1)
-        ctk.CTkLabel(art, text="Artikel:", font=("Segoe UI", 11, "bold"),
+        ctk.CTkLabel(art, text="Artikel:", font=("Segoe UI", 13, "bold"),
                      text_color=("#8b0000", "#8b0000")).pack(side="left", padx=(10, 5))
         self.art_entry = ctk.CTkEntry(art, width=500, placeholder_text="Werkzeug, Material oder Text eingeben...")
         self.art_entry.pack(side="left", padx=5, pady=4)
@@ -170,24 +172,24 @@ class FerdlWorksApp(ctk.CTk):
 
         # Kontext-Felder (abhängig vom ausgewählten Artikel-Typ, versteckt)
         self._art_mat_f = ctk.CTkFrame(art, fg_color="transparent")
-        ctk.CTkLabel(self._art_mat_f, text="L:", font=("Segoe UI", 10)).pack(side="left")
+        ctk.CTkLabel(self._art_mat_f, text="L:", font=("Segoe UI", 13)).pack(side="left")
         self.dl_length = ctk.CTkEntry(self._art_mat_f, width=55)
         self.dl_length.pack(side="left", padx=2)
         self.dl_length.bind("<KeyRelease>", lambda e: self._calc_detail_qm())
-        ctk.CTkLabel(self._art_mat_f, text="cm", font=("Segoe UI", 9, "bold"),
+        ctk.CTkLabel(self._art_mat_f, text="cm", font=("Segoe UI", 13, "bold"),
                      text_color=("#666666", "#888888")).pack(side="left", padx=(0, 4))
-        ctk.CTkLabel(self._art_mat_f, text="B:", font=("Segoe UI", 10)).pack(side="left")
+        ctk.CTkLabel(self._art_mat_f, text="B:", font=("Segoe UI", 13)).pack(side="left")
         self.dl_width = ctk.CTkEntry(self._art_mat_f, width=55)
         self.dl_width.pack(side="left", padx=2)
         self.dl_width.bind("<KeyRelease>", lambda e: self._calc_detail_qm())
-        ctk.CTkLabel(self._art_mat_f, text="cm", font=("Segoe UI", 9, "bold"),
+        ctk.CTkLabel(self._art_mat_f, text="cm", font=("Segoe UI", 13, "bold"),
                      text_color=("#666666", "#888888")).pack(side="left", padx=(0, 4))
-        self.dl_qm_label = ctk.CTkLabel(self._art_mat_f, text="m\xb2:0,00", font=("Segoe UI", 9, "bold"),
+        self.dl_qm_label = ctk.CTkLabel(self._art_mat_f, text="m\xb2:0,00", font=("Segoe UI", 13, "bold"),
                                         text_color=("#8b0000", "#8b0000"))
         self.dl_qm_label.pack(side="left", padx=2)
 
         self._art_tool_f = ctk.CTkFrame(art, fg_color="transparent")
-        ctk.CTkLabel(self._art_tool_f, text="Zeit:", font=("Segoe UI", 10)).pack(side="left")
+        ctk.CTkLabel(self._art_tool_f, text="Zeit:", font=("Segoe UI", 13)).pack(side="left")
         self.dl_time = ctk.CTkEntry(self._art_tool_f, width=55)
         self.dl_time.insert(0, "1")
         self.dl_time.pack(side="left", padx=2)
@@ -207,7 +209,7 @@ class FerdlWorksApp(ctk.CTk):
         # Dropdown-Liste Artikel (schwebend über anderen Elementen)
         self._art_dropdown_frame = tk.Frame(self, bg="#2a2a2a", highlightbackground="#555555", highlightthickness=1)
         self.art_dropdown = tk.Listbox(self._art_dropdown_frame, height=5,
-                                       font=("Segoe UI", 10), exportselection=False,
+                                       font=("Segoe UI", 13), exportselection=False,
                                        bg="#2a2a2a", fg="#e0e0e0", selectbackground="#8b0000",
                                        borderwidth=0, highlightthickness=0)
         self.art_dropdown.pack(fill="x", padx=2, pady=2)
@@ -226,9 +228,9 @@ class FerdlWorksApp(ctk.CTk):
         pos_frame.pack(fill="both", expand=True, padx=8, pady=2)
         pos_header = ctk.CTkFrame(pos_frame, fg_color="transparent")
         pos_header.pack(fill="x", padx=10, pady=(6, 2))
-        ctk.CTkLabel(pos_header, text="Positionen", font=("Segoe UI", 11, "bold"),
+        ctk.CTkLabel(pos_header, text="Positionen", font=("Segoe UI", 13, "bold"),
                      text_color=("#8b0000", "#8b0000")).pack(side="left")
-        self.doc_status_label = ctk.CTkLabel(pos_header, text="", font=("Segoe UI", 10),
+        self.doc_status_label = ctk.CTkLabel(pos_header, text="", font=("Segoe UI", 13),
                                              text_color=("#666666", "#888888"))
         self.doc_status_label.pack(side="right")
         cols = ("pos", "beschreibung", "menge", "einheit", "ep", "gesamt")
@@ -616,7 +618,7 @@ class FerdlWorksApp(ctk.CTk):
         if not iid:
             return
         self.pos_tree.selection_set(iid)
-        menu = tk.Menu(self, tearoff=False, font=("Segoe UI", 10))
+        menu = tk.Menu(self, tearoff=False, font=("Segoe UI", 13))
         menu.add_command(label="Bearbeiten", command=self._edit_position)
         menu.add_command(label="Löschen", command=self._remove_selected_position)
         menu.tk_popup(event.x_root, event.y_root)
@@ -700,10 +702,10 @@ class FerdlWorksApp(ctk.CTk):
     def _build_footer(self, parent):
         lf = ctk.CTkFrame(parent, fg_color="transparent")
         lf.pack(side="left", fill="x", expand=True, padx=8, pady=6)
-        ctk.CTkLabel(lf, text="Notiz:", font=("Segoe UI", 10)).pack(side="left", padx=(0, 5))
+        ctk.CTkLabel(lf, text="Notiz:", font=("Segoe UI", 13)).pack(side="left", padx=(0, 5))
         self.doc_note = ctk.CTkEntry(lf, width=250)
         self.doc_note.pack(side="left", padx=5)
-        ctk.CTkLabel(lf, text="Rabatt %:", font=("Segoe UI", 10)).pack(side="left", padx=(15, 5))
+        ctk.CTkLabel(lf, text="Rabatt %:", font=("Segoe UI", 13)).pack(side="left", padx=(15, 5))
         self.discount_var = ctk.StringVar(value="0")
         self.discount_entry = ctk.CTkEntry(lf, width=50, textvariable=self.discount_var)
         self.discount_entry.pack(side="left", padx=5)
@@ -715,8 +717,8 @@ class FerdlWorksApp(ctk.CTk):
         for text in ["Netto:", "MwSt:", "Brutto:"]:
             f = ctk.CTkFrame(rf, fg_color="transparent")
             f.pack(fill="x")
-            ctk.CTkLabel(f, text=text, font=("Segoe UI", 10)).pack(side="left")
-            lbl = ctk.CTkLabel(f, text="0,00 \u20ac", font=("Segoe UI", 10, "bold"),
+            ctk.CTkLabel(f, text=text, font=("Segoe UI", 13)).pack(side="left")
+            lbl = ctk.CTkLabel(f, text="0,00 \u20ac", font=("Segoe UI", 13, "bold"),
                                text_color=("#8b0000", "#8b0000"), width=80, anchor="e")
             lbl.pack(side="right", padx=4)
             key = text.replace(":", "").replace(" ", "_").lower()
@@ -734,15 +736,15 @@ class FerdlWorksApp(ctk.CTk):
             fg = "#5c0000" if text in ["L\xf6schen"] else "#8b0000"
             ctk.CTkButton(bf, text=text, command=cmd, width=80,
                           fg_color=fg, hover_color="#b22222",
-                          font=("Segoe UI", 10)).pack(side="left", padx=3)
+                          font=("Segoe UI", 13)).pack(side="left", padx=3)
 
     # ===================== STATUSBAR =====================
     def _build_statusbar(self):
         bar = ctk.CTkFrame(self, height=24, corner_radius=0, fg_color=("#e0e0e0", "#1a1a1a"))
         bar.pack(fill="x", side="bottom")
-        ctk.CTkLabel(bar, text="SondereggerSoftware", font=("Segoe UI", 9),
+        ctk.CTkLabel(bar, text="SondereggerSoftware", font=("Segoe UI", 13),
                      text_color=("#555555", "#888888")).pack(side="left", padx=10)
-        ctk.CTkLabel(bar, text=f"v{VERSION}", font=("Segoe UI", 9),
+        ctk.CTkLabel(bar, text=f"v{VERSION}", font=("Segoe UI", 13),
                      text_color=("#555555", "#888888")).pack(side="right", padx=10)
 
     # ===================== DOKUMENT-LOGIK =====================
@@ -1077,9 +1079,9 @@ class FerdlWorksApp(ctk.CTk):
         ctk.CTkLabel(win, text=APP_NAME, font=("Segoe UI", 18, "bold"),
                      text_color=("#8b0000", "#8b0000")).pack(pady=(20, 5))
         ctk.CTkLabel(win, text=f"Version {VERSION}", font=("Segoe UI", 12)).pack()
-        ctk.CTkLabel(win, text=COMPANY_NAME, font=("Segoe UI", 11),
+        ctk.CTkLabel(win, text=COMPANY_NAME, font=("Segoe UI", 13),
                      text_color="#888888").pack(pady=(10, 0))
-        ctk.CTkLabel(win, text="© 2026 Sonderegger Software", font=("Segoe UI", 10),
+        ctk.CTkLabel(win, text="© 2026 Sonderegger Software", font=("Segoe UI", 13),
                      text_color="#666666").pack(pady=(5, 0))
 
     def _on_close(self):
@@ -1167,7 +1169,7 @@ class DocSearchDialog(ctk.CTkToplevel):
         doc = next((d for d in self._docs if d["id"] == doc_id), None)
         if not doc or doc["doc_type"] != "RG":
             return
-        menu = tk.Menu(self, tearoff=False, font=("Segoe UI", 10))
+        menu = tk.Menu(self, tearoff=False, font=("Segoe UI", 13))
         is_paid = doc.get("paid", "0") == "1"
         if is_paid:
             menu.add_command(label="Als unbezahlt markieren", command=lambda: self._toggle_paid(doc_id, False))
@@ -1197,7 +1199,7 @@ class ProgressDialog:
         self.win.resizable(False, False)
         self.win.transient(master)
         self.win.grab_set()
-        self.label = ctk.CTkLabel(self.win, text="Vorgang läuft...", font=("Segoe UI", 11))
+        self.label = ctk.CTkLabel(self.win, text="Vorgang läuft...", font=("Segoe UI", 13))
         self.label.pack(pady=(15, 5))
         self.progress = ctk.CTkProgressBar(self.win, width=350, height=20,
                                            fg_color="#2a2a2a", progress_color="#8b0000")

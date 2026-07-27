@@ -102,15 +102,15 @@ class SettingsDialog(ctk.CTkToplevel):
         ctk.CTkLabel(tab4, text="Standard-Drucker:", anchor="w").grid(row=0, column=0, padx=(10, 5), pady=10, sticky="w")
         self.printer_menu = ctk.CTkOptionMenu(tab4, values=self._get_printers(), variable=self._printer_var, width=300)
         self.printer_menu.grid(row=0, column=1, padx=5, pady=10, sticky="w")
-        ctk.CTkLabel(tab4, text="(Leer lassen für Systemstandard)", font=("Segoe UI", 10),
+        ctk.CTkLabel(tab4, text="(Leer lassen für Systemstandard)", font=("Segoe UI", 13),
                      text_color="#888888").grid(row=1, column=1, padx=5, pady=0, sticky="w")
 
         # --- Allgemein ---
         tab5 = tabview.add("Allgemein")
         self.autostart_var = ctk.BooleanVar(value=autostart_is_enabled())
         ctk.CTkCheckBox(tab5, text="Autostart (mit Windows starten)", variable=self.autostart_var,
-                        font=("Segoe UI", 11)).grid(row=0, column=0, columnspan=2, padx=15, pady=10, sticky="w")
-        ctk.CTkLabel(tab5, text="Passwort-Schutz:", font=("Segoe UI", 11, "bold"),
+                        font=("Segoe UI", 13)).grid(row=0, column=0, columnspan=2, padx=15, pady=10, sticky="w")
+        ctk.CTkLabel(tab5, text="Passwort-Schutz:", font=("Segoe UI", 13, "bold"),
                      text_color=("#8b0000", "#8b0000")).grid(row=1, column=0, columnspan=2, padx=15, pady=(15, 5), sticky="w")
         stored_hash = self.settings.get("user_password", "")
         has_password = bool(stored_hash)
@@ -122,11 +122,11 @@ class SettingsDialog(ctk.CTkToplevel):
         self.new_pw = ctk.CTkEntry(tab5, width=250, show="*")
         self.new_pw.grid(row=3, column=1, padx=5, pady=3, sticky="w")
         self._pw_unlocked = False
-        self._pw_unlock_label = ctk.CTkLabel(tab5, text="", font=("Segoe UI", 10, "bold"),
+        self._pw_unlock_label = ctk.CTkLabel(tab5, text="", font=("Segoe UI", 13, "bold"),
                                               text_color=("#8b0000", "#8b0000"))
         self._pw_unlock_label.grid(row=4, column=0, columnspan=2, padx=15, pady=2, sticky="w")
 
-        ctk.CTkLabel(tab5, text="(Leer lassen = Passwort löschen)", font=("Segoe UI", 9),
+        ctk.CTkLabel(tab5, text="(Leer lassen = Passwort löschen)", font=("Segoe UI", 13),
                      text_color="#666666").grid(row=5, column=1, padx=5, pady=0, sticky="w")
 
         # --- Buttons ---
