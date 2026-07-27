@@ -45,28 +45,26 @@ jobs:
       - name: Install Inno Setup
         shell: pwsh
         run: |
-          choco install innosetup --no-progress -y
-          if ($LASTEXITCODE -ne 0) { 
-            # Fallback: direkt download
-            $url = "https://jrsoftware.org/download.php/is.exe"
-            $isExe = "$env:TEMP\innosetup.exe"
-            Invoke-WebRequest -Uri $url -OutFile $isExe
-            Start-Process $isExe -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /DIR=C:\Program Files (x86)\Inno Setup 7" -Wait
+          $release = Invoke-RestMethod "https://api.github.com/repos/jrsoftware/issrc/releases/latest"
+          $asset = $release.assets | Where-Object { $_.name -like "is-*-*.exe" } | Select-Object -First 1
+          if (-not $asset) {
+            Write-Error "Kein Inno Setup 7 Installer Asset gefunden"
+            exit 1
           }
+          $installer = "$env:TEMP\innosetup7.exe"
+          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $installer
+          Start-Process $installer -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /ALLUSERS /DIR=C:\Program Files (x86)\Inno Setup 7" -Wait
 
       - name: Build Installer
         shell: pwsh
         run: |
-          $iscc = "C:\Program Files (x86)\Inno Setup 7\ISCC.exe"
-          if (-not (Test-Path $iscc)) {
-            $iscc = "C:\Program Files\Inno Setup 7\ISCC.exe"
-          }
-          if (Test-Path $iscc) {
-            & $iscc "installer\ferdlworks.iss"
-          } else {
-            Write-Error "Inno Setup nicht gefunden"
+          $iscc = Get-ChildItem -Path "C:\Program Files*\Inno Setup*" -Filter "ISCC.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+          if (-not $iscc) {
+            Write-Error "ISCC.exe nicht gefunden"
             exit 1
           }
+          Write-Host "ISCC gefunden: $iscc"
+          & $iscc "installer\ferdlworks.iss"
 
       - name: Upload Installer as Artifact
         uses: actions/upload-artifact@v4
