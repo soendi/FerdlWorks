@@ -121,6 +121,17 @@ class Database:
                 );
             """)
             conn.commit()
+            # Migration: pos_type CHECK um 'text' erweitern (für alte DBs)
+            try:
+                conn.execute("INSERT INTO positions (doc_id, pos_type, description) VALUES (-1, 'text', '__migrate__')")
+                conn.execute("DELETE FROM positions WHERE id IN (SELECT id FROM positions WHERE description='__migrate__')")
+            except sqlite3.IntegrityError:
+                conn.execute("PRAGMA writable_schema=ON")
+                conn.execute("""UPDATE sqlite_master SET sql=REPLACE(sql,
+                    'CHECK(pos_type IN(''tool'',''material''))',
+                    'CHECK(pos_type IN(''tool'',''material'',''text''))'
+                ) WHERE type='table' AND name='positions'""")
+                conn.execute("PRAGMA writable_schema=OFF")
         finally:
             conn.close()
 

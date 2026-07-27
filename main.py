@@ -501,7 +501,12 @@ class FerdlWorksApp(ctk.CTk):
             time_val, unit_label, price_per, total, _ = self._calc_tool_position(item)
             desc = item["name"]
             self._positions.append(PositionItem(
-                "tool", item["id"], desc, time_val, unit_label, price_per, total
+                "tool", item["id"], desc, time_val, unit_label, price_per, total,
+                {"price_unit": item.get("price_unit", "h"), "price": item.get("price", 0)}
+            ))
+        elif item["item_type"] == "Text":
+            self._positions.append(PositionItem(
+                "text", item["id"], item["name"], 0, "", 0, 0
             ))
 
     def _update_position(self):
@@ -532,7 +537,12 @@ class FerdlWorksApp(ctk.CTk):
             time_val, unit_label, price_per, total, _ = self._calc_tool_position(item)
             desc = item["name"]
             self._positions[idx] = PositionItem(
-                "tool", item["id"], desc, time_val, unit_label, price_per, total
+                "tool", item["id"], desc, time_val, unit_label, price_per, total,
+                {"price_unit": item.get("price_unit", "h"), "price": item.get("price", 0)}
+            )
+        elif item["item_type"] == "Text":
+            self._positions[idx] = PositionItem(
+                "text", item["id"], item["name"], 0, "", 0, 0
             )
         self._editing_pos_idx = None
         self.art_insert_btn.configure(text="Einfügen")
@@ -543,9 +553,15 @@ class FerdlWorksApp(ctk.CTk):
             self.pos_tree.delete(row)
         for i, p in enumerate(self._positions):
             qty_str = f"{p.quantity:.2f}" if p.quantity != int(p.quantity) else str(int(p.quantity))
+            if p.pos_type == "tool" and p.extra_data and "price_unit" in p.extra_data:
+                ep_str = f"{p.extra_data['price']:.2f}\u20ac/{p.extra_data['price_unit']}"
+            elif p.pos_type == "text":
+                ep_str = ""
+            else:
+                ep_str = f"{p.price_per_unit:.2f}\u20ac/{p.unit.lower().replace('std.', 'h').replace('min.', 'min')}"
             self.pos_tree.insert("", "end", iid=str(i), values=(
                 str(i + 1), p.description, qty_str, p.unit,
-                f"{p.price_per_unit:.2f}\u20ac/{p.unit.lower().replace('std.', 'h').replace('min.', 'min')}", f"{p.total:.2f}\u20ac"
+                ep_str, f"{p.total:.2f}\u20ac"
             ))
         self._recalc_totals()
 
@@ -595,9 +611,9 @@ class FerdlWorksApp(ctk.CTk):
                     found["price"] = found.get("price", 0)
                     found["price_per_m2"] = 0
         if not found:
+            _t = "Text" if pos.pos_type == "text" else ("Material" if pos.pos_type == "material" else "Werkzeug")
             found = {"id": pos.ref_id or 0, "name": pos.description,
-                     "item_type": "Material" if pos.pos_type == "material" else "Werkzeug",
-                     "price": 0, "price_per_m2": 0, "price_unit": "h"}
+                     "item_type": _t, "price": 0, "price_per_m2": 0, "price_unit": "h"}
         self._selected_article = found
         if pos.pos_type == "material":
             self._show_mat_units()
@@ -609,11 +625,13 @@ class FerdlWorksApp(ctk.CTk):
                 self.dl_width.delete(0, "end")
                 self.dl_width.insert(0, str(ed["width"]))
             self._calc_detail_qm()
-        else:
+        elif pos.pos_type == "tool":
             self._show_tool_units()
             self.dl_time.delete(0, "end")
             self.dl_time.insert(0, str(int(pos.quantity)))
             self.dl_time_unit.set("h" if pos.unit == "Std." else "min")
+        else:
+            self._hide_units()
         self.art_insert_btn.configure(text="Übernehmen")
 
     # ===================== SUMMEN =====================
