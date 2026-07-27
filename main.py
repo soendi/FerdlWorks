@@ -64,6 +64,8 @@ class FerdlWorksApp(ctk.CTk):
     def _build_menu(self):
         mb = tk.Menu(self, font=("Segoe UI", 10))
         datei = tk.Menu(mb, tearoff=False, font=("Segoe UI", 10))
+        datei.add_command(label="Rechnungen & Lieferscheine...", command=self._open_doc_overview, accelerator="Strg+D")
+        datei.add_separator()
         datei.add_command(label="Beenden", command=self._on_close, accelerator="Strg+Q")
         mb.add_cascade(label="Datei", menu=datei)
 
@@ -93,6 +95,7 @@ class FerdlWorksApp(ctk.CTk):
         hilfe.add_command(label="Deinstallieren...", command=self._uninstall)
         mb.add_cascade(label="Hilfe", menu=hilfe)
         self.configure(menu=mb)
+        self.bind_all("<Control-d>", lambda e: self._open_doc_overview())
         self.bind_all("<Control-q>", lambda e: self._on_close())
         self.bind_all("<Control-e>", lambda e: self._open_settings())
         self.bind_all("<Control-u>", lambda e: self._check_update())
@@ -690,6 +693,9 @@ class FerdlWorksApp(ctk.CTk):
             messagebox.showerror("Fehler", f"Drucken fehlgeschlagen: {ex}")
 
     # ===================== MENÜ-ACTIONEN =====================
+    def _open_doc_overview(self):
+        DocSearchDialog(self)
+
     def _open_customer_mgmt(self):
         CustomerDatabase(self)
 
@@ -833,7 +839,7 @@ class DocSearchDialog(ctk.CTkToplevel):
         super().__init__(master)
         self.db = get_db()
         self.app = master
-        self.title("Dokumente suchen")
+        self.title("Rechnungen & Lieferscheine")
         self.geometry("700x450")
         self.transient(master)
         self.grab_set()
