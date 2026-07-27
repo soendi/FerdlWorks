@@ -143,11 +143,13 @@ class FerdlWorksApp(ctk.CTk):
         self.cust_dropdown.pack(fill="x", padx=2, pady=2)
         self.cust_dropdown.bind("<<ListboxSelect>>", lambda e: self._pick_customer())
         # Tastatur-Navigation
-        self.cust_dropdown.bind("<Return>", lambda e: self._pick_customer())
-        self.cust_dropdown.bind("<Escape>", lambda e: self._do_hide_cust_dropdown())
-        self.cust_entry.bind("<Down>", lambda e: self._focus_cust_dropdown())
+        self.cust_entry.bind("<Down>", lambda e: self._nav_cust_down())
+        self.cust_entry.bind("<Up>", lambda e: self._nav_cust_up())
+        self.cust_entry.bind("<Return>", lambda e: self._enter_cust())
+        self.cust_entry.bind("<Escape>", lambda e: self._do_hide_cust_dropdown())
         self._cust_data = []
         self._customer_id = None
+        self._cust_dropdown_idx = -1
 
         # --- Artikel-Suche (Entry + Dropdown + Einheiten) ---
         art = ctk.CTkFrame(main, corner_radius=6)
@@ -197,11 +199,13 @@ class FerdlWorksApp(ctk.CTk):
                                        borderwidth=0, highlightthickness=0)
         self.art_dropdown.pack(fill="x", padx=2, pady=2)
         self.art_dropdown.bind("<<ListboxSelect>>", lambda e: self._select_article())
-        self.art_dropdown.bind("<Return>", lambda e: self._select_article())
-        self.art_dropdown.bind("<Escape>", lambda e: self._do_hide_art_dropdown())
-        self.art_entry.bind("<Down>", lambda e: self._focus_art_dropdown())
+        self.art_entry.bind("<Down>", lambda e: self._nav_art_down())
+        self.art_entry.bind("<Up>", lambda e: self._nav_art_up())
+        self.art_entry.bind("<Return>", lambda e: self._enter_art())
+        self.art_entry.bind("<Escape>", lambda e: self._do_hide_art_dropdown())
         self._art_results = []
         self._selected_article = None
+        self._art_dropdown_idx = -1
         self._hide_units()
 
         # --- Positionen (unten) ---
@@ -259,6 +263,7 @@ class FerdlWorksApp(ctk.CTk):
             self._do_hide_cust_dropdown()
 
     def _show_cust_dropdown(self):
+        self._cust_dropdown_idx = -1
         x = self.cust_entry.winfo_rootx() - self.winfo_rootx()
         y = self.cust_entry.winfo_rooty() - self.winfo_rooty() + self.cust_entry.winfo_height()
         self._cust_dropdown_frame.place(x=x, y=y, width=500, anchor="nw")
@@ -267,15 +272,76 @@ class FerdlWorksApp(ctk.CTk):
         self._cust_dropdown_frame.place_forget()
         self.cust_dropdown.selection_clear(0, "end")
 
-    def _focus_cust_dropdown(self):
-        if self._cust_data:
-            self.cust_dropdown.focus_set()
-            self.cust_dropdown.selection_set(0)
+    def _nav_cust_down(self, event=None):
+        if not self._cust_data or not self._cust_dropdown_frame.winfo_viewable():
+            return
+        n = len(self._cust_data)
+        if self._cust_dropdown_idx >= n - 1:
+            return
+        self._cust_dropdown_idx += 1
+        idx = self._cust_dropdown_idx
+        self.cust_dropdown.selection_clear(0, "end")
+        self.cust_dropdown.selection_set(idx)
+        self.cust_dropdown.activate(idx)
+        self.cust_dropdown.see(idx)
 
-    def _focus_art_dropdown(self):
-        if self._art_results:
-            self.art_dropdown.focus_set()
-            self.art_dropdown.selection_set(0)
+    def _nav_cust_up(self, event=None):
+        if not self._cust_data or not self._cust_dropdown_frame.winfo_viewable():
+            return
+        if self._cust_dropdown_idx <= 0:
+            return
+        self._cust_dropdown_idx -= 1
+        idx = self._cust_dropdown_idx
+        self.cust_dropdown.selection_clear(0, "end")
+        self.cust_dropdown.selection_set(idx)
+        self.cust_dropdown.activate(idx)
+        self.cust_dropdown.see(idx)
+
+    def _enter_cust(self, event=None):
+        if self._cust_dropdown_idx < 0 or self._cust_dropdown_idx >= len(self._cust_data):
+            return
+        self._customer_id = self._cust_data[self._cust_dropdown_idx]["id"]
+        self.cust_var.set(self.cust_dropdown.get(self._cust_dropdown_idx))
+        self._do_hide_cust_dropdown()
+
+    def _nav_art_down(self, event=None):
+        if not self._art_results or not self._art_dropdown_frame.winfo_viewable():
+            return
+        n = len(self._art_results)
+        if self._art_dropdown_idx >= n - 1:
+            return
+        self._art_dropdown_idx += 1
+        idx = self._art_dropdown_idx
+        self.art_dropdown.selection_clear(0, "end")
+        self.art_dropdown.selection_set(idx)
+        self.art_dropdown.activate(idx)
+        self.art_dropdown.see(idx)
+
+    def _nav_art_up(self, event=None):
+        if not self._art_results or not self._art_dropdown_frame.winfo_viewable():
+            return
+        if self._art_dropdown_idx <= 0:
+            return
+        self._art_dropdown_idx -= 1
+        idx = self._art_dropdown_idx
+        self.art_dropdown.selection_clear(0, "end")
+        self.art_dropdown.selection_set(idx)
+        self.art_dropdown.activate(idx)
+        self.art_dropdown.see(idx)
+
+    def _enter_art(self, event=None):
+        if self._art_dropdown_idx < 0 or self._art_dropdown_idx >= len(self._art_results):
+            return
+        self._selected_article = self._art_results[self._art_dropdown_idx]
+        self.art_entry.delete(0, "end")
+        self.art_entry.insert(0, self._selected_article["name"])
+        self._do_hide_art_dropdown()
+        if self._selected_article["item_type"] == "Material":
+            self._show_mat_units()
+        elif self._selected_article["item_type"] == "Werkzeug":
+            self._show_tool_units()
+        else:
+            self._hide_units()
 
     def _pick_customer(self):
         sel = self.cust_dropdown.curselection()
@@ -283,6 +349,7 @@ class FerdlWorksApp(ctk.CTk):
             return
         idx = sel[0]
         if idx < len(self._cust_data):
+            self._cust_dropdown_idx = idx
             self._customer_id = self._cust_data[idx]["id"]
             self.cust_var.set(self.cust_dropdown.get(idx))
             self._do_hide_cust_dropdown()
@@ -324,6 +391,7 @@ class FerdlWorksApp(ctk.CTk):
             self._do_hide_art_dropdown()
 
     def _show_art_dropdown(self):
+        self._art_dropdown_idx = -1
         x = self.art_entry.winfo_rootx() - self.winfo_rootx()
         y = self.art_entry.winfo_rooty() - self.winfo_rooty() + self.art_entry.winfo_height()
         self._art_dropdown_frame.place(x=x, y=y, width=500, anchor="nw")
@@ -339,6 +407,7 @@ class FerdlWorksApp(ctk.CTk):
         idx = sel[0]
         if idx >= len(self._art_results):
             return
+        self._art_dropdown_idx = idx
         self._selected_article = self._art_results[idx]
         self.art_entry.delete(0, "end")
         self.art_entry.insert(0, self._selected_article["name"])
