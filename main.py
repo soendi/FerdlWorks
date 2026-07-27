@@ -249,6 +249,16 @@ class FerdlWorksApp(ctk.CTk):
                and getattr(w, 'master', None) not in (self._art_dropdown_frame,):
                 self._do_hide_art_dropdown()
 
+    def _set_cust_display(self, cust):
+        parts = [cust.get("company") or f"{cust.get('last_name', '')} {cust.get('first_name', '')}".strip()]
+        if cust.get("street"):
+            parts.append(cust["street"])
+        zc = " ".join(filter(None, [cust.get("zip", ""), cust.get("city", "")]))
+        if zc:
+            parts.append(zc)
+        self.cust_entry.delete(0, "end")
+        self.cust_entry.insert(0, ", ".join(parts))
+
     def _filter_customers(self):
         query = self.cust_entry.get().strip()
         self._cust_data = self.db.customer_search(query) if query else []
@@ -301,7 +311,7 @@ class FerdlWorksApp(ctk.CTk):
         if self._cust_dropdown_idx < 0 or self._cust_dropdown_idx >= len(self._cust_data):
             return
         self._customer_id = self._cust_data[self._cust_dropdown_idx]["id"]
-        self.cust_entry.delete(0, "end"); self.cust_entry.insert(0, self.cust_dropdown.get(self._cust_dropdown_idx))
+        self._set_cust_display(self._cust_data[self._cust_dropdown_idx])
         self._do_hide_cust_dropdown()
 
     def _nav_art_down(self, event=None):
@@ -351,7 +361,7 @@ class FerdlWorksApp(ctk.CTk):
         if idx < len(self._cust_data):
             self._cust_dropdown_idx = idx
             self._customer_id = self._cust_data[idx]["id"]
-            self.cust_entry.delete(0, "end"); self.cust_entry.insert(0, self.cust_dropdown.get(idx))
+            self._set_cust_display(self._cust_data[idx])
             self._do_hide_cust_dropdown()
 
     def _get_selected_customer_id(self):
@@ -362,9 +372,7 @@ class FerdlWorksApp(ctk.CTk):
         self.wait_window(dlg)
         if dlg.result:
             self._customer_id = dlg.result["id"]
-            name = (dlg.result.get("company") or
-                    f"{dlg.result.get('last_name', '')} {dlg.result.get('first_name', '')}".strip())
-            self.cust_entry.delete(0, "end"); self.cust_entry.insert(0, name)
+            self._set_cust_display(dlg.result)
 
     def _edit_customer_from_main(self):
         cid = self._get_selected_customer_id()
@@ -374,9 +382,7 @@ class FerdlWorksApp(ctk.CTk):
         dlg = CustomerDialog(self, customer_id=cid)
         self.wait_window(dlg)
         if dlg.result:
-            name = (dlg.result.get("company") or
-                    f"{dlg.result.get('last_name', '')} {dlg.result.get('first_name', '')}".strip())
-            self.cust_entry.delete(0, "end"); self.cust_entry.insert(0, name)
+            self._set_cust_display(dlg.result)
 
     # ===================== ARTIKEL-DROPDOWN =====================
     def _search_articles(self):
@@ -784,8 +790,7 @@ class FerdlWorksApp(ctk.CTk):
         customer = doc.get("customer")
         if customer:
             self._customer_id = customer["id"]
-            name = customer.get("company") or f"{customer.get('last_name', '')} {customer.get('first_name', '')}".strip()
-            self.cust_entry.delete(0, "end"); self.cust_entry.insert(0, name)
+            self._set_cust_display(customer)
         self._positions.clear()
         for p in doc.get("positions", []):
             self._positions.append(PositionItem(
