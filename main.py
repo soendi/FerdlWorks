@@ -16,6 +16,7 @@ from lib.customer_dialog import CustomerDialog
 from lib.customer_database import CustomerDatabase
 from lib.tool_database import ToolDatabase
 from lib.material_database import MaterialDatabase
+from lib.text_database import TextDatabase
 from lib.pdf_gen import generate_pdf
 from lib.email_sender import send_email
 from lib.updater import check_for_update, download_installer, install_update, install_and_restart
@@ -83,6 +84,8 @@ class FerdlWorksApp(ctk.CTk):
         verw.add_command(label="Kundenverwaltung...", command=self._open_customer_mgmt)
         verw.add_command(label="Materialverwaltung...", command=self._open_material_mgmt)
         verw.add_command(label="Werkzeugverwaltung...", command=self._open_tool_mgmt)
+        verw.add_separator()
+        verw.add_command(label="Texteverwaltung...", command=self._open_text_mgmt)
         mb.add_cascade(label="Verwaltung", menu=verw)
 
         hilfe = tk.Menu(mb, tearoff=False, font=("Segoe UI", 10))
@@ -152,34 +155,30 @@ class FerdlWorksApp(ctk.CTk):
         art.pack(fill="x", padx=8, pady=1)
         ctk.CTkLabel(art, text="Artikel:", font=("Segoe UI", 11, "bold"),
                      text_color=("#8b0000", "#8b0000")).pack(side="left", padx=(10, 5))
-        self.art_entry = ctk.CTkEntry(art, width=250, placeholder_text="Werkzeug oder Material...")
+        self.art_entry = ctk.CTkEntry(art, width=500, placeholder_text="Werkzeug, Material oder Text...")
         self.art_entry.pack(side="left", padx=5, pady=4)
         self.art_entry.bind("<KeyRelease>", lambda e: self._search_articles())
         self.art_entry.bind("<FocusOut>", lambda e: self._hide_art_dropdown())
 
-        # Einheiten + Einfügen (rechts neben Entry, versteckt)
-        self.art_units = ctk.CTkFrame(art, fg_color="transparent")
-        self.art_units.pack(side="left", padx=5)
-
-        self._art_mat_f = ctk.CTkFrame(self.art_units, fg_color="transparent")
+        # Kontext-Felder (abhängig vom ausgewählten Artikel-Typ, versteckt)
+        self._art_mat_f = ctk.CTkFrame(art, fg_color="transparent")
         ctk.CTkLabel(self._art_mat_f, text="L:", font=("Segoe UI", 10)).pack(side="left")
         self.dl_length = ctk.CTkEntry(self._art_mat_f, width=55)
         self.dl_length.pack(side="left", padx=2)
         self.dl_length.bind("<KeyRelease>", lambda e: self._calc_detail_qm())
+        ctk.CTkLabel(self._art_mat_f, text="cm", font=("Segoe UI", 9, "bold"),
+                     text_color=("#666666", "#888888")).pack(side="left", padx=(0, 4))
         ctk.CTkLabel(self._art_mat_f, text="B:", font=("Segoe UI", 10)).pack(side="left")
         self.dl_width = ctk.CTkEntry(self._art_mat_f, width=55)
         self.dl_width.pack(side="left", padx=2)
         self.dl_width.bind("<KeyRelease>", lambda e: self._calc_detail_qm())
-        ctk.CTkLabel(self._art_mat_f, text="M:", font=("Segoe UI", 10)).pack(side="left")
-        self.dl_qty = ctk.CTkEntry(self._art_mat_f, width=45)
-        self.dl_qty.insert(0, "1")
-        self.dl_qty.pack(side="left", padx=2)
-        self.dl_qty.bind("<KeyRelease>", lambda e: self._calc_detail_qm())
+        ctk.CTkLabel(self._art_mat_f, text="cm", font=("Segoe UI", 9, "bold"),
+                     text_color=("#666666", "#888888")).pack(side="left", padx=(0, 4))
         self.dl_qm_label = ctk.CTkLabel(self._art_mat_f, text="m\xb2:0,00", font=("Segoe UI", 9, "bold"),
                                         text_color=("#8b0000", "#8b0000"))
-        self.dl_qm_label.pack(side="left", padx=4)
+        self.dl_qm_label.pack(side="left", padx=2)
 
-        self._art_tool_f = ctk.CTkFrame(self.art_units, fg_color="transparent")
+        self._art_tool_f = ctk.CTkFrame(art, fg_color="transparent")
         ctk.CTkLabel(self._art_tool_f, text="Zeit:", font=("Segoe UI", 10)).pack(side="left")
         self.dl_time = ctk.CTkEntry(self._art_tool_f, width=55)
         self.dl_time.insert(0, "1")
@@ -188,12 +187,12 @@ class FerdlWorksApp(ctk.CTk):
         ctk.CTkOptionMenu(self._art_tool_f, variable=self.dl_time_unit, values=["h", "min"],
                           width=55).pack(side="left", padx=2)
 
-        self.art_insert_btn = ctk.CTkButton(self.art_units, text="Einfügen", command=self._insert_article,
+        self.art_insert_btn = ctk.CTkButton(art, text="Einfügen", command=self._insert_article,
                                             width=80, fg_color="#5c0000", hover_color="#8b0000")
         self.art_insert_btn.pack(side="left", padx=5)
 
-        # Dropdown-Liste Artikel (wird ein/ausgeblendet) - direkt unter Article-Frame
-        self._art_dropdown_frame = ctk.CTkFrame(main, corner_radius=4, height=0)
+        # Dropdown-Liste Artikel (schwebend über anderen Elementen)
+        self._art_dropdown_frame = ctk.CTkFrame(self, corner_radius=4, fg_color=("#e0e0e0", "#2a2a2a"))
         self.art_dropdown = tk.Listbox(self._art_dropdown_frame, height=5,
                                        font=("Segoe UI", 10), exportselection=False,
                                        bg="#2a2a2a", fg="#e0e0e0", selectbackground="#8b0000",
@@ -201,6 +200,9 @@ class FerdlWorksApp(ctk.CTk):
         self.art_dropdown.pack(fill="x", padx=2, pady=2)
         self.art_dropdown.bind("<<ListboxSelect>>", lambda e: self._select_article())
         self.art_dropdown.bind("<FocusOut>", lambda e: self._hide_art_dropdown())
+        self.art_dropdown.bind("<Return>", lambda e: self._select_article())
+        self.art_dropdown.bind("<Escape>", lambda e: self._hide_art_dropdown())
+        self.art_entry.bind("<Down>", lambda e: self._focus_art_dropdown())
         self._art_results = []
         self._selected_article = None
         self._hide_units()
@@ -249,12 +251,24 @@ class FerdlWorksApp(ctk.CTk):
             self._hide_cust_dropdown()
 
     def _show_cust_dropdown(self):
-        self._cust_dropdown_frame.pack(fill="x", padx=8, pady=(0, 2))
+        cust = self.cust_entry.master.master  # entry -> cust_top -> cust
+        self._cust_dropdown_frame.place(
+            in_=cust, x=10, rely=1.0, width=500, anchor="nw"
+        )
 
     def _hide_cust_dropdown(self, event=None):
-        self._cust_dropdown_frame.pack_forget()
-        # clear selection highlight
+        self._cust_dropdown_frame.place_forget()
         self.cust_dropdown.selection_clear(0, "end")
+
+    def _focus_cust_dropdown(self):
+        if self._cust_data:
+            self.cust_dropdown.focus_set()
+            self.cust_dropdown.selection_set(0)
+
+    def _focus_art_dropdown(self):
+        if self._art_results:
+            self.art_dropdown.focus_set()
+            self.art_dropdown.selection_set(0)
 
     def _pick_customer(self):
         sel = self.cust_dropdown.curselection()
@@ -296,17 +310,20 @@ class FerdlWorksApp(ctk.CTk):
         self._art_results = self.db.combined_search(query) if query else []
         self.art_dropdown.delete(0, "end")
         for item in self._art_results:
-            self.art_dropdown.insert("end", f"{item['name']:40s}  |  {item['item_type']}")
+            self.art_dropdown.insert("end", f"{item['item_type']:10s} | {item['name']}")
         if query and self._art_results:
             self._show_art_dropdown()
         else:
             self._hide_art_dropdown()
 
     def _show_art_dropdown(self):
-        self._art_dropdown_frame.pack(fill="x", padx=8, pady=(0, 2), after=self.art_entry.master.master)
+        art = self.art_entry.master
+        self._art_dropdown_frame.place(
+            in_=art, x=10, rely=1.0, width=500, anchor="nw"
+        )
 
     def _hide_art_dropdown(self, event=None):
-        self._art_dropdown_frame.pack_forget()
+        self._art_dropdown_frame.place_forget()
         self.art_dropdown.selection_clear(0, "end")
 
     def _select_article(self):
@@ -322,21 +339,21 @@ class FerdlWorksApp(ctk.CTk):
         self._hide_art_dropdown()
         if self._selected_article["item_type"] == "Material":
             self._show_mat_units()
-        else:
+        elif self._selected_article["item_type"] == "Werkzeug":
             self._show_tool_units()
+        else:
+            self._hide_units()
 
     def _show_mat_units(self):
         self._art_tool_f.pack_forget()
-        self._art_mat_f.pack(side="left")
+        self._art_mat_f.pack(side="left", padx=(5, 0), before=self.art_insert_btn)
         self.art_insert_btn.configure(text="Übernehmen" if self._editing_pos_idx is not None else "Einfügen")
         self.dl_length.delete(0, "end")
         self.dl_width.delete(0, "end")
-        self.dl_qty.delete(0, "end")
-        self.dl_qty.insert(0, "1")
 
     def _show_tool_units(self):
         self._art_mat_f.pack_forget()
-        self._art_tool_f.pack(side="left")
+        self._art_tool_f.pack(side="left", padx=(5, 0), before=self.art_insert_btn)
         self.art_insert_btn.configure(text="Übernehmen" if self._editing_pos_idx is not None else "Einfügen")
         self.dl_time.delete(0, "end")
         self.dl_time.insert(0, "1")
@@ -349,8 +366,7 @@ class FerdlWorksApp(ctk.CTk):
         try:
             length = float(self.dl_length.get().replace(",", ".")) / 100
             width = float(self.dl_width.get().replace(",", ".")) / 100
-            qty = float(self.dl_qty.get().replace(",", "."))
-            qm = length * width * qty
+            qm = length * width
             self.dl_qm_label.configure(text=f"m\xb2:{qm:.2f}".replace(".", ","))
         except ValueError:
             self.dl_qm_label.configure(text="m\xb2:0,00")
@@ -389,23 +405,22 @@ class FerdlWorksApp(ctk.CTk):
             try:
                 length = float(self.dl_length.get().replace(",", ".")) if self.dl_length.get() else 0
                 width = float(self.dl_width.get().replace(",", ".")) if self.dl_width.get() else 0
-                qty = float(self.dl_qty.get().replace(",", ".")) if self.dl_qty.get() else 1
             except ValueError:
-                length = width = qty = 0
+                length = width = 0
             price_m2 = item.get("price_per_m2", 0) or item.get("price", 0)
             if length > 0 and width > 0:
-                qm = (length / 100) * (width / 100) * qty
-                desc = f"{item['name']} ({length:.0f}x{width:.0f}cm x{qty:.0f})"
+                qm = (length / 100) * (width / 100)
+                desc = f"{item['name']} ({length:.0f}x{width:.0f}cm)"
                 total = qm * price_m2
                 self._positions.append(PositionItem(
                     "material", item["id"], desc, qm, "m\u00b2", price_m2, total,
-                    {"length": length, "width": width, "qty": qty}
+                    {"length": length, "width": width, "qty": 1}
                 ))
             else:
                 self._positions.append(PositionItem(
                     "material", item["id"], item["name"], 1, "m\u00b2", price_m2, price_m2
                 ))
-        else:
+        elif item["item_type"] == "Werkzeug":
             time_val, unit_label, price_per, total, _ = self._calc_tool_position(item)
             desc = f"{item['name']} ({time_val:.0f}{unit_label[0]})"
             self._positions.append(PositionItem(
@@ -421,23 +436,22 @@ class FerdlWorksApp(ctk.CTk):
             try:
                 length = float(self.dl_length.get().replace(",", ".")) if self.dl_length.get() else 0
                 width = float(self.dl_width.get().replace(",", ".")) if self.dl_width.get() else 0
-                qty = float(self.dl_qty.get().replace(",", ".")) if self.dl_qty.get() else 1
             except ValueError:
-                length = width = qty = 0
+                length = width = 0
             price_m2 = item.get("price_per_m2", 0) or item.get("price", 0)
             if length > 0 and width > 0:
-                qm = (length / 100) * (width / 100) * qty
-                desc = f"{item['name']} ({length:.0f}x{width:.0f}cm x{qty:.0f})"
+                qm = (length / 100) * (width / 100)
+                desc = f"{item['name']} ({length:.0f}x{width:.0f}cm)"
                 total = qm * price_m2
                 self._positions[idx] = PositionItem(
                     "material", item["id"], desc, qm, "m\u00b2", price_m2, total,
-                    {"length": length, "width": width, "qty": qty}
+                    {"length": length, "width": width, "qty": 1}
                 )
             else:
                 self._positions[idx] = PositionItem(
                     "material", item["id"], item["name"], 1, "m\u00b2", price_m2, price_m2
                 )
-        else:
+        elif item["item_type"] == "Werkzeug":
             time_val, unit_label, price_per, total, _ = self._calc_tool_position(item)
             desc = f"{item['name']} ({time_val:.0f}{unit_label[0]})"
             self._positions[idx] = PositionItem(
@@ -497,9 +511,6 @@ class FerdlWorksApp(ctk.CTk):
             if ed.get("width"):
                 self.dl_width.delete(0, "end")
                 self.dl_width.insert(0, str(ed["width"]))
-            if ed.get("qty"):
-                self.dl_qty.delete(0, "end")
-                self.dl_qty.insert(0, str(ed["qty"]))
             self._calc_detail_qm()
         else:
             self._show_tool_units()
@@ -744,6 +755,9 @@ class FerdlWorksApp(ctk.CTk):
 
     def _open_material_mgmt(self):
         MaterialDatabase(self)
+
+    def _open_text_mgmt(self):
+        TextDatabase(self)
 
     def _open_settings(self):
         SettingsDialog(self, master_mode=self._master_mode)

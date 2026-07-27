@@ -107,6 +107,14 @@ class Database:
                     current_number INTEGER NOT NULL DEFAULT 0
                 );
 
+                CREATE TABLE IF NOT EXISTS texts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    content TEXT NOT NULL DEFAULT '',
+                    created_at TEXT DEFAULT (datetime('now','localtime')),
+                    updated_at TEXT DEFAULT (datetime('now','localtime'))
+                );
+
                 CREATE TABLE IF NOT EXISTS settings (
                     key TEXT PRIMARY KEY,
                     value TEXT NOT NULL
@@ -259,7 +267,53 @@ class Database:
         finally:
             conn.close()
 
-    # --- Kombinierte Suche (Werkzeug + Material) ---
+    # --- Texte ---
+    def text_search(self, query=""):
+        conn = self._connect()
+        try:
+            like = f"%{query}%"
+            rows = conn.execute("SELECT * FROM texts WHERE name LIKE ? ORDER BY name",
+                                (like,)).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            conn.close()
+
+    def text_get(self, tid):
+        conn = self._connect()
+        try:
+            r = conn.execute("SELECT * FROM texts WHERE id=?", (tid,)).fetchone()
+            return dict(r) if r else None
+        finally:
+            conn.close()
+
+    def text_save(self, data):
+        conn = self._connect()
+        try:
+            keys = ["name", "content"]
+            if data.get("id"):
+                sets = ", ".join(f"{k}=?" for k in keys)
+                vals = [data.get(k, "") for k in keys] + [data["id"]]
+                conn.execute(f"UPDATE texts SET {sets}, updated_at=datetime('now','localtime') WHERE id=?", vals)
+            else:
+                ks = ", ".join(keys)
+                qs = ", ".join("?" for _ in keys)
+                vals = [data.get(k, "") for k in keys]
+                cur = conn.execute(f"INSERT INTO texts ({ks}) VALUES ({qs})", vals)
+                data["id"] = cur.lastrowid
+            conn.commit()
+            return data
+        finally:
+            conn.close()
+
+    def text_delete(self, tid):
+        conn = self._connect()
+        try:
+            conn.execute("DELETE FROM texts WHERE id=?", (tid,))
+            conn.commit()
+        finally:
+            conn.close()
+
+    # --- Kombinierte Suche (Werkzeug + Material + Text) ---
     def combined_search(self, query=""):
         conn = self._connect()
         try:
@@ -270,8 +324,11 @@ class Database:
                 UNION ALL
                 SELECT id, name, 'Material' as item_type, price_per_m2 as price, '' as price_unit, price_per_m2
                 FROM materials WHERE name LIKE ? OR description LIKE ?
+                UNION ALL
+                SELECT id, name, 'Text' as item_type, 0 as price, '' as price_unit, 0 as price_per_m2
+                FROM texts WHERE name LIKE ?
                 ORDER BY name LIMIT 100
-            """, (like, like, like, like)).fetchall()
+            """, (like, like, like, like, like)).fetchall()
             return [dict(r) for r in rows]
         finally:
             conn.close()
