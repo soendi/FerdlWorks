@@ -58,6 +58,7 @@ class FerdlWorksApp(ctk.CTk):
         self._editing_pos_idx = None
         self._build_menu()
         self._build_ui()
+        self.bind("<Button-1>", self._on_global_click, add="+")
         self.logger.info(f"{APP_NAME} v{VERSION} gestartet (Master-Mode: {master_mode})")
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
@@ -122,8 +123,6 @@ class FerdlWorksApp(ctk.CTk):
         self.cust_entry = ctk.CTkEntry(cust_top, width=500, placeholder_text="Kunde eingeben...",
                                        textvariable=self.cust_var)
         self.cust_entry.pack(side="left", padx=5)
-        self.cust_entry.bind("<FocusOut>", lambda e: self._on_cust_focus_out())
-        self.cust_entry.bind("<Button-1>", lambda e: self._filter_customers())
         # Buttons Neu / Bearbeiten
         self.cust_btn_new = ctk.CTkButton(cust_top, text="Neu", width=60, 
                                           command=self._new_customer_from_main,
@@ -143,7 +142,6 @@ class FerdlWorksApp(ctk.CTk):
                                         borderwidth=0, highlightthickness=0)
         self.cust_dropdown.pack(fill="x", padx=2, pady=2)
         self.cust_dropdown.bind("<<ListboxSelect>>", lambda e: self._pick_customer())
-        self.cust_dropdown.bind("<FocusOut>", lambda e: self._hide_cust_dropdown())
         # Tastatur-Navigation
         self.cust_dropdown.bind("<Return>", lambda e: self._pick_customer())
         self.cust_dropdown.bind("<Escape>", lambda e: self._do_hide_cust_dropdown())
@@ -199,7 +197,6 @@ class FerdlWorksApp(ctk.CTk):
                                        borderwidth=0, highlightthickness=0)
         self.art_dropdown.pack(fill="x", padx=2, pady=2)
         self.art_dropdown.bind("<<ListboxSelect>>", lambda e: self._select_article())
-        self.art_dropdown.bind("<FocusOut>", lambda e: self._hide_art_dropdown())
         self.art_dropdown.bind("<Return>", lambda e: self._select_article())
         self.art_dropdown.bind("<Escape>", lambda e: self._do_hide_art_dropdown())
         self.art_entry.bind("<Down>", lambda e: self._focus_art_dropdown())
@@ -237,6 +234,17 @@ class FerdlWorksApp(ctk.CTk):
         self._build_statusbar()
 
     # ===================== KUNDEN-DROPDOWN =====================
+    def _on_global_click(self, event):
+        w = self.winfo_containing(event.x_root, event.y_root)
+        if self._cust_dropdown_frame.winfo_viewable():
+            if w not in (self.cust_entry, self.cust_dropdown, self._cust_dropdown_frame) \
+               and getattr(w, 'master', None) not in (self._cust_dropdown_frame,):
+                self._do_hide_cust_dropdown()
+        if self._art_dropdown_frame.winfo_viewable():
+            if w not in (self.art_entry, self.art_dropdown, self._art_dropdown_frame) \
+               and getattr(w, 'master', None) not in (self._art_dropdown_frame,):
+                self._do_hide_art_dropdown()
+
     def _filter_customers(self):
         query = self.cust_var.get().strip()
         self._cust_data = self.db.customer_search(query) if query else []
@@ -254,19 +262,6 @@ class FerdlWorksApp(ctk.CTk):
         x = self.cust_entry.winfo_rootx() - self.winfo_rootx()
         y = self.cust_entry.winfo_rooty() - self.winfo_rooty() + self.cust_entry.winfo_height()
         self._cust_dropdown_frame.place(x=x, y=y, width=500, anchor="nw")
-
-    def _hide_cust_dropdown(self, event=None):
-        self.after(100, self._do_hide_cust_dropdown)
-
-    def _on_cust_focus_out(self):
-        if not self.cust_var.get().strip():
-            self.cust_var.set("")
-        self.after(50, self._check_hide_cust_dropdown)
-
-    def _check_hide_cust_dropdown(self):
-        f = self.focus_get()
-        if f not in (self.cust_dropdown, self._cust_dropdown_frame, self.cust_entry, self.art_entry, self.art_dropdown, self._art_dropdown_frame):
-            self._do_hide_cust_dropdown()
 
     def _do_hide_cust_dropdown(self):
         self._cust_dropdown_frame.place_forget()
@@ -332,9 +327,6 @@ class FerdlWorksApp(ctk.CTk):
         x = self.art_entry.winfo_rootx() - self.winfo_rootx()
         y = self.art_entry.winfo_rooty() - self.winfo_rooty() + self.art_entry.winfo_height()
         self._art_dropdown_frame.place(x=x, y=y, width=500, anchor="nw")
-
-    def _hide_art_dropdown(self, event=None):
-        self.after(100, self._do_hide_art_dropdown)
 
     def _do_hide_art_dropdown(self):
         self._art_dropdown_frame.place_forget()
