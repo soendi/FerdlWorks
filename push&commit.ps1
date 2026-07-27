@@ -53,18 +53,11 @@ if ($bump) {
     git commit -m "Bump Version v$newVersion"
     git push origin $branch
 
-    # Tag erstellen
+    # Tag erstellen (GANZ AM SCHLUSS - damit kein Update angeboten wird, bevor der Build fertig ist)
     git tag "v$newVersion"
     git push origin "v$newVersion"
     Write-Host "Tag v$newVersion erstellt und gepusht"
-
-    # GitHub Release via gh CLI
-    try {
-        gh release create "v$newVersion" --title "v$newVersion" --notes "Version $newVersion"
-        Write-Host "GitHub Release v$newVersion erstellt"
-    } catch {
-        Write-Warning "GitHub Release konnte nicht erstellt werden (gh CLI installiert?). Das Tag wurde trotzdem erstellt."
-    }
+    Write-Host "GitHub Actions baut nun automatisch den Installer und erstellt das Release."
 
     Write-Host "Neue Version: $newVersion"
 } else {

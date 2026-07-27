@@ -22,6 +22,11 @@ jobs:
         run: |
           pip install -r requirements.txt pyinstaller
 
+      - name: Generate Icon
+        shell: pwsh
+        run: |
+          python -c "from lib.icon import create_icon; create_icon()"
+
       - name: Build EXE with PyInstaller
         shell: pwsh
         run: |
