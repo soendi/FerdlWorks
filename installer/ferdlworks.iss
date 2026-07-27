@@ -52,9 +52,9 @@ Source: "..\data\*"; DestDir: "{app}\data"; Flags: ignoreversion recursesubdirs;
 Name: "{app}\data"; Permissions: users-modify
 
 [Registry]
-Root: HKCU; Subkey: "SOFTWARE\SondereggerSoftware\{#MyAppName}"; Flags: uninsdeletekeyifempty
-Root: HKCU; Subkey: "SOFTWARE\SondereggerSoftware\{#MyAppName}"; ValueType: string; ValueName: "InstallPath"; ValueData: "{app}"; Flags: uninsdeletevalue
-Root: HKCU; Subkey: "SOFTWARE\SondereggerSoftware\{#MyAppName}"; ValueType: string; ValueName: "UninstallPath"; ValueData: "{app}\unins000.exe"; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\SondereggerSoftware\{#MyAppName}"; Flags: uninsdeletekeyifempty
+Root: HKLM; Subkey: "SOFTWARE\SondereggerSoftware\{#MyAppName}"; ValueType: string; ValueName: "InstallPath"; ValueData: "{app}"; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\SondereggerSoftware\{#MyAppName}"; ValueType: string; ValueName: "UninstallPath"; ValueData: "{app}\unins000.exe"; Flags: uninsdeletevalue
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; IconFilename: "{app}\ferdlworks.ico"

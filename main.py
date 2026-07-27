@@ -108,18 +108,22 @@ class FerdlWorksApp(ctk.CTk):
         # --- Kunde (Entry + Dropdown) ---
         cust = ctk.CTkFrame(main, corner_radius=6)
         cust.pack(fill="x", padx=8, pady=(4, 1))
-        ctk.CTkLabel(cust, text="Kunde:", font=("Segoe UI", 11, "bold"),
-                     text_color=("#8b0000", "#8b0000")).pack(side="left", padx=(10, 5))
+        
+        # Top row: Label + Entry
+        cust_top = ctk.CTkFrame(cust, fg_color="transparent")
+        cust_top.pack(fill="x", padx=10, pady=(8, 0))
+        ctk.CTkLabel(cust_top, text="Kunde:", font=("Segoe UI", 11, "bold"),
+                     text_color=("#8b0000", "#8b0000")).pack(side="left", padx=(0, 5))
         self.cust_var = ctk.StringVar()
         self.cust_var.trace_add("write", lambda *a: self._filter_customers())
-        self.cust_entry = ctk.CTkEntry(cust, width=300, placeholder_text="Namen eingeben...",
+        self.cust_entry = ctk.CTkEntry(cust_top, width=300, placeholder_text="Namen eingeben...",
                                        textvariable=self.cust_var)
-        self.cust_entry.pack(side="left", padx=5, pady=4)
+        self.cust_entry.pack(side="left", padx=5)
         self.cust_entry.bind("<FocusOut>", lambda e: self._hide_cust_dropdown())
         self.doc_type_var = ctk.StringVar(value="RG")
 
-        # Dropdown-Liste Kunde (wird ein/ausgeblendet) - direkt unter Customer-Frame
-        self._cust_dropdown_frame = ctk.CTkFrame(main, corner_radius=4, height=0)
+        # Dropdown-Liste Kunde (direkt unter Entry, im gleichen Frame)
+        self._cust_dropdown_frame = ctk.CTkFrame(cust, corner_radius=4, height=0, fg_color=("#e0e0e0", "#2a2a2a"))
         self.cust_dropdown = tk.Listbox(self._cust_dropdown_frame, height=5,
                                         font=("Segoe UI", 10), exportselection=False,
                                         bg="#2a2a2a", fg="#e0e0e0", selectbackground="#8b0000",
@@ -127,6 +131,10 @@ class FerdlWorksApp(ctk.CTk):
         self.cust_dropdown.pack(fill="x", padx=2, pady=2)
         self.cust_dropdown.bind("<<ListboxSelect>>", lambda e: self._pick_customer())
         self.cust_dropdown.bind("<FocusOut>", lambda e: self._hide_cust_dropdown())
+        # Tastatur-Navigation
+        self.cust_dropdown.bind("<Return>", lambda e: self._pick_customer())
+        self.cust_dropdown.bind("<Escape>", lambda e: self._hide_cust_dropdown())
+        self.cust_entry.bind("<Down>", lambda e: self._focus_cust_dropdown())
         self._cust_data = []
         self._customer_id = None
 

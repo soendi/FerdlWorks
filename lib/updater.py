@@ -109,8 +109,10 @@ def install_and_restart(installer_path, app_exe_path):
             f.write(f"""@echo off
 ping -n 4 127.0.0.1 > nul
 start /wait "" "{installer_path}" /SILENT /SUPPRESSMSGBOXES /NORESTART
-start "" "{app_exe_path}"
-del "%~f0"
+if exist "{app_exe_path}" (
+    start "" "{app_exe_path}"
+)
+del "%~f0" 2>nul
 """)
         subprocess.Popen(
             [bat_path],
