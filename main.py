@@ -694,7 +694,7 @@ class FerdlWorksApp(ctk.CTk):
         total_gross = netto_nach_rabatt + total_tax
         self._sum_labels["netto"].configure(text=f"{total_net:.2f}\u20ac".replace(".", ","))
         if discount_val > 0 and self._rabatt_frame and self._rabatt_lbl:
-            self._rabatt_frame.pack(fill="x")
+            self._rabatt_frame.pack(fill="x", before=self._mwst_frame)
             self._rabatt_lbl.configure(text=f"-{rabatt:.2f}\u20ac".replace(".", ","))
         elif self._rabatt_frame:
             self._rabatt_frame.pack_forget()
@@ -717,9 +717,8 @@ class FerdlWorksApp(ctk.CTk):
         rf = ctk.CTkFrame(parent, fg_color="transparent")
         rf.pack(side="right", padx=8, pady=6)
         self._sum_labels = {}
-        names = ["Netto:", "MwSt:", "Brutto:"]
-        frames = []
-        for text in names:
+        self._mwst_frame = None
+        for text in ["Netto:", "MwSt:", "Brutto:"]:
             f = ctk.CTkFrame(rf, fg_color="transparent")
             ctk.CTkLabel(f, text=text, font=("Segoe UI", 13)).pack(side="left")
             lbl = ctk.CTkLabel(f, text="0,00 \u20ac", font=("Segoe UI", 13, "bold"),
@@ -727,19 +726,20 @@ class FerdlWorksApp(ctk.CTk):
             lbl.pack(side="right", padx=4)
             key = text.replace(":", "").replace(" ", "_").lower()
             self._sum_labels[key] = lbl
-            frames.append(f)
+            if text == "MwSt:":
+                self._mwst_frame = f
         # Rabatt-Frame (zunächst unsichtbar)
         self._rabatt_frame = ctk.CTkFrame(rf, fg_color="transparent")
         ctk.CTkLabel(self._rabatt_frame, text="Rabatt:", font=("Segoe UI", 13)).pack(side="left")
         self._rabatt_lbl = ctk.CTkLabel(self._rabatt_frame, text="0,00 \u20ac", font=("Segoe UI", 13),
                                         text_color=("#8b0000", "#8b0000"), width=80, anchor="e")
         self._rabatt_lbl.pack(side="right", padx=4)
-        # Pack-Reihenfolge: Netto, Rabatt (unsichtbar), MwSt, Brutto
-        frames[0].pack(fill="x")  # Netto
-        self._rabatt_frame.pack(fill="x")
+        # Pack-Reihenfolge: Netto, Rabatt (versteckt), MwSt, Brutto
+        self._sum_labels["netto"].master.pack(fill="x")  # Netto
+        self._rabatt_frame.pack(fill="x", before=self._mwst_frame)  # nach Netto, vor MwSt
         self._rabatt_frame.pack_forget()  # erstmal unsichtbar
-        frames[1].pack(fill="x")  # MwSt
-        frames[2].pack(fill="x")  # Brutto
+        self._mwst_frame.pack(fill="x")  # MwSt
+        self._sum_labels["brutto"].master.pack(fill="x")  # Brutto
 
         bf = ctk.CTkFrame(parent, fg_color="transparent")
         bf.pack(side="bottom", fill="x", padx=8, pady=6)
