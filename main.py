@@ -119,7 +119,7 @@ class FerdlWorksApp(ctk.CTk):
                      text_color=("#8b0000", "#8b0000")).pack(side="left", padx=(0, 5))
         self.cust_var = ctk.StringVar()
         self.cust_var.trace_add("write", lambda *a: self._filter_customers())
-        self.cust_entry = ctk.CTkEntry(cust_top, width=500, placeholder_text="Namen eingeben...",
+        self.cust_entry = ctk.CTkEntry(cust_top, width=500, placeholder_text="Kunde eingeben...",
                                        textvariable=self.cust_var)
         self.cust_entry.pack(side="left", padx=5)
         self.cust_entry.bind("<FocusOut>", lambda e: self._hide_cust_dropdown())
@@ -155,7 +155,7 @@ class FerdlWorksApp(ctk.CTk):
         art.pack(fill="x", padx=8, pady=1)
         ctk.CTkLabel(art, text="Artikel:", font=("Segoe UI", 11, "bold"),
                      text_color=("#8b0000", "#8b0000")).pack(side="left", padx=(10, 5))
-        self.art_entry = ctk.CTkEntry(art, width=500, placeholder_text="Werkzeug, Material oder Text...")
+        self.art_entry = ctk.CTkEntry(art, width=500, placeholder_text="Werkzeug, Material oder Text eingeben...")
         self.art_entry.pack(side="left", padx=5, pady=4)
         self.art_entry.bind("<KeyRelease>", lambda e: self._search_articles())
         self.art_entry.bind("<FocusOut>", lambda e: self._hide_art_dropdown())
@@ -189,7 +189,7 @@ class FerdlWorksApp(ctk.CTk):
 
         self.art_insert_btn = ctk.CTkButton(art, text="Einfügen", command=self._insert_article,
                                             width=80, fg_color="#5c0000", hover_color="#8b0000")
-        self.art_insert_btn.pack(side="left", padx=5)
+        self.art_insert_btn.pack(side="right", padx=5)
 
         # Dropdown-Liste Artikel (schwebend über anderen Elementen)
         self._art_dropdown_frame = tk.Frame(self, bg="#2a2a2a", highlightbackground="#555555", highlightthickness=1)
@@ -350,14 +350,14 @@ class FerdlWorksApp(ctk.CTk):
 
     def _show_mat_units(self):
         self._art_tool_f.pack_forget()
-        self._art_mat_f.pack(side="left", padx=(5, 0), before=self.art_insert_btn)
+        self._art_mat_f.pack(side="left", padx=(5, 0))
         self.art_insert_btn.configure(text="Übernehmen" if self._editing_pos_idx is not None else "Einfügen")
         self.dl_length.delete(0, "end")
         self.dl_width.delete(0, "end")
 
     def _show_tool_units(self):
         self._art_mat_f.pack_forget()
-        self._art_tool_f.pack(side="left", padx=(5, 0), before=self.art_insert_btn)
+        self._art_tool_f.pack(side="left", padx=(5, 0))
         self.art_insert_btn.configure(text="Übernehmen" if self._editing_pos_idx is not None else "Einfügen")
         self.dl_time.delete(0, "end")
         self.dl_time.insert(0, "1")
