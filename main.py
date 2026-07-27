@@ -23,7 +23,7 @@ from lib.cloud_backup import gdrive_backup, gdrive_authorize, onedrive_backup, o
 from version import VERSION, APP_NAME, COMPANY_NAME
 
 THEME_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "ferdlworks_theme.json")
-SCROLLBAR_STYLE = {"width": 3, "corner_radius": 2, "minimum_pixel_length": 30}
+SCROLLBAR_STYLE = {"width": 3, "corner_radius": 2}
 
 
 def _format_currency(value):
@@ -936,13 +936,20 @@ def run_app():
     ctk.set_default_color_theme(THEME_PATH)
     root = ctk.CTk()
     root.withdraw()
-    from lib.login_dialog import LoginDialog
-    login = LoginDialog(root)
-    root.wait_window(login)
-    if not login.is_authenticated():
-        root.destroy()
-        return
-    master_mode = login.is_master_mode()
+    from lib.database import get_db
+    db = get_db()
+    settings = db.settings_get_all()
+    has_password = bool(settings.get("user_password", ""))
+    if has_password:
+        from lib.login_dialog import LoginDialog
+        login = LoginDialog(root)
+        root.wait_window(login)
+        if not login.is_authenticated():
+            root.destroy()
+            return
+        master_mode = login.is_master_mode()
+    else:
+        master_mode = False
     root.destroy()
     app = FerdlWorksApp(master_mode=master_mode)
     app.mainloop()
