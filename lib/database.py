@@ -84,6 +84,8 @@ class Database:
                     total_tax REAL DEFAULT 0,
                     total_gross REAL DEFAULT 0,
                     note TEXT DEFAULT '',
+                    paid TEXT DEFAULT '0',
+                    due_date TEXT DEFAULT '',
                     created_at TEXT DEFAULT (datetime('now','localtime')),
                     FOREIGN KEY (customer_id) REFERENCES customers(id)
                 );
@@ -122,6 +124,12 @@ class Database:
                     value TEXT NOT NULL
                 );
             """)
+            # Migration: documents – paid, due_date
+            for col in ("paid", "due_date"):
+                try:
+                    conn.execute(f"ALTER TABLE documents ADD COLUMN {col} TEXT DEFAULT ''")
+                except sqlite3.OperationalError:
+                    pass
             conn.commit()
             # Migration: orig_price / orig_price_unit für EP-Einheit aus Verwaltung
             for col in ("orig_price", "orig_price_unit"):
@@ -370,30 +378,33 @@ class Database:
         finally:
             conn.close()
 
-    def doc_save(self, data, positions):
+    def doc_save(self, data, positions, payment_term=30):
         conn = self._connect()
         try:
+            doc_date = data.get("date", datetime.now().strftime("%Y-%m-%d"))
+            from datetime import timedelta
+            due = (datetime.strptime(doc_date, "%Y-%m-%d") + timedelta(days=int(payment_term))).strftime("%Y-%m-%d")
+            paid = data.get("paid", "0")
             if data.get("id"):
                 conn.execute("""UPDATE documents SET customer_id=?, date=?, discount_type=?,
-                    discount_value=?, total_net=?, total_tax=?, total_gross=?, note=?
-                    WHERE id=?""",
-                    (data["customer_id"], data.get("date", datetime.now().strftime("%Y-%m-%d")),
+                    discount_value=?, total_net=?, total_tax=?, total_gross=?, note=?,
+                    paid=?, due_date=? WHERE id=?""",
+                    (data["customer_id"], doc_date,
                      data.get("discount_type", "percent"), data.get("discount_value", 0),
                      data.get("total_net", 0), data.get("total_tax", 0),
-                     data.get("total_gross", 0), data.get("note", ""), data["id"]))
+                     data.get("total_gross", 0), data.get("note", ""), paid, due, data["id"]))
                 conn.execute("DELETE FROM positions WHERE doc_id=?", (data["id"],))
                 doc_id = data["id"]
             else:
                 doc_number, _ = self.doc_get_next_number(data["doc_type"])
                 data["doc_number"] = doc_number
                 cur = conn.execute("""INSERT INTO documents (doc_type, doc_number, customer_id, date,
-                    discount_type, discount_value, total_net, total_tax, total_gross, note)
-                    VALUES (?,?,?,?,?,?,?,?,?,?)""",
-                    (data["doc_type"], doc_number, data["customer_id"],
-                     data.get("date", datetime.now().strftime("%Y-%m-%d")),
+                    discount_type, discount_value, total_net, total_tax, total_gross, note, paid, due_date)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (data["doc_type"], doc_number, data["customer_id"], doc_date,
                      data.get("discount_type", "percent"), data.get("discount_value", 0),
                      data.get("total_net", 0), data.get("total_tax", 0),
-                     data.get("total_gross", 0), data.get("note", "")))
+                     data.get("total_gross", 0), data.get("note", ""), paid, due))
                 doc_id = cur.lastrowid
             for i, pos in enumerate(positions):
                 conn.execute("""INSERT INTO positions (doc_id, pos_type, ref_id, description,
@@ -438,6 +449,25 @@ class Database:
                 params.extend([like, like, like])
             sql += " ORDER BY d.id DESC"
             rows = conn.execute(sql, params).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            conn.close()
+
+    def doc_set_paid(self, doc_id, paid=True):
+        conn = self._connect()
+        try:
+            conn.execute("UPDATE documents SET paid=? WHERE id=?", ("1" if paid else "0", doc_id))
+            conn.commit()
+        finally:
+            conn.close()
+
+    def doc_get_overdue(self):
+        conn = self._connect()
+        try:
+            rows = conn.execute("""SELECT d.*, c.company as customer_name FROM documents d
+                LEFT JOIN customers c ON d.customer_id = c.id
+                WHERE d.doc_type='RG' AND d.paid='0' AND d.due_date != ''
+                AND date(d.due_date) < date('now') ORDER BY d.due_date""").fetchall()
             return [dict(r) for r in rows]
         finally:
             conn.close()

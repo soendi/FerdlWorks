@@ -56,6 +56,11 @@ class SettingsDialog(ctk.CTkToplevel):
         self.discount_entry.insert(0, self.settings.get("default_discount", "0"))
         self.discount_entry.grid(row=1, column=1, padx=5, pady=5, sticky="w")
 
+        ctk.CTkLabel(tab2, text="Zahlbar innert (Tagen):", width=150, anchor="w").grid(row=2, column=0, padx=(10, 5), pady=5, sticky="w")
+        self.payment_term_entry = ctk.CTkEntry(tab2, width=100)
+        self.payment_term_entry.insert(0, self.settings.get("payment_term", "30"))
+        self.payment_term_entry.grid(row=2, column=1, padx=5, pady=5, sticky="w")
+
         # --- SMTP ---
         tab3 = tabview.add("E-Mail (SMTP)")
         smtp_fields = [

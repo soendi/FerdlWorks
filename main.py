@@ -60,6 +60,7 @@ class FerdlWorksApp(ctk.CTk):
         self._build_ui()
         self.bind("<Button-1>", self._on_global_click, add="+")
         self._new_doc()
+        self.after(500, self._check_overdue)
         self.logger.info(f"{APP_NAME} v{VERSION} gestartet (Master-Mode: {master_mode})")
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
@@ -805,7 +806,9 @@ class FerdlWorksApp(ctk.CTk):
                 "orig_price_unit": ed.get("price_unit") or ed.get("orig_price_unit", ""),
             })
         data["id"] = self._current_doc_id
-        result = self.db.doc_save(data, pos_data)
+        settings = self.db.settings_get_all()
+        payment_term = int(settings.get("payment_term", "30"))
+        result = self.db.doc_save(data, pos_data, payment_term=payment_term)
         if result:
             self._current_doc_id = result["id"]
             self.logger.info(f"Dokument {result['doc_number']} gespeichert")
@@ -836,6 +839,13 @@ class FerdlWorksApp(ctk.CTk):
             ))
         self._refresh_positions()
         self.doc_status_label.configure(text=doc["doc_number"])
+
+    def _check_overdue(self):
+        overdue = self.db.doc_get_overdue()
+        if overdue:
+            msg = f"{len(overdue)} Rechnung(en) sind überfällig!\n\nDiese anzeigen?"
+            if messagebox.askyesno("Überfällige Rechnungen", msg):
+                DocSearchDialog(self, overdue_only=True)
 
     def _open_doc_search(self):
         DocSearchDialog(self)
@@ -1052,12 +1062,13 @@ class FerdlWorksApp(ctk.CTk):
 
 # ===================== DOKUMENT-SUCHE =====================
 class DocSearchDialog(ctk.CTkToplevel):
-    def __init__(self, master):
+    def __init__(self, master, overdue_only=False):
         super().__init__(master)
         self.db = get_db()
         self.app = master
+        self._overdue_only = overdue_only
         self.title("Rechnungen & Lieferscheine")
-        self.geometry("700x450")
+        self.geometry("800x500")
         self.transient(master)
         self.grab_set()
         self._build_ui()
@@ -1067,26 +1078,29 @@ class DocSearchDialog(ctk.CTkToplevel):
         top = ctk.CTkFrame(self)
         top.pack(fill="x", padx=10, pady=10)
         ctk.CTkLabel(top, text="Suchen:").pack(side="left", padx=5)
-        self.search_entry = ctk.CTkEntry(top, width=250, placeholder_text="Nr., Kunde...")
+        self.search_entry = ctk.CTkEntry(top, width=200, placeholder_text="Nr., Kunde...")
         self.search_entry.pack(side="left", padx=5)
         self.search_entry.bind("<KeyRelease>", lambda e: self._load_data())
         ctk.CTkLabel(top, text="Typ:").pack(side="left", padx=(15, 5))
         self.type_var = ctk.StringVar(value="all")
         ctk.CTkOptionMenu(top, values=["Alle", "RG", "LS"], variable=self.type_var,
                           command=lambda v: self._load_data(), width=70).pack(side="left", padx=5)
+        self.overdue_var = ctk.BooleanVar(value=self._overdue_only)
+        ctk.CTkCheckBox(top, text="Überfällige Rechnungen", variable=self.overdue_var,
+                        command=self._load_data).pack(side="left", padx=(15, 5))
         ctk.CTkButton(top, text="Öffnen", command=self._open_selected, width=80).pack(side="right", padx=5)
         ctk.CTkButton(top, text="Schließen", command=self.destroy, width=80).pack(side="right", padx=5)
-        cols = ("doc", "kunde", "datum", "betrag")
+        cols = ("doc", "kunde", "datum", "faellig", "betrag", "status")
+        heads = {"doc": "Dokument", "kunde": "Kunde", "datum": "Datum",
+                 "faellig": "Fällig", "betrag": "Betrag", "status": "Status"}
+        widths = {"doc": 150, "kunde": 180, "datum": 85, "faellig": 85, "betrag": 90, "status": 70}
         self.tree = ttk.Treeview(self, columns=cols, show="headings")
-        self.tree.heading("doc", text="Dokument")
-        self.tree.heading("kunde", text="Kunde")
-        self.tree.heading("datum", text="Datum")
-        self.tree.heading("betrag", text="Betrag")
-        self.tree.column("doc", width=150)
-        self.tree.column("kunde", width=200)
-        self.tree.column("datum", width=100)
-        self.tree.column("betrag", width=100, anchor="e")
+        for c in cols:
+            self.tree.heading(c, text=heads[c])
+            self.tree.column(c, width=widths[c], minwidth=50, anchor="w" if c in ("doc", "kunde") else "e")
+        self.tree.column("status", width=70, anchor="center")
         self.tree.bind("<Double-1>", lambda e: self._open_selected())
+        self.tree.bind("<Button-3>", self._tree_context_menu)
         vsb = ttk.Scrollbar(self, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=vsb.set)
         self.tree.pack(fill="both", expand=True, padx=10, pady=(0, 10))
@@ -1098,16 +1112,45 @@ class DocSearchDialog(ctk.CTkToplevel):
         for row in self.tree.get_children():
             self.tree.delete(row)
         self._docs.clear()
-        type_filter = {"Alle": None, "RG": "RG", "LS": "LS"}.get(self.type_var.get(), None)
-        query = self.search_entry.get()
-        self._docs = self.db.doc_search(type_filter, query)
+        if self.overdue_var.get():
+            self._docs = self.db.doc_get_overdue()
+        else:
+            type_filter = {"Alle": None, "RG": "RG", "LS": "LS"}.get(self.type_var.get(), None)
+            query = self.search_entry.get()
+            self._docs = self.db.doc_search(type_filter, query)
         for doc in self._docs:
             cname = doc.get("customer_name", "")
             dtype = "RG" if doc["doc_type"] == "RG" else "LS"
+            paid = doc.get("paid", "0") == "1"
+            status = "\u2713" if paid else "\u2717"
+            due = doc.get("due_date", "")
             self.tree.insert("", "end", iid=str(doc["id"]), values=(
                 f"{dtype} {doc['doc_number']}", cname, doc["date"],
-                f"{doc.get('total_gross', 0):.2f}\u20ac".replace(".", ",")
+                due, f"{doc.get('total_gross', 0):.2f}\u20ac".replace(".", ","), status
             ))
+
+    def _tree_context_menu(self, event):
+        iid = self.tree.identify_row(event.y)
+        if not iid:
+            return
+        # select the row
+        self.tree.selection_set(iid)
+        doc_id = int(iid)
+        doc = next((d for d in self._docs if d["id"] == doc_id), None)
+        if not doc or doc["doc_type"] != "RG":
+            return
+        menu = tk.Menu(self, tearoff=False, font=("Segoe UI", 10))
+        is_paid = doc.get("paid", "0") == "1"
+        if is_paid:
+            menu.add_command(label="Als unbezahlt markieren", command=lambda: self._toggle_paid(doc_id, False))
+        else:
+            menu.add_command(label="Als bezahlt markieren", command=lambda: self._toggle_paid(doc_id, True))
+        menu.tk_popup(event.x_root, event.y_root)
+        menu.grab_release()
+
+    def _toggle_paid(self, doc_id, paid):
+        self.db.doc_set_paid(doc_id, paid)
+        self._load_data()
 
     def _open_selected(self):
         sel = self.tree.selection()
