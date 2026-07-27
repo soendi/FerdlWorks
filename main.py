@@ -72,6 +72,8 @@ class FerdlWorksApp(ctk.CTk):
         mb = tk.Menu(self, font=("Segoe UI", 10))
         datei = tk.Menu(mb, tearoff=False, font=("Segoe UI", 10))
         datei.add_command(label="Neue Rechnung", command=self._new_doc_prompt, accelerator="Strg+N")
+        datei.add_command(label="Speichern", command=self._save_doc, accelerator="Strg+S")
+        datei.add_separator()
         datei.add_command(label="Rechnungen & Lieferscheine...", command=self._open_doc_overview, accelerator="Strg+D")
         datei.add_separator()
         datei.add_command(label="Einstellungen...", command=self._open_settings, accelerator="Strg+E")
