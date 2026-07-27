@@ -214,6 +214,9 @@ class FerdlWorksApp(ctk.CTk):
         footer.pack(fill="x", padx=8, pady=4)
         self._build_footer(footer)
 
+        # --- Status Bar ---
+        self._build_statusbar()
+
     # ===================== KUNDEN-DROPDOWN =====================
     def _filter_customers(self):
         query = self.cust_var.get().strip()
@@ -524,6 +527,15 @@ class FerdlWorksApp(ctk.CTk):
             ctk.CTkButton(bf, text=text, command=cmd, width=80,
                           fg_color=fg, hover_color="#b22222",
                           font=("Segoe UI", 10)).pack(side="left", padx=3)
+
+    # ===================== STATUSBAR =====================
+    def _build_statusbar(self):
+        bar = ctk.CTkFrame(self, height=24, corner_radius=0, fg_color=("#e0e0e0", "#1a1a1a"))
+        bar.pack(fill="x", side="bottom")
+        ctk.CTkLabel(bar, text="SondereggerSoftware", font=("Segoe UI", 9),
+                     text_color=("#555555", "#888888")).pack(side="left", padx=10)
+        ctk.CTkLabel(bar, text=f"v{VERSION}", font=("Segoe UI", 9),
+                     text_color=("#555555", "#888888")).pack(side="right", padx=10)
 
     # ===================== DOKUMENT-LOGIK =====================
     def _new_doc(self):
