@@ -3,8 +3,15 @@ import os
 from datetime import datetime
 from lib.logger import get_logger
 
-DB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
-DB_PATH = os.path.join(DB_DIR, "ferdlworks.db")
+
+def get_db_path():
+    """Get the database path — always %APPDATA%/FerdlWorks/ferdlworks.db."""
+    base_dir = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "FerdlWorks")
+    os.makedirs(base_dir, exist_ok=True)
+    return os.path.join(base_dir, "ferdlworks.db")
+
+
+DB_PATH = get_db_path()
 
 
 def get_db():
@@ -13,7 +20,7 @@ def get_db():
 
 class Database:
     def __init__(self, db_path=None):
-        self.db_path = db_path or DB_PATH
+        self.db_path = db_path or get_db_path()
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         self.logger = get_logger()
         self._create_tables()

@@ -10,7 +10,7 @@ from datetime import datetime
 from lib.logger import setup_logger, get_logger, get_log_path
 from lib.registry import reg_write, reg_read, reg_delete_all
 from lib.icon import create_icon
-from lib.database import get_db, DB_PATH
+from lib.database import get_db
 from lib.settings_dialog import SettingsDialog
 from lib.customer_dialog import CustomerDialog
 from lib.customer_database import CustomerDatabase
@@ -109,21 +109,30 @@ class FerdlWorksApp(ctk.CTk):
         cust = ctk.CTkFrame(main, corner_radius=6)
         cust.pack(fill="x", padx=8, pady=(4, 1))
         
-        # Top row: Label + Entry
+        # Top row: Label + Entry + Buttons
         cust_top = ctk.CTkFrame(cust, fg_color="transparent")
         cust_top.pack(fill="x", padx=10, pady=(8, 0))
         ctk.CTkLabel(cust_top, text="Kunde:", font=("Segoe UI", 11, "bold"),
                      text_color=("#8b0000", "#8b0000")).pack(side="left", padx=(0, 5))
         self.cust_var = ctk.StringVar()
         self.cust_var.trace_add("write", lambda *a: self._filter_customers())
-        self.cust_entry = ctk.CTkEntry(cust_top, width=300, placeholder_text="Namen eingeben...",
+        self.cust_entry = ctk.CTkEntry(cust_top, width=500, placeholder_text="Namen eingeben...",
                                        textvariable=self.cust_var)
         self.cust_entry.pack(side="left", padx=5)
         self.cust_entry.bind("<FocusOut>", lambda e: self._hide_cust_dropdown())
+        # Buttons Neu / Bearbeiten
+        self.cust_btn_new = ctk.CTkButton(cust_top, text="Neu", width=60, 
+                                          command=self._new_customer_from_main,
+                                          fg_color="#5c0000", hover_color="#8b0000")
+        self.cust_btn_new.pack(side="left", padx=5)
+        self.cust_btn_edit = ctk.CTkButton(cust_top, text="Bearbeiten", width=80, 
+                                           command=self._edit_customer_from_main, state="disabled",
+                                           fg_color="#5c0000", hover_color="#8b0000")
+        self.cust_btn_edit.pack(side="left", padx=5)
         self.doc_type_var = ctk.StringVar(value="RG")
 
-        # Dropdown-Liste Kunde (direkt unter Entry, im gleichen Frame)
-        self._cust_dropdown_frame = ctk.CTkFrame(cust, corner_radius=4, height=0, fg_color=("#e0e0e0", "#2a2a2a"))
+        # Dropdown-Liste Kunde (schwebend über anderen Elementen)
+        self._cust_dropdown_frame = ctk.CTkFrame(self, corner_radius=4, fg_color=("#e0e0e0", "#2a2a2a"))
         self.cust_dropdown = tk.Listbox(self._cust_dropdown_frame, height=5,
                                         font=("Segoe UI", 10), exportselection=False,
                                         bg="#2a2a2a", fg="#e0e0e0", selectbackground="#8b0000",
