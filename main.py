@@ -734,12 +734,12 @@ class FerdlWorksApp(ctk.CTk):
         self._rabatt_lbl = ctk.CTkLabel(self._rabatt_frame, text="0,00 \u20ac", font=("Segoe UI", 13),
                                         text_color=("#8b0000", "#8b0000"), width=80, anchor="e")
         self._rabatt_lbl.pack(side="right", padx=4)
-        # Pack-Reihenfolge: Netto→Rabatt→MwSt→Brutto
-        for i, f in enumerate(frames):
-            f.pack(fill="x")
-            if i == 0:  # nach Netto Rabatt einfügen
-                self._rabatt_frame.pack(fill="x")
-                self._rabatt_frame.pack_forget()  # erstmal unsichtbar
+        # Pack-Reihenfolge: Netto, Rabatt (unsichtbar), MwSt, Brutto
+        frames[0].pack(fill="x")  # Netto
+        self._rabatt_frame.pack(fill="x")
+        self._rabatt_frame.pack_forget()  # erstmal unsichtbar
+        frames[1].pack(fill="x")  # MwSt
+        frames[2].pack(fill="x")  # Brutto
 
         bf = ctk.CTkFrame(parent, fg_color="transparent")
         bf.pack(side="bottom", fill="x", padx=8, pady=6)
