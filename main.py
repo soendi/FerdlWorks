@@ -269,6 +269,27 @@ class FerdlWorksApp(ctk.CTk):
     def _get_selected_customer_id(self):
         return self._customer_id
 
+    def _new_customer_from_main(self):
+        dlg = CustomerDialog(self)
+        self.wait_window(dlg)
+        if dlg.result:
+            self._customer_id = dlg.result["id"]
+            name = (dlg.result.get("company") or
+                    f"{dlg.result.get('last_name', '')} {dlg.result.get('first_name', '')}".strip())
+            self.cust_var.set(name)
+
+    def _edit_customer_from_main(self):
+        cid = self._get_selected_customer_id()
+        if not cid:
+            messagebox.showinfo("Hinweis", "Kein Kunde ausgewählt.")
+            return
+        dlg = CustomerDialog(self, customer_id=cid)
+        self.wait_window(dlg)
+        if dlg.result:
+            name = (dlg.result.get("company") or
+                    f"{dlg.result.get('last_name', '')} {dlg.result.get('first_name', '')}".strip())
+            self.cust_var.set(name)
+
     # ===================== ARTIKEL-DROPDOWN =====================
     def _search_articles(self):
         query = self.art_entry.get().strip()

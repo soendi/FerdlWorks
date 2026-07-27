@@ -28,23 +28,10 @@ jobs:
         run: |
           python -c "from lib.icon import create_icon; create_icon()"
 
-      - name: Build EXE with PyInstaller
+      - name: Build EXE with PyInstaller (spec)
         shell: pwsh
         run: |
-          $pythonDll = Join-Path (Get-Item (Get-Command python).Source).Directory "python314.dll"
-          pyinstaller --noconfirm --onefile --windowed `
-            --name "FerdlWorks" `
-            --icon "assets\ferdlworks.ico" `
-            --add-data "assets\ferdlworks_theme.json;assets" `
-            --add-data "assets\ferdlworks.ico;." `
-            --add-binary "$pythonDll;." `
-            --hidden-import "customtkinter" `
-            --hidden-import "PIL._tkinter_finder" `
-            --hidden-import "win32print" `
-            --hidden-import "packaging" `
-            --hidden-import "packaging.version" `
-            --collect-all "reportlab" `
-            main.py
+          pyinstaller --noconfirm ferdlworks.spec
 
       - name: Install Inno Setup
         shell: pwsh
