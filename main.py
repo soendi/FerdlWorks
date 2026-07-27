@@ -688,11 +688,16 @@ class FerdlWorksApp(ctk.CTk):
             discount_val = float(self.discount_var.get().replace(",", "."))
         except ValueError:
             discount_val = 0
-        if discount_val > 0:
-            total_net = total_net * (1 - discount_val / 100)
-        total_tax = total_net * tax_rate / 100
-        total_gross = total_net + total_tax
+        rabatt = total_net * discount_val / 100 if discount_val > 0 else 0
+        netto_nach_rabatt = total_net - rabatt
+        total_tax = netto_nach_rabatt * tax_rate / 100
+        total_gross = netto_nach_rabatt + total_tax
         self._sum_labels["netto"].configure(text=f"{total_net:.2f}\u20ac".replace(".", ","))
+        if discount_val > 0 and self._rabatt_frame and self._rabatt_lbl:
+            self._rabatt_frame.pack(fill="x")
+            self._rabatt_lbl.configure(text=f"-{rabatt:.2f}\u20ac".replace(".", ","))
+        elif self._rabatt_frame:
+            self._rabatt_frame.pack_forget()
         self._sum_labels["mwst"].configure(text=f"{total_tax:.2f}\u20ac".replace(".", ","))
         self._sum_labels["brutto"].configure(text=f"{total_gross:.2f}\u20ac".replace(".", ","))
 
@@ -700,10 +705,10 @@ class FerdlWorksApp(ctk.CTk):
     def _build_footer(self, parent):
         lf = ctk.CTkFrame(parent, fg_color="transparent")
         lf.pack(side="left", fill="x", expand=True, padx=8, pady=6)
-        ctk.CTkLabel(lf, text="Notiz:", font=("Segoe UI", 10)).pack(side="left", padx=(0, 5))
+        ctk.CTkLabel(lf, text="Notiz:", font=("Segoe UI", 13)).pack(side="left", padx=(0, 5))
         self.doc_note = ctk.CTkEntry(lf, width=250)
         self.doc_note.pack(side="left", padx=5)
-        ctk.CTkLabel(lf, text="Rabatt %:", font=("Segoe UI", 10)).pack(side="left", padx=(15, 5))
+        ctk.CTkLabel(lf, text="Rabatt %:", font=("Segoe UI", 13)).pack(side="left", padx=(15, 5))
         self.discount_var = ctk.StringVar(value="0")
         self.discount_entry = ctk.CTkEntry(lf, width=50, textvariable=self.discount_var)
         self.discount_entry.pack(side="left", padx=5)
@@ -712,15 +717,29 @@ class FerdlWorksApp(ctk.CTk):
         rf = ctk.CTkFrame(parent, fg_color="transparent")
         rf.pack(side="right", padx=8, pady=6)
         self._sum_labels = {}
-        for text in ["Netto:", "MwSt:", "Brutto:"]:
+        names = ["Netto:", "MwSt:", "Brutto:"]
+        frames = []
+        for text in names:
             f = ctk.CTkFrame(rf, fg_color="transparent")
-            f.pack(fill="x")
-            ctk.CTkLabel(f, text=text, font=("Segoe UI", 10)).pack(side="left")
-            lbl = ctk.CTkLabel(f, text="0,00 \u20ac", font=("Segoe UI", 10, "bold"),
+            ctk.CTkLabel(f, text=text, font=("Segoe UI", 13)).pack(side="left")
+            lbl = ctk.CTkLabel(f, text="0,00 \u20ac", font=("Segoe UI", 13, "bold"),
                                text_color=("#8b0000", "#8b0000"), width=80, anchor="e")
             lbl.pack(side="right", padx=4)
             key = text.replace(":", "").replace(" ", "_").lower()
             self._sum_labels[key] = lbl
+            frames.append(f)
+        # Rabatt-Frame (zunächst unsichtbar)
+        self._rabatt_frame = ctk.CTkFrame(rf, fg_color="transparent")
+        ctk.CTkLabel(self._rabatt_frame, text="Rabatt:", font=("Segoe UI", 13)).pack(side="left")
+        self._rabatt_lbl = ctk.CTkLabel(self._rabatt_frame, text="0,00 \u20ac", font=("Segoe UI", 13),
+                                        text_color=("#8b0000", "#8b0000"), width=80, anchor="e")
+        self._rabatt_lbl.pack(side="right", padx=4)
+        # Pack-Reihenfolge: Netto→Rabatt→MwSt→Brutto
+        for i, f in enumerate(frames):
+            f.pack(fill="x")
+            if i == 0:  # nach Netto Rabatt einfügen
+                self._rabatt_frame.pack(fill="x")
+                self._rabatt_frame.pack_forget()  # erstmal unsichtbar
 
         bf = ctk.CTkFrame(parent, fg_color="transparent")
         bf.pack(side="bottom", fill="x", padx=8, pady=6)
@@ -734,15 +753,15 @@ class FerdlWorksApp(ctk.CTk):
             fg = "#5c0000" if text in ["L\xf6schen"] else "#8b0000"
             ctk.CTkButton(bf, text=text, command=cmd, width=80,
                           fg_color=fg, hover_color="#b22222",
-                          font=("Segoe UI", 10)).pack(side="left", padx=3)
+                          font=("Segoe UI", 13)).pack(side="left", padx=3)
 
     # ===================== STATUSBAR =====================
     def _build_statusbar(self):
         bar = ctk.CTkFrame(self, height=24, corner_radius=0, fg_color=("#e0e0e0", "#1a1a1a"))
         bar.pack(fill="x", side="bottom")
-        ctk.CTkLabel(bar, text="SondereggerSoftware", font=("Segoe UI", 9),
+        ctk.CTkLabel(bar, text="SondereggerSoftware", font=("Segoe UI", 10),
                      text_color=("#555555", "#888888")).pack(side="left", padx=10)
-        ctk.CTkLabel(bar, text=f"v{VERSION}", font=("Segoe UI", 9),
+        ctk.CTkLabel(bar, text=f"v{VERSION}", font=("Segoe UI", 10),
                      text_color=("#555555", "#888888")).pack(side="right", padx=10)
 
     # ===================== DOKUMENT-LOGIK =====================
