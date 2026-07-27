@@ -310,8 +310,9 @@ class FerdlWorksApp(ctk.CTk):
     def _enter_cust(self, event=None):
         if self._cust_dropdown_idx < 0 or self._cust_dropdown_idx >= len(self._cust_data):
             return
-        self._customer_id = self._cust_data[self._cust_dropdown_idx]["id"]
-        self._set_cust_display(self._cust_data[self._cust_dropdown_idx])
+            self._customer_id = self._cust_data[self._cust_dropdown_idx]["id"]
+            self._set_cust_display(self._cust_data[self._cust_dropdown_idx])
+            self.cust_btn_edit.configure(state="normal")
         self._do_hide_cust_dropdown()
 
     def _nav_art_down(self, event=None):
@@ -718,6 +719,7 @@ class FerdlWorksApp(ctk.CTk):
         self.discount_var.set("0")
         self.doc_type_var.set("RG")
         self._customer_id = None
+        self.cust_btn_edit.configure(state="disabled")
         self._cust_data = []
         self._editing_pos_idx = None
         self._hide_units()
