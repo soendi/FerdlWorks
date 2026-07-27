@@ -499,7 +499,7 @@ class FerdlWorksApp(ctk.CTk):
                 ))
         elif item["item_type"] == "Werkzeug":
             time_val, unit_label, price_per, total, _ = self._calc_tool_position(item)
-            desc = f"{item['name']} ({time_val:.0f}{unit_label[0]})"
+            desc = item["name"]
             self._positions.append(PositionItem(
                 "tool", item["id"], desc, time_val, unit_label, price_per, total
             ))
@@ -530,7 +530,7 @@ class FerdlWorksApp(ctk.CTk):
                 )
         elif item["item_type"] == "Werkzeug":
             time_val, unit_label, price_per, total, _ = self._calc_tool_position(item)
-            desc = f"{item['name']} ({time_val:.0f}{unit_label[0]})"
+            desc = item["name"]
             self._positions[idx] = PositionItem(
                 "tool", item["id"], desc, time_val, unit_label, price_per, total
             )
