@@ -52,13 +52,15 @@ jobs:
       - name: Build Installer
         shell: pwsh
         run: |
+          $ver = python -c "exec(open('version.py').read()); print(VERSION)"
+          Write-Host "Version aus version.py: $ver"
           $iscc = Get-ChildItem -Path "C:\Program Files*\Inno Setup*" -Filter "ISCC.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
           if (-not $iscc) {
             Write-Error "ISCC.exe nicht gefunden"
             exit 1
           }
           Write-Host "ISCC gefunden: $iscc"
-          & $iscc "installer\ferdlworks.iss"
+          & $iscc "/dMyAppVersion=$ver" "installer\ferdlworks.iss"
 
       - name: Upload Installer as Artifact
         uses: actions/upload-artifact@v4

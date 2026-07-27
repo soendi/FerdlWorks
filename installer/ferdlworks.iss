@@ -1,20 +1,27 @@
-﻿; Inno Setup Script f�r FerdlWorks
-; UTF-8 mit BOM - Unicode unterst�tzt Umlaute
+﻿; Inno Setup Script f■r FerdlWorks
+; UTF-8 mit BOM - Unicode unterst■tzt Umlaute
+; Version wird von CI via /dMyAppVersion=X.X.X gesetzt
 
 #define MyAppName "FerdlWorks"
+#ifndef MyAppVersion
 #define MyAppVersion "1.0.0"
+#endif
+#define MyAppVersionFull MyAppVersion + ".0"
 #define MyAppPublisher "Sonderegger Software"
-#define MyAppURL "https://github.com/SondereggerSoftware/FerdlWorks"
+#define MyAppURL "https://github.com/soendi/FerdlWorks"
 #define MyAppExeName "FerdlWorks.exe"
 
 [Setup]
 AppId={{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}
 AppName={#MyAppName}
+AppVerName={#MyAppName} {#MyAppVersion}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
+VersionInfoVersion={#MyAppVersionFull}
+VersionInfoDescription={#MyAppName}
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
@@ -23,7 +30,7 @@ OutputDir=.
 OutputBaseFilename={#MyAppName}-Setup
 SetupIconFile=..\assets\ferdlworks.ico
 UninstallDisplayIcon={app}\ferdlworks.ico
-UninstallDisplayName={#MyAppName}
+UninstallDisplayName={#MyAppName} {#MyAppVersion}
 Compression=lzma2/ultra
 SolidCompression=yes
 WizardStyle=modern
@@ -62,7 +69,7 @@ procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   if CurUninstallStep = usPostUninstall then
   begin
-    if MsgBox('Möchten Sie auch Ihre persönlichen Einstellungen (Registry) löschen?', mbConfirmation, MB_YESNO) = IDYES then
+    if MsgBox('M—chten Sie auch Ihre pers—nlichen Einstellungen (Registry) l—schen?', mbConfirmation, MB_YESNO) = IDYES then
     begin
       RegDeleteKeyIncludingSubkeys(HKCU, 'SOFTWARE\SondereggerSoftware\FerdlWorks');
     end;
