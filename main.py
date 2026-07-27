@@ -62,7 +62,8 @@ class FerdlWorksApp(ctk.CTk):
         self._new_doc()
         self.update_idletasks()
         self.after(100, lambda: self.cust_entry.focus_set())
-        self.after(200, lambda: self.focus_set())
+        self.after(200, lambda: self.art_entry.focus_set())
+        self.after(300, lambda: self.focus_set())
         self.after(500, self._check_overdue)
         self.logger.info(f"{APP_NAME} v{VERSION} gestartet (Master-Mode: {master_mode})")
         self.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -688,8 +689,11 @@ class FerdlWorksApp(ctk.CTk):
             discount_val = float(self.discount_var.get().replace(",", "."))
         except ValueError:
             discount_val = 0
-        rabatt = total_net * discount_val / 100 if discount_val > 0 else 0
-        netto_nach_rabatt = total_net - rabatt
+        is_percent = self.discount_type_var.get() == "%"
+        rabatt = total_net * discount_val / 100 if is_percent else discount_val
+        if not is_percent and discount_val > 0:
+            self.discount_var.set(f"{discount_val:.2f}".replace(".", ","))
+        netto_nach_rabatt = max(0, total_net - rabatt)
         total_tax = netto_nach_rabatt * tax_rate / 100
         total_gross = netto_nach_rabatt + total_tax
         self._sum_labels["netto"].configure(text=f"{total_net:.2f}\u20ac".replace(".", ","))
@@ -703,23 +707,18 @@ class FerdlWorksApp(ctk.CTk):
 
     # ===================== FOOTER =====================
     def _build_footer(self, parent):
-        lf = ctk.CTkFrame(parent, fg_color="transparent")
-        lf.pack(side="left", fill="x", expand=True, padx=8, pady=6)
-        ctk.CTkLabel(lf, text="Notiz:", font=("Segoe UI", 13)).pack(side="left", padx=(0, 5))
-        self.doc_note = ctk.CTkEntry(lf, width=250)
+        # --- Zeile 1: Notiz (links) + Summen (rechts) ---
+        row1 = ctk.CTkFrame(parent, fg_color="transparent")
+        row1.pack(fill="x", padx=8, pady=(6, 2))
+        ctk.CTkLabel(row1, text="Notiz:", font=("Segoe UI", 13)).pack(side="left")
+        self.doc_note = ctk.CTkEntry(row1, width=300)
         self.doc_note.pack(side="left", padx=5)
-        ctk.CTkLabel(lf, text="Rabatt %:", font=("Segoe UI", 13)).pack(side="left", padx=(15, 5))
-        self.discount_var = ctk.StringVar(value="0")
-        self.discount_entry = ctk.CTkEntry(lf, width=50, textvariable=self.discount_var)
-        self.discount_entry.pack(side="left", padx=5)
-        self.discount_entry.bind("<KeyRelease>", lambda e: self._recalc_totals())
-
-        rf = ctk.CTkFrame(parent, fg_color="transparent")
-        rf.pack(side="right", padx=8, pady=6)
+        # Summen rechts
+        rf = ctk.CTkFrame(row1, fg_color="transparent")
+        rf.pack(side="right")
         self._sum_labels = {}
         self._rabatt_row = None
-        labels = ["Netto:", "MwSt:", "Brutto:"]
-        for text in labels:
+        for text in ["Netto:", "MwSt:", "Brutto:"]:
             f = ctk.CTkFrame(rf, fg_color="transparent")
             ctk.CTkLabel(f, text=text, font=("Segoe UI", 13)).pack(side="left")
             lbl = ctk.CTkLabel(f, text="0,00 \u20ac", font=("Segoe UI", 13, "bold"),
@@ -727,7 +726,6 @@ class FerdlWorksApp(ctk.CTk):
             lbl.pack(side="right", padx=4)
             key = text.replace(":", "").replace(" ", "_").lower()
             self._sum_labels[key] = lbl
-        # Grid: Netto row 0, Rabatt row 1 (hidden), MwSt row 2, Brutto row 3
         self._sum_labels["netto"].master.grid(row=0, column=0, sticky="ew", padx=2, pady=1)
         self._rabatt_row = ctk.CTkFrame(rf, fg_color="transparent")
         self._rabatt_row.grid(row=1, column=0, sticky="ew", padx=2, pady=1)
@@ -735,23 +733,29 @@ class FerdlWorksApp(ctk.CTk):
         self._rabatt_lbl = ctk.CTkLabel(self._rabatt_row, text="0,00 \u20ac", font=("Segoe UI", 13),
                                         text_color=("#8b0000", "#8b0000"), width=80, anchor="e")
         self._rabatt_lbl.pack(side="right", padx=4)
-        self._rabatt_row.grid_remove()  # erstmal unsichtbar
+        self._rabatt_row.grid_remove()
         self._sum_labels["mwst"].master.grid(row=2, column=0, sticky="ew", padx=2, pady=1)
         self._sum_labels["brutto"].master.grid(row=3, column=0, sticky="ew", padx=2, pady=1)
 
-        bf = ctk.CTkFrame(parent, fg_color="transparent")
-        bf.pack(side="bottom", fill="x", padx=8, pady=6)
-        actions = [
-            ("PDF", self._save_pdf),
-            ("E-Mail", self._send_email_doc),
-            ("Drucken", self._print_doc),
-            ("L\xf6schen", self._delete_doc),
-        ]
-        for text, cmd in actions:
+        # --- Zeile 2: Rabatt-Feld + Typ (links) + Buttons (rechts) ---
+        row2 = ctk.CTkFrame(parent, fg_color="transparent")
+        row2.pack(fill="x", padx=8, pady=(2, 6))
+        ctk.CTkLabel(row2, text="Rabatt:", font=("Segoe UI", 13)).pack(side="left")
+        self.discount_var = ctk.StringVar(value="0")
+        self.discount_entry = ctk.CTkEntry(row2, width=60, textvariable=self.discount_var)
+        self.discount_entry.pack(side="left", padx=5)
+        self.discount_entry.bind("<KeyRelease>", lambda e: self._recalc_totals())
+        self.discount_type_var = ctk.StringVar(value="%")
+        ctk.CTkOptionMenu(row2, variable=self.discount_type_var, values=["%", "\u20ac"],
+                          width=50, command=lambda v: self._recalc_totals()).pack(side="left", padx=(0, 15))
+        # Buttons rechts
+        btns = [("PDF", self._save_pdf), ("E-Mail", self._send_email_doc),
+                ("Drucken", self._print_doc), ("L\xf6schen", self._delete_doc)]
+        for text, cmd in btns:
             fg = "#5c0000" if text in ["L\xf6schen"] else "#8b0000"
-            ctk.CTkButton(bf, text=text, command=cmd, width=80,
+            ctk.CTkButton(row2, text=text, command=cmd, width=80,
                           fg_color=fg, hover_color="#b22222",
-                          font=("Segoe UI", 13)).pack(side="left", padx=3)
+                          font=("Segoe UI", 13)).pack(side="right", padx=3)
 
     # ===================== STATUSBAR =====================
     def _build_statusbar(self):
@@ -801,8 +805,10 @@ class FerdlWorksApp(ctk.CTk):
             discount_val = float(self.discount_var.get().replace(",", "."))
         except ValueError:
             discount_val = 0
+        is_percent = self.discount_type_var.get() == "%"
         if discount_val > 0:
-            net_after = total_net * (1 - discount_val / 100)
+            net_after = total_net * (1 - discount_val / 100) if is_percent else total_net - discount_val
+            net_after = max(0, net_after)
         else:
             net_after = total_net
         total_tax = net_after * tax_rate / 100
@@ -868,6 +874,7 @@ class FerdlWorksApp(ctk.CTk):
         self.doc_note.delete(0, "end")
         self.doc_note.insert(0, doc.get("note", ""))
         self.discount_var.set(str(doc.get("discount_value", "0")).replace(".", ","))
+        self.discount_type_var.set("%" if doc.get("discount_type", "percent") == "percent" else "\u20ac")
         customer = doc.get("customer")
         if customer:
             self._customer_id = customer["id"]
@@ -919,7 +926,9 @@ class FerdlWorksApp(ctk.CTk):
                 pass
 
     def _send_email_doc(self):
-        if not messagebox.askyesno("E-Mail", "PDF als E-Mail versenden?"):
+        settings = self.db.settings_get_all()
+        if not settings.get("smtp_host") or not settings.get("smtp_user"):
+            messagebox.showwarning("E-Mail", "Bitte zuerst E-Mail-Einstellungen konfigurieren (Einstellungen > E-Mail).")
             return
         if not self._current_doc_id:
             if not self._do_save(silent=True):
@@ -930,7 +939,9 @@ class FerdlWorksApp(ctk.CTk):
         customer = doc.get("customer", {})
         recipient = customer.get("email", "")
         if not recipient:
-            messagebox.showwarning("Fehler", "Kunde hat keine E-Mail-Adresse.")
+            messagebox.showwarning("E-Mail", "Kunde hat keine E-Mail-Adresse.")
+            return
+        if not messagebox.askyesno("E-Mail", "PDF als E-Mail versenden?"):
             return
         doc["app_name"] = APP_NAME
         pdf_path = generate_pdf(doc)
@@ -943,9 +954,13 @@ class FerdlWorksApp(ctk.CTk):
             messagebox.showerror("Fehler", msg)
 
     def _print_doc(self):
-        if not self._current_doc_id:
-            messagebox.showwarning("Fehler", "Bitte zuerst speichern.")
+        printer = self.db.settings_get_all().get("printer_name", "")
+        if not printer:
+            messagebox.showwarning("Drucken", "Kein Drucker ausgewählt. Bitte wählen Sie einen Drucker in den Einstellungen.")
             return
+        if not self._current_doc_id:
+            if not self._do_save(silent=True):
+                return
         doc = self.db.doc_get(self._current_doc_id)
         if not doc:
             return
