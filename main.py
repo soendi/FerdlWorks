@@ -214,8 +214,13 @@ class FerdlWorksApp(ctk.CTk):
         # --- Positionen (unten) ---
         pos_frame = ctk.CTkFrame(main, corner_radius=6)
         pos_frame.pack(fill="both", expand=True, padx=8, pady=2)
-        ctk.CTkLabel(pos_frame, text="Positionen", font=("Segoe UI", 11, "bold"),
-                     text_color=("#8b0000", "#8b0000")).pack(anchor="w", padx=10, pady=(6, 2))
+        pos_header = ctk.CTkFrame(pos_frame, fg_color="transparent")
+        pos_header.pack(fill="x", padx=10, pady=(6, 2))
+        ctk.CTkLabel(pos_header, text="Positionen", font=("Segoe UI", 11, "bold"),
+                     text_color=("#8b0000", "#8b0000")).pack(side="left")
+        self.doc_status_label = ctk.CTkLabel(pos_header, text="", font=("Segoe UI", 10),
+                                             text_color=("#666666", "#888888"))
+        self.doc_status_label.pack(side="right")
         cols = ("pos", "beschreibung", "menge", "einheit", "ep", "gesamt")
         heads = {"pos": "Pos.", "beschreibung": "Beschreibung", "menge": "Menge",
                  "einheit": "Einheit", "ep": "EP", "gesamt": "Gesamt"}
@@ -746,6 +751,8 @@ class FerdlWorksApp(ctk.CTk):
         self._hide_units()
         self._do_hide_cust_dropdown()
         self._do_hide_art_dropdown()
+        doc_type = {"RG": "Rechnung", "LS": "Lieferschein"}.get(self.doc_type_var.get(), "Rechnung")
+        self.doc_status_label.configure(text=f"Neue {doc_type}, nicht gespeichert")
 
     def _get_doc_data(self):
         settings = self.db.settings_get_all()
@@ -821,6 +828,7 @@ class FerdlWorksApp(ctk.CTk):
                 p["quantity"], p["unit"], p["price_per_unit"], p["total"]
             ))
         self._refresh_positions()
+        self.doc_status_label.configure(text=doc["doc_number"])
 
     def _open_doc_search(self):
         DocSearchDialog(self)
