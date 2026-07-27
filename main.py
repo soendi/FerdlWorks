@@ -545,7 +545,7 @@ class FerdlWorksApp(ctk.CTk):
             qty_str = f"{p.quantity:.2f}" if p.quantity != int(p.quantity) else str(int(p.quantity))
             self.pos_tree.insert("", "end", iid=str(i), values=(
                 str(i + 1), p.description, qty_str, p.unit,
-                f"{p.price_per_unit:.2f}\u20ac", f"{p.total:.2f}\u20ac"
+                f"{p.price_per_unit:.2f}\u20ac/{p.unit.lower().replace('std.', 'h').replace('min.', 'min')}", f"{p.total:.2f}\u20ac"
             ))
         self._recalc_totals()
 
