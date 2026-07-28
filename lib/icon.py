@@ -20,18 +20,18 @@ def create_icon():
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
 
-    # Roter Kreis
-    draw.ellipse([(8, 8), (size - 8, size - 8)], fill=(200, 40, 40), outline=(140, 0, 0), width=4)
+    # Blauer Kreis (statt rot – sofort erkennbar)
+    draw.ellipse([(4, 4), (size - 4, size - 4)], fill=(30, 100, 200), outline=(10, 60, 150), width=4)
 
-    # Schwarzes F
-    try:
-        font = ImageFont.truetype("segoeui.ttf", size - 8)
-    except:
+    # Weisse Schrift (statt schwarz)
+    fs = size - 20
+    for name in ("segoeui.ttf", "arial.ttf", "arialbd.ttf", "tahoma.ttf"):
         try:
-            font = ImageFont.truetype("arial.ttf", size // 2 + 10)
+            font = ImageFont.truetype(name, fs)
+            break
         except:
             font = ImageFont.load_default()
-    draw.text((size // 2, size // 2), "F", fill=(0, 0, 0), font=font, anchor="mm")
+    draw.text((size // 2, size // 2), "F", fill=(255, 255, 255), font=font, anchor="mm")
 
     img.save(ICON_PNG, "PNG")
     img.save(ICON_ICO, "ICO", sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
