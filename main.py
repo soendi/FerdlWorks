@@ -213,6 +213,12 @@ class FerdlWorksApp(ctk.CTk):
                                         text_color=("#8b0000", "#8b0000"))
         self.dl_qm_label.pack(side="left", padx=2)
 
+        self._art_qty_f = ctk.CTkFrame(art, fg_color="transparent")
+        ctk.CTkLabel(self._art_qty_f, text="Anzahl:", font=("Segoe UI", 13)).pack(side="left")
+        self.dl_qty = ctk.CTkEntry(self._art_qty_f, width=80)
+        self.dl_qty.pack(side="left", padx=2)
+        self.dl_qty.bind("<Tab>", lambda e: (self._insert_article(), self.art_entry.focus_set()) or "break")
+
         self._art_tool_f = ctk.CTkFrame(art, fg_color="transparent")
         ctk.CTkLabel(self._art_tool_f, text="Zeit:", font=("Segoe UI", 13)).pack(side="left")
         self.dl_time = ctk.CTkEntry(self._art_tool_f, width=55)
@@ -560,8 +566,13 @@ class FerdlWorksApp(ctk.CTk):
         self.art_entry._ph_active = False
         self._do_hide_art_dropdown()
         if self._selected_article["item_type"] == "Material":
-            self._show_mat_units()
-            self.dl_length.focus_set()
+            unit = self._selected_article.get("price_unit", "")
+            if self._is_qm_unit(unit):
+                self._show_mat_qm()
+                self.dl_length.focus_set()
+            else:
+                self._show_mat_qty()
+                self.dl_qty.focus_set()
         elif self._selected_article["item_type"] == "Werkzeug":
             self._show_tool_units()
             self.dl_time.focus_set()
@@ -645,20 +656,38 @@ class FerdlWorksApp(ctk.CTk):
         self.art_entry._ph_active = False
         self._do_hide_art_dropdown()
         if self._selected_article["item_type"] == "Material":
-            self._show_mat_units()
-            self.dl_length.focus_set()
+            unit = self._selected_article.get("price_unit", "")
+            if self._is_qm_unit(unit):
+                self._show_mat_qm()
+                self.dl_length.focus_set()
+            else:
+                self._show_mat_qty()
+                self.dl_qty.focus_set()
         elif self._selected_article["item_type"] == "Werkzeug":
             self._show_tool_units()
             self.dl_time.focus_set()
         else:
             self._hide_units()
 
-    def _show_mat_units(self):
+    @staticmethod
+    def _is_qm_unit(unit):
+        return unit and unit.strip().lower() in ("m2", "m\u00b2", "qm")
+
+    def _show_mat_qm(self):
         self._art_tool_f.pack_forget()
+        self._art_qty_f.pack_forget()
         self._art_mat_f.pack(side="left", padx=(5, 0))
         self.art_insert_btn.configure(text="Übernehmen" if self._editing_pos_idx is not None else "Einfügen")
         self.dl_length.delete(0, "end")
         self.dl_width.delete(0, "end")
+
+    def _show_mat_qty(self):
+        self._art_mat_f.pack_forget()
+        self._art_tool_f.pack_forget()
+        self._art_qty_f.pack(side="left", padx=(5, 0))
+        self.art_insert_btn.configure(text="Übernehmen" if self._editing_pos_idx is not None else "Einfügen")
+        self.dl_qty.delete(0, "end")
+        self.dl_qty.insert(0, "1")
 
     def _show_tool_units(self):
         self._art_mat_f.pack_forget()
@@ -670,6 +699,7 @@ class FerdlWorksApp(ctk.CTk):
     def _hide_units(self):
         self._art_mat_f.pack_forget()
         self._art_tool_f.pack_forget()
+        self._art_qty_f.pack_forget()
 
     def _calc_detail_qm(self):
         try:
@@ -723,24 +753,37 @@ class FerdlWorksApp(ctk.CTk):
         if not item:
             return
         if item["item_type"] == "Material":
-            try:
-                length = float(self.dl_length.get().replace(",", ".")) if self.dl_length.get() else 0
-                width = float(self.dl_width.get().replace(",", ".")) if self.dl_width.get() else 0
-            except ValueError:
-                length = width = 0
-            price_m2 = item.get("price_per_m2", 0) or item.get("price", 0)
             mat_unit = item.get("price_unit", "m\u00b2")
-            if length > 0 and width > 0:
-                qm = (length / 100) * (width / 100)
-                desc = f"{item['name']} ({length:.0f}x{width:.0f}cm)"
-                total = qm * price_m2
-                self._positions.append(PositionItem(
-                    "material", item["id"], desc, qm, mat_unit, price_m2, total,
-                    {"length": length, "width": width, "qty": 1}
-                ))
+            if self._is_qm_unit(mat_unit):
+                try:
+                    length = float(self.dl_length.get().replace(",", ".")) if self.dl_length.get() else 0
+                    width = float(self.dl_width.get().replace(",", ".")) if self.dl_width.get() else 0
+                except ValueError:
+                    length = width = 0
+                price_m2 = item.get("price_per_m2", 0) or item.get("price", 0)
+                if length > 0 and width > 0:
+                    qm = (length / 100) * (width / 100)
+                    desc = f"{item['name']} ({length:.0f}x{width:.0f}cm)"
+                    total = qm * price_m2
+                    self._positions.append(PositionItem(
+                        "material", item["id"], desc, qm, mat_unit, price_m2, total,
+                        {"length": length, "width": width, "qty": 1}
+                    ))
+                else:
+                    self._positions.append(PositionItem(
+                        "material", item["id"], item["name"], 1, mat_unit, price_m2, price_m2
+                    ))
             else:
+                try:
+                    qty = float(self.dl_qty.get().replace(",", ".")) if self.dl_qty.get() else 0
+                except ValueError:
+                    qty = 1
+                price = item.get("price", 0)
+                total = qty * price
+                desc = item['name']
                 self._positions.append(PositionItem(
-                    "material", item["id"], item["name"], 1, mat_unit, price_m2, price_m2
+                    "material", item["id"], desc, qty, mat_unit, price, total,
+                    {"qty": qty}
                 ))
         elif item["item_type"] == "Werkzeug":
             time_val, unit_label, price_per, total, _ = self._calc_tool_position(item)
@@ -761,24 +804,37 @@ class FerdlWorksApp(ctk.CTk):
             return
         idx = self._editing_pos_idx
         if item["item_type"] == "Material":
-            try:
-                length = float(self.dl_length.get().replace(",", ".")) if self.dl_length.get() else 0
-                width = float(self.dl_width.get().replace(",", ".")) if self.dl_width.get() else 0
-            except ValueError:
-                length = width = 0
-            price_m2 = item.get("price_per_m2", 0) or item.get("price", 0)
             mat_unit = item.get("price_unit", "m\u00b2")
-            if length > 0 and width > 0:
-                qm = (length / 100) * (width / 100)
-                desc = f"{item['name']} ({length:.0f}x{width:.0f}cm)"
-                total = qm * price_m2
-                self._positions[idx] = PositionItem(
-                    "material", item["id"], desc, qm, mat_unit, price_m2, total,
-                    {"length": length, "width": width, "qty": 1}
-                )
+            if self._is_qm_unit(mat_unit):
+                try:
+                    length = float(self.dl_length.get().replace(",", ".")) if self.dl_length.get() else 0
+                    width = float(self.dl_width.get().replace(",", ".")) if self.dl_width.get() else 0
+                except ValueError:
+                    length = width = 0
+                price_m2 = item.get("price_per_m2", 0) or item.get("price", 0)
+                if length > 0 and width > 0:
+                    qm = (length / 100) * (width / 100)
+                    desc = f"{item['name']} ({length:.0f}x{width:.0f}cm)"
+                    total = qm * price_m2
+                    self._positions[idx] = PositionItem(
+                        "material", item["id"], desc, qm, mat_unit, price_m2, total,
+                        {"length": length, "width": width, "qty": 1}
+                    )
+                else:
+                    self._positions[idx] = PositionItem(
+                        "material", item["id"], item["name"], 1, mat_unit, price_m2, price_m2
+                    )
             else:
+                try:
+                    qty = float(self.dl_qty.get().replace(",", ".")) if self.dl_qty.get() else 0
+                except ValueError:
+                    qty = 1
+                price = item.get("price", 0)
+                total = qty * price
+                desc = item['name']
                 self._positions[idx] = PositionItem(
-                    "material", item["id"], item["name"], 1, mat_unit, price_m2, price_m2
+                    "material", item["id"], desc, qty, mat_unit, price, total,
+                    {"qty": qty}
                 )
         elif item["item_type"] == "Werkzeug":
             time_val, unit_label, price_per, total, _ = self._calc_tool_position(item)
@@ -900,15 +956,21 @@ class FerdlWorksApp(ctk.CTk):
                      "item_type": _t, "price": 0, "price_per_m2": 0, "price_unit": "h"}
         self._selected_article = found
         if pos.pos_type == "material":
-            self._show_mat_units()
-            ed = pos.extra_data or {}
-            if ed.get("length"):
-                self.dl_length.delete(0, "end")
-                self.dl_length.insert(0, str(ed["length"]))
-            if ed.get("width"):
-                self.dl_width.delete(0, "end")
-                self.dl_width.insert(0, str(ed["width"]))
-            self._calc_detail_qm()
+            unit = found.get("price_unit", pos.unit or "")
+            if self._is_qm_unit(unit):
+                self._show_mat_qm()
+                ed = pos.extra_data or {}
+                if ed.get("length"):
+                    self.dl_length.delete(0, "end")
+                    self.dl_length.insert(0, str(ed["length"]))
+                if ed.get("width"):
+                    self.dl_width.delete(0, "end")
+                    self.dl_width.insert(0, str(ed["width"]))
+                self._calc_detail_qm()
+            else:
+                self._show_mat_qty()
+                self.dl_qty.delete(0, "end")
+                self.dl_qty.insert(0, str(int(pos.quantity)))
         elif pos.pos_type == "tool":
             self._show_tool_units()
             self.dl_time.delete(0, "end")
