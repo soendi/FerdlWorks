@@ -8,11 +8,10 @@ ICON_ICO = os.path.join(ICON_DIR, "ferdlworks.ico")
 def create_icon():
     if getattr(sys, "frozen", False):
         base = os.path.dirname(sys.executable)
-        for name in ("ferdlworks.ico", "ferdlworks.png"):
-            for d in (base, os.path.join(base, "assets"), os.path.join(base, "_internal", "assets")):
-                p = os.path.join(d, name)
-                if os.path.exists(p) and name == "ferdlworks.ico":
-                    return p
+        for d in (base, os.path.join(base, "_internal"), os.path.join(base, "assets")):
+            p = os.path.join(d, "ferdlworks.ico")
+            if os.path.exists(p):
+                return os.path.abspath(p)
         return os.path.join(base, "ferdlworks.ico")
     os.makedirs(ICON_DIR, exist_ok=True)
     size = 256

@@ -46,11 +46,7 @@ class FerdlWorksApp(ctk.CTk):
         self.db = get_db()
         self._master_mode = master_mode
         self.title(f"{APP_NAME} v{VERSION}")
-        icon_path = create_icon()
-        try:
-            self.iconbitmap(icon_path)
-        except Exception:
-            pass
+        self._icon_path = create_icon()
         self.minsize(800, 620)
         self.geometry("1024x900")
         self._current_doc_id = None
@@ -60,9 +56,17 @@ class FerdlWorksApp(ctk.CTk):
         self._build_ui()
         self.bind("<Button-1>", self._on_global_click, add="+")
         self._new_doc()
+        self.after(100, lambda: self._set_icon())
         self.after(500, self._check_overdue)
         self.logger.info(f"{APP_NAME} v{VERSION} gestartet (Master-Mode: {master_mode})")
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    def _set_icon(self):
+        try:
+            self.iconbitmap(self._icon_path)
+            self.wm_iconbitmap(self._icon_path)
+        except Exception:
+            pass
 
     # ===================== MENÜ =====================
     def _build_menu(self):
