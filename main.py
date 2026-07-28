@@ -1064,8 +1064,9 @@ class FerdlWorksApp(ctk.CTk):
             path = generate_pdf(doc)
             if path:
                 self.logger.info(f"PDF erstellt: {path}")
+                messagebox.showinfo("PDF", f"PDF erstellt:\n{path}")
                 try:
-                    subprocess.Popen(['cmd', '/c', 'start', '', path], shell=True)
+                    os.startfile(path)
                 except Exception:
                     pass
             else:
