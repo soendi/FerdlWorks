@@ -16,7 +16,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.14"
+          python-version: "3.13"
 
       - name: Install Dependencies
         shell: pwsh
@@ -40,7 +40,7 @@ jobs:
           if ($dll) { Copy-Item -Path "$dll" -Destination "python314.dll" -Force }
           $bundled = if (Test-Path "python314.dll") { "python314.dll" } else { $dll }
           Write-Host "python DLL: $dll"
-          $args = @('--noconfirm','--onefile','--windowed','--name','FerdlWorks',
+          $args = @('--noconfirm','--onedir','--windowed','--name','FerdlWorks',
             '--icon','assets\ferdlworks.ico',
             '--add-data','assets\ferdlworks_theme.json;assets',
             '--add-data','assets\ferdlworks.ico;.',
