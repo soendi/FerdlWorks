@@ -29,9 +29,9 @@ class MaterialDatabase(ctk.CTkToplevel):
         ctk.CTkButton(top, text="Löschen", command=self._delete, width=80,
                        fg_color="#5c0000", hover_color="#8b0000").pack(side="left", padx=5)
         ctk.CTkButton(top, text="Schließen", command=self.destroy, width=80).pack(side="right", padx=5)
-        cols = ("name", "beschreibung", "preis")
-        heads = {"name": "Name", "beschreibung": "Beschreibung", "preis": "Preis / m\u00b2"}
-        widths = {"name": 200, "beschreibung": 300, "preis": 120}
+        cols = ("name", "beschreibung", "preis", "einheit")
+        heads = {"name": "Name", "beschreibung": "Beschreibung", "preis": "Preis", "einheit": "Einheit"}
+        widths = {"name": 200, "beschreibung": 250, "preis": 100, "einheit": 80}
         self.tree = ttk.Treeview(self, columns=cols, show="headings", selectmode="browse")
         for c in cols:
             align = "e" if c == "preis" else "w"
@@ -50,7 +50,7 @@ class MaterialDatabase(ctk.CTkToplevel):
         for m in self.db.material_search(self.search_var.get()):
             price = f"{m['price_per_m2']:.2f}".replace(".", ",")
             self.tree.insert("", "end", values=(
-                m.get("name", ""), m.get("description", ""), f"{price}\u20ac"
+                m.get("name", ""), m.get("description", ""), f"{price}\u20ac", m.get("price_unit", "m\u00b2")
             ), iid=str(m["id"]))
 
     def _get_selected_id(self):

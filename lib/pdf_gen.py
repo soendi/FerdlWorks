@@ -154,7 +154,7 @@ def _build_elements(doc_data, settings, db):
                 m = get_db().material_get(ref_id)
                 if m:
                     orig_p = m.get("price_per_m2", 0)
-                    orig_u = "m\u00b2"
+                    orig_u = m.get("price_unit", "m\u00b2")
         if orig_p and orig_u:
             ep_str = f"{float(orig_p):.2f} \u20ac/{orig_u}"
         else:

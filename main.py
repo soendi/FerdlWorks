@@ -106,7 +106,11 @@ class FerdlWorksApp(ctk.CTk):
 
         verw = tk.Menu(mb, tearoff=False, font=("Segoe UI", 10))
         verw.add_command(label="Kundenverwaltung...", command=self._open_customer_mgmt)
+        verw.add_separator()
         verw.add_command(label="Materialverwaltung...", command=self._open_material_mgmt)
+        verw.add_command(label="Material importieren...", command=self._import_materials)
+        verw.add_command(label="Material-Vorlage \u00f6ffnen...", command=self._open_material_template)
+        verw.add_separator()
         verw.add_command(label="Werkzeugverwaltung...", command=self._open_tool_mgmt)
         verw.add_separator()
         verw.add_command(label="Texteverwaltung...", command=self._open_text_mgmt)
@@ -725,17 +729,18 @@ class FerdlWorksApp(ctk.CTk):
             except ValueError:
                 length = width = 0
             price_m2 = item.get("price_per_m2", 0) or item.get("price", 0)
+            mat_unit = item.get("price_unit", "m\u00b2")
             if length > 0 and width > 0:
                 qm = (length / 100) * (width / 100)
                 desc = f"{item['name']} ({length:.0f}x{width:.0f}cm)"
                 total = qm * price_m2
                 self._positions.append(PositionItem(
-                    "material", item["id"], desc, qm, "m\u00b2", price_m2, total,
+                    "material", item["id"], desc, qm, mat_unit, price_m2, total,
                     {"length": length, "width": width, "qty": 1}
                 ))
             else:
                 self._positions.append(PositionItem(
-                    "material", item["id"], item["name"], 1, "m\u00b2", price_m2, price_m2
+                    "material", item["id"], item["name"], 1, mat_unit, price_m2, price_m2
                 ))
         elif item["item_type"] == "Werkzeug":
             time_val, unit_label, price_per, total, _ = self._calc_tool_position(item)
@@ -762,17 +767,18 @@ class FerdlWorksApp(ctk.CTk):
             except ValueError:
                 length = width = 0
             price_m2 = item.get("price_per_m2", 0) or item.get("price", 0)
+            mat_unit = item.get("price_unit", "m\u00b2")
             if length > 0 and width > 0:
                 qm = (length / 100) * (width / 100)
                 desc = f"{item['name']} ({length:.0f}x{width:.0f}cm)"
                 total = qm * price_m2
                 self._positions[idx] = PositionItem(
-                    "material", item["id"], desc, qm, "m\u00b2", price_m2, total,
+                    "material", item["id"], desc, qm, mat_unit, price_m2, total,
                     {"length": length, "width": width, "qty": 1}
                 )
             else:
                 self._positions[idx] = PositionItem(
-                    "material", item["id"], item["name"], 1, "m\u00b2", price_m2, price_m2
+                    "material", item["id"], item["name"], 1, mat_unit, price_m2, price_m2
                 )
         elif item["item_type"] == "Werkzeug":
             time_val, unit_label, price_per, total, _ = self._calc_tool_position(item)
@@ -1410,6 +1416,38 @@ class FerdlWorksApp(ctk.CTk):
         except Exception as ex:
             self.logger.error(f"Konnte Logdatei nicht öffnen: {ex}")
 
+    def _import_materials(self):
+        from tkinter import filedialog, messagebox
+        path = filedialog.askopenfilename(
+            title="Excel-Datei ausw\u00e4hlen",
+            filetypes=[("Excel-Dateien", "*.xlsx *.xls"), ("Alle Dateien", "*.*")]
+        )
+        if not path:
+            return
+        try:
+            imported, skipped, errors = self.db.material_import_from_excel(path)
+            msg = f"{imported} Materialien importiert."
+            if skipped:
+                msg += f"\n{skipped} leere Zeilen \u00fcbersprungen."
+            if errors:
+                msg += f"\n\nFehler:\n" + "\n".join(errors[:10])
+                if len(errors) > 10:
+                    msg += f"\n... und {len(errors) - 10} weitere"
+            messagebox.showinfo("Import abgeschlossen", msg)
+        except Exception as ex:
+            messagebox.showerror("Import-Fehler", f"Fehler beim Import:\n{ex}")
+
+    def _open_material_template(self):
+        from tkinter import messagebox
+        src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "materials_vorlage.xlsx")
+        if not os.path.exists(src):
+            messagebox.showerror("Fehler", "Vorlage nicht gefunden.")
+            return
+        dst = os.path.join(os.environ["TEMP"], "materials_vorlage.xlsx")
+        import shutil
+        shutil.copy2(src, dst)
+        os.startfile(dst)
+
     def _check_update(self):
         self.logger.info("Update-Prüfung gestartet")
         release, error = check_for_update()
@@ -1420,8 +1458,7 @@ class FerdlWorksApp(ctk.CTk):
             messagebox.showinfo("Aktuell", f"Sie haben die aktuellste Version v{VERSION}.")
             return
         tag = release.get("tag_name", "").lstrip("v")
-        body = release.get("body", "Keine Details.")
-        msg = f"Neue Version v{tag} verfügbar!\n\n{body[:500]}\n\nJetzt herunterladen und installieren?"
+        msg = f"Installierte Version: v{VERSION}\nNeue Version: v{tag}\n\nJetzt herunterladen und installieren?"
         if not messagebox.askyesno("Update verfügbar", msg):
             return
         dlg = ProgressDialog(self, "Update wird heruntergeladen...")

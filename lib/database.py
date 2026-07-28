@@ -150,6 +150,11 @@ class Database:
                     conn.execute(f"ALTER TABLE positions ADD COLUMN {col} TEXT DEFAULT ''")
                 except sqlite3.OperationalError:
                     pass  # Spalte existiert bereits
+            # Migration: price_unit für Materialien
+            try:
+                conn.execute("ALTER TABLE materials ADD COLUMN price_unit TEXT NOT NULL DEFAULT 'm\u00b2'")
+            except sqlite3.OperationalError:
+                pass
             # Migration: pos_type CHECK um 'text' erweitern + Spalten ergänzen
             conn.execute("PRAGMA foreign_keys=OFF")
             try:
@@ -293,7 +298,7 @@ class Database:
     def material_save(self, data):
         conn = self._connect()
         try:
-            keys = ["name", "description", "price_per_m2", "note"]
+            keys = ["name", "description", "price_per_m2", "price_unit", "note"]
             if data.get("id"):
                 sets = ", ".join(f"{k}=?" for k in keys)
                 vals = [data.get(k, "") for k in keys] + [data["id"]]
@@ -316,6 +321,34 @@ class Database:
             conn.commit()
         finally:
             conn.close()
+
+    def material_import_from_excel(self, filepath):
+        import openpyxl
+        wb = openpyxl.load_workbook(filepath)
+        ws = wb["Materialien"]
+        imported = 0
+        skipped = 0
+        errors = []
+        for row in ws.iter_rows(min_row=3, values_only=True):
+            name = str(row[0]).strip() if row[0] else ""
+            if not name:
+                skipped += 1
+                continue
+            desc = str(row[1]).strip() if len(row) > 1 and row[1] else ""
+            raw_price = row[2] if len(row) > 2 and row[2] is not None else 0
+            unit = str(row[3]).strip() if len(row) > 3 and row[3] else "m\u00b2"
+            note = str(row[4]).strip() if len(row) > 4 and row[4] else ""
+            try:
+                price = float(str(raw_price).replace(",", "."))
+            except (ValueError, TypeError):
+                errors.append(f"Zeile {imported + skipped + 3}: '{name}' - ung\u00fcltiger Preis '{raw_price}'")
+                skipped += 1
+                continue
+            data = {"name": name, "description": desc, "price_per_m2": price, "price_unit": unit, "note": note}
+            self.material_save(data)
+            imported += 1
+        wb.close()
+        return imported, skipped, errors
 
     # --- Texte ---
     def text_search(self, query=""):
@@ -372,7 +405,7 @@ class Database:
                 SELECT id, name, 'Werkzeug' as item_type, price, price_unit, 0 as price_per_m2, '' as content
                 FROM tools WHERE name LIKE ? OR description LIKE ?
                 UNION ALL
-                SELECT id, name, 'Material' as item_type, price_per_m2 as price, '' as price_unit, price_per_m2, '' as content
+                SELECT id, name, 'Material' as item_type, price_per_m2 as price, price_unit, price_per_m2, '' as content
                 FROM materials WHERE name LIKE ? OR description LIKE ?
                 UNION ALL
                 SELECT id, name, 'Text' as item_type, 0 as price, '' as price_unit, 0 as price_per_m2, content
