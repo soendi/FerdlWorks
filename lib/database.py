@@ -124,12 +124,16 @@ class Database:
                     value TEXT NOT NULL
                 );
             """)
-            # Migration: documents – paid, due_date
+            # Migration: documents – paid, due_date, discount_type
             for col in ("paid", "due_date"):
                 try:
                     conn.execute(f"ALTER TABLE documents ADD COLUMN {col} TEXT DEFAULT ''")
                 except sqlite3.OperationalError:
                     pass
+            try:
+                conn.execute("ALTER TABLE documents ADD COLUMN discount_type TEXT DEFAULT 'percent'")
+            except sqlite3.OperationalError:
+                pass
             # Migration: orig_price / orig_price_unit für EP-Einheit aus Verwaltung
             for col in ("orig_price", "orig_price_unit"):
                 try:

@@ -1,1 +1,229 @@
 2026-07-27 21:42:22 | INFO     | FerdlWorks v1.0.6 gestartet (Master-Mode: False)
+2026-07-27 23:26:31 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-27 23:30:38 | INFO     | Anwendung wird beendet
+2026-07-27 23:31:26 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-27 23:35:35 | INFO     | Anwendung wird beendet
+2026-07-27 23:35:57 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-27 23:39:28 | INFO     | Anwendung wird beendet
+2026-07-27 23:39:38 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-27 23:51:42 | INFO     | Anwendung wird beendet
+2026-07-27 23:52:00 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-27 23:56:29 | ERROR    | Registry write error (AutoStartPath): [WinError 5] Zugriff verweigert
+2026-07-27 23:56:29 | INFO     | Autostart (Registry) deaktiviert
+2026-07-28 00:01:31 | INFO     | Anwendung wird beendet
+2026-07-28 00:01:42 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 00:03:48 | INFO     | Update-Prüfung gestartet
+2026-07-28 00:03:48 | INFO     | Kein Update verfügbar (v1.0.13)
+2026-07-28 00:11:26 | ERROR    | Registry write error (AutoStartPath): [WinError 5] Zugriff verweigert
+2026-07-28 00:11:26 | INFO     | Autostart (Registry) deaktiviert
+2026-07-28 00:11:33 | INFO     | Anwendung wird beendet
+2026-07-28 00:11:55 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 00:14:04 | INFO     | Dokument RG-2026-0001 gespeichert
+2026-07-28 00:14:09 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0001_20260728.pdf
+2026-07-28 00:14:09 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0001_20260728.pdf
+2026-07-28 00:15:32 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0001_20260728.pdf
+2026-07-28 00:15:32 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0001_20260728.pdf
+2026-07-28 00:15:36 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0001_20260728.pdf
+2026-07-28 00:15:36 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0001_20260728.pdf
+2026-07-28 00:19:57 | INFO     | Anwendung wird beendet
+2026-07-28 00:20:11 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 00:21:21 | INFO     | Anwendung wird beendet
+2026-07-28 00:21:33 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 00:22:35 | INFO     | Dokument RG-2026-0001 gespeichert
+2026-07-28 00:22:38 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0001_20260728.pdf
+2026-07-28 00:22:38 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0001_20260728.pdf
+2026-07-28 00:22:42 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0001_20260728.pdf
+2026-07-28 00:22:42 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0001_20260728.pdf
+2026-07-28 00:34:15 | INFO     | Anwendung wird beendet
+2026-07-28 00:34:28 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 00:36:05 | ERROR    | Registry write error (AutoStartPath): [WinError 5] Zugriff verweigert
+2026-07-28 00:36:05 | INFO     | Autostart (Registry) deaktiviert
+2026-07-28 00:36:11 | INFO     | Dokument RG-2026-0001 gespeichert
+2026-07-28 00:40:36 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 00:48:57 | INFO     | Anwendung wird beendet
+2026-07-28 00:51:01 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 00:52:01 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 00:52:03 | INFO     | Anwendung wird beendet
+2026-07-28 00:56:38 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 00:57:37 | INFO     | Anwendung wird beendet
+2026-07-28 00:57:38 | INFO     | Anwendung wird beendet
+2026-07-28 00:57:48 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:04:35 | INFO     | Anwendung wird beendet
+2026-07-28 01:05:54 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:10:53 | INFO     | Anwendung wird beendet
+2026-07-28 01:11:06 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:13:12 | INFO     | Anwendung wird beendet
+2026-07-28 01:14:17 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:16:41 | INFO     | Anwendung wird beendet
+2026-07-28 01:17:49 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:18:28 | INFO     | Anwendung wird beendet
+2026-07-28 01:18:51 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:21:00 | INFO     | Anwendung wird beendet
+2026-07-28 01:21:16 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:21:48 | INFO     | Anwendung wird beendet
+2026-07-28 01:22:05 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:23:03 | INFO     | Anwendung wird beendet
+2026-07-28 01:23:12 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:24:35 | INFO     | Anwendung wird beendet
+2026-07-28 01:25:15 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:26:13 | INFO     | Anwendung wird beendet
+2026-07-28 01:26:26 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:27:11 | INFO     | Anwendung wird beendet
+2026-07-28 01:27:42 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:29:15 | INFO     | Anwendung wird beendet
+2026-07-28 01:29:27 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:31:28 | INFO     | Anwendung wird beendet
+2026-07-28 01:31:43 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:32:14 | INFO     | Anwendung wird beendet
+2026-07-28 01:32:28 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:33:55 | INFO     | Anwendung wird beendet
+2026-07-28 01:34:13 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:35:17 | INFO     | Anwendung wird beendet
+2026-07-28 01:35:29 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:36:19 | INFO     | Anwendung wird beendet
+2026-07-28 01:36:38 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:43:21 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:44:18 | INFO     | Anwendung wird beendet
+2026-07-28 01:44:19 | INFO     | Anwendung wird beendet
+2026-07-28 01:44:37 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:47:30 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:51:20 | INFO     | Anwendung wird beendet
+2026-07-28 01:51:21 | INFO     | Anwendung wird beendet
+2026-07-28 01:51:33 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:52:17 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:52:24 | INFO     | Anwendung wird beendet
+2026-07-28 01:52:28 | INFO     | Anwendung wird beendet
+2026-07-28 01:52:41 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:53:16 | INFO     | Anwendung wird beendet
+2026-07-28 01:53:36 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:57:11 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 01:59:28 | INFO     | Anwendung wird beendet
+2026-07-28 01:59:41 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:00:44 | INFO     | Anwendung wird beendet
+2026-07-28 02:01:26 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:03:33 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:04:54 | INFO     | Anwendung wird beendet
+2026-07-28 02:05:46 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:07:10 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:10:27 | INFO     | Anwendung wird beendet
+2026-07-28 02:10:34 | INFO     | Anwendung wird beendet
+2026-07-28 02:12:53 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:13:56 | INFO     | Anwendung wird beendet
+2026-07-28 02:14:10 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:15:44 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:15:50 | INFO     | Anwendung wird beendet
+2026-07-28 02:15:53 | INFO     | Anwendung wird beendet
+2026-07-28 02:16:03 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:19:55 | INFO     | Anwendung wird beendet
+2026-07-28 02:20:05 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:21:36 | INFO     | Dokument RG-2026-0002 gespeichert
+2026-07-28 02:21:36 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0002_20260728.pdf
+2026-07-28 02:21:36 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0002_20260728.pdf
+2026-07-28 02:26:20 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:26:30 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0002_20260728.pdf
+2026-07-28 02:26:30 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0002_20260728.pdf
+2026-07-28 02:29:04 | INFO     | Anwendung wird beendet
+2026-07-28 02:29:54 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:30:09 | INFO     | Anwendung wird beendet
+2026-07-28 02:32:08 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:33:16 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0002_20260728.pdf
+2026-07-28 02:33:16 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0002_20260728.pdf
+2026-07-28 02:35:09 | INFO     | Anwendung wird beendet
+2026-07-28 02:37:25 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:37:36 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0002_20260728.pdf
+2026-07-28 02:37:36 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0002_20260728.pdf
+2026-07-28 02:40:34 | INFO     | Anwendung wird beendet
+2026-07-28 02:40:43 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:40:50 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0002_20260728.pdf
+2026-07-28 02:40:50 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0002_20260728.pdf
+2026-07-28 02:41:28 | INFO     | Anwendung wird beendet
+2026-07-28 02:41:35 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:41:43 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0002_20260728.pdf
+2026-07-28 02:41:43 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0002_20260728.pdf
+2026-07-28 02:42:40 | INFO     | Anwendung wird beendet
+2026-07-28 02:42:52 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:42:57 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0002_20260728.pdf
+2026-07-28 02:42:57 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0002_20260728.pdf
+2026-07-28 02:45:24 | INFO     | Anwendung wird beendet
+2026-07-28 02:45:33 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:45:41 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0002_20260728.pdf
+2026-07-28 02:45:41 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0002_20260728.pdf
+2026-07-28 02:45:54 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0002_20260728.pdf
+2026-07-28 02:45:54 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0002_20260728.pdf
+2026-07-28 02:46:47 | INFO     | Anwendung wird beendet
+2026-07-28 02:46:56 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:47:07 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0002_20260728.pdf
+2026-07-28 02:47:07 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0002_20260728.pdf
+2026-07-28 02:49:14 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:49:21 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0002_20260728.pdf
+2026-07-28 02:49:21 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0002_20260728.pdf
+2026-07-28 02:50:43 | INFO     | Anwendung wird beendet
+2026-07-28 02:51:02 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:51:09 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0002_20260728.pdf
+2026-07-28 02:51:09 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG_RG-2026-0002_20260728.pdf
+2026-07-28 02:52:36 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:52:44 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 02:52:44 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 02:54:07 | INFO     | Anwendung wird beendet
+2026-07-28 02:54:08 | INFO     | Anwendung wird beendet
+2026-07-28 02:54:36 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:54:43 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 02:54:43 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 02:55:38 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 02:55:38 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 02:55:45 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 02:55:45 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 02:56:56 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:57:23 | INFO     | Dokument RG-2026-0002 gespeichert
+2026-07-28 02:57:23 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 02:57:23 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 02:58:17 | INFO     | Anwendung wird beendet
+2026-07-28 02:58:22 | INFO     | Anwendung wird beendet
+2026-07-28 02:58:35 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 02:58:42 | INFO     | Dokument RG-2026-0002 gespeichert
+2026-07-28 02:58:42 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 02:58:42 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 02:58:48 | INFO     | Dokument RG-2026-0002 gespeichert
+2026-07-28 02:58:48 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 02:58:48 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 02:58:51 | INFO     | Dokument RG-2026-0002 gespeichert
+2026-07-28 02:58:51 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 02:58:51 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 02:58:53 | INFO     | Dokument RG-2026-0002 gespeichert
+2026-07-28 02:58:53 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 02:58:53 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 02:59:02 | INFO     | Dokument RG-2026-0002 gespeichert
+2026-07-28 02:59:02 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 02:59:02 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 02:59:30 | INFO     | Anwendung wird beendet
+2026-07-28 03:01:03 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 03:01:15 | INFO     | Rabatt-Typ geändert: €
+2026-07-28 03:01:17 | INFO     | Dokument RG-2026-0002 gespeichert
+2026-07-28 03:01:17 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 03:01:17 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 03:02:59 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 03:03:10 | INFO     | discount_type_var -> % (caller: __call__)
+2026-07-28 03:03:14 | INFO     | discount_type_var -> € (caller: __call__)
+2026-07-28 03:03:20 | INFO     | Dokument RG-2026-0002 gespeichert
+2026-07-28 03:03:20 | INFO     | discount_type_var -> % (caller: __call__)
+2026-07-28 03:03:20 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 03:03:20 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 03:06:02 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 03:06:07 | INFO     | discount_type_var -> % (caller: __call__)
+2026-07-28 03:06:10 | INFO     | discount_type_var -> € (caller: __call__)
+2026-07-28 03:06:12 | INFO     | Dokument RG-2026-0002 gespeichert
+2026-07-28 03:06:12 | INFO     | discount_type_var -> % (caller: __call__)
+2026-07-28 03:06:12 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 03:06:12 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 03:08:50 | INFO     | Anwendung wird beendet
+2026-07-28 03:09:08 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 03:09:15 | INFO     | _load_doc discount_type from DB: percent (id=2)
+2026-07-28 03:09:15 | INFO     | discount_type_var -> % (caller: __call__)
+2026-07-28 03:09:18 | INFO     | discount_type_var -> € (caller: __call__)
+2026-07-28 03:09:20 | INFO     | Dokument RG-2026-0002 gespeichert
+2026-07-28 03:09:20 | INFO     | _load_doc discount_type from DB: percent (id=2)
+2026-07-28 03:09:20 | INFO     | discount_type_var -> % (caller: __call__)
+2026-07-28 03:09:20 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 03:09:20 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 03:09:24 | INFO     | Logdatei geöffnet: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\ferdlworks.log
+2026-07-28 03:11:29 | INFO     | Anwendung wird beendet

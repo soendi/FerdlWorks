@@ -1,6 +1,5 @@
 import os
-import io
-from datetime import datetime
+from datetime import datetime, timedelta
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib import colors
@@ -11,8 +10,6 @@ from lib.database import get_db
 from lib.logger import get_logger
 
 PDF_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "pdfs")
-
-UNIT_NAMES = {"h": "Std.", "min": "Min.", "m": "m", "qm": "m\xb2"}
 
 
 def _get_sender(settings):
@@ -38,36 +35,27 @@ def _get_sender(settings):
     return parts
 
 
-def generate_pdf(doc_data, output_path=None):
-    db = get_db()
-    settings = db.settings_get_all()
-    logger = get_logger()
-    os.makedirs(PDF_DIR, exist_ok=True)
-    if not output_path:
-        doc_type = doc_data.get("doc_type", "RG")
-        num = doc_data.get("doc_number", "XXXX")
-        date_str = doc_data.get("date", datetime.now().strftime("%Y-%m-%d"))
-        safe_date = date_str.replace("-", "")
-        output_path = os.path.join(PDF_DIR, f"{doc_type}_{num}_{safe_date}.pdf")
-    doc = SimpleDocTemplate(output_path, pagesize=A4,
-                            leftMargin=20*mm, rightMargin=15*mm,
-                            topMargin=15*mm, bottomMargin=20*mm)
-    styles = getSampleStyleSheet()
-    style_normal = ParagraphStyle("Normal", parent=styles["Normal"], fontSize=9, leading=12, spaceAfter=4)
-    style_small = ParagraphStyle("Small", parent=styles["Normal"], fontSize=8, leading=10, spaceAfter=2)
-    style_title = ParagraphStyle("Title", parent=styles["Normal"], fontSize=16, leading=20,
-                                 textColor=colors.HexColor("#8b0000"), spaceAfter=6)
-    style_header = ParagraphStyle("Header", parent=styles["Normal"], fontSize=10, leading=14,
-                                  textColor=colors.HexColor("#8b0000"), spaceAfter=4)
+def _build_elements(doc_data, settings, db):
+    style_normal = ParagraphStyle("Normal", parent=getSampleStyleSheet()["Normal"], fontSize=9, leading=12, spaceAfter=4)
+    style_small = ParagraphStyle("Small", parent=style_normal, fontSize=9, leading=12, spaceAfter=2)
+    style_title = ParagraphStyle("Title", parent=style_normal, fontSize=9, textColor=colors.HexColor("#8b0000"),
+                                 fontName="Helvetica-Bold", spaceAfter=4)
+    style_header = ParagraphStyle("Header", parent=style_normal, fontSize=9,
+                                  textColor=colors.HexColor("#8b0000"), fontName="Helvetica-Bold", spaceAfter=4)
     style_right = ParagraphStyle("Right", parent=style_normal, alignment=TA_RIGHT)
     style_center = ParagraphStyle("Center", parent=style_normal, alignment=TA_CENTER)
+    style_bold_left = ParagraphStyle("BoldLeft", parent=style_normal, alignment=TA_LEFT,
+                                     fontName="Helvetica-Bold")
+    style_bold_right_big = ParagraphStyle("BoldRightBig", parent=style_normal, alignment=TA_RIGHT,
+                                          fontName="Helvetica-Bold")
     elements = []
-    # Kopfbereich
-    sender_lines = _get_sender(settings)
-    for line in sender_lines:
+
+    # Absender
+    for line in _get_sender(settings):
         elements.append(Paragraph(line, style_small))
-    elements.append(Spacer(1, 5*mm))
-    # Absender + Empfänger (Tabelle)
+    elements.append(Spacer(1, 30*mm))
+
+    # Adresse (links) + Rechnungsblock (rechts)
     customer = doc_data.get("customer", {})
     addr_lines = [customer.get("company", "")]
     name = " ".join(filter(None, [customer.get("first_name", ""), customer.get("last_name", "")]))
@@ -79,21 +67,41 @@ def generate_pdf(doc_data, output_path=None):
         addr_lines.append(zip_city)
     addr_text = "<br/>".join(addr_lines)
     doc_type_label = "RECHNUNG" if doc_data.get("doc_type") == "RG" else "LIEFERSCHEIN"
-    header_right = f"<b>{doc_type_label}</b><br/>Nr: {doc_data.get('doc_number', '')}<br/>Datum: {doc_data.get('date', '')}"
-    addr_data = [[Paragraph(addr_text, style_normal), Paragraph(header_right, style_right)]]
-    addr_table = Table(addr_data, colWidths=[90*mm, 70*mm])
-    addr_table.setStyle(TableStyle([
+    raw_date = doc_data.get("date", datetime.now().strftime("%Y-%m-%d"))
+    try:
+        dt = datetime.strptime(raw_date, "%Y-%m-%d")
+        date_formatted = dt.strftime("%d.%m.%Y")
+    except ValueError:
+        date_formatted = raw_date
+    payment_term = int(settings.get("payment_term", "30"))
+    due_formatted = ""
+    try:
+        due_dt = datetime.strptime(raw_date, "%Y-%m-%d") + timedelta(days=payment_term)
+        due_formatted = due_dt.strftime("%d.%m.%Y")
+    except ValueError:
+        pass
+    right_lines = [f"<b>{doc_type_label}</b>", doc_data.get('doc_number', ''),
+                   f"Datum: {date_formatted}"]
+    if due_formatted:
+        right_lines.append(f"Zahlbar bis: {due_formatted}")
+    header_table = Table([
+        [Paragraph(addr_text, style_normal),
+         Paragraph("<br/>".join(right_lines), style_right)]
+    ], colWidths=[90*mm, 70*mm])
+    header_table.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("TOPPADDING", (0, 0), (-1, -1), 2),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
     ]))
-    elements.append(addr_table)
-    elements.append(Spacer(1, 8*mm))
+    elements.append(header_table)
+    elements.append(Spacer(1, 28*mm))
+
     # Notiz
     note = doc_data.get("note", "")
     if note:
         elements.append(Paragraph(note, style_normal))
-        elements.append(Spacer(1, 4*mm))
+        elements.append(Spacer(1, 6*mm))
+
     # Positionen
     elements.append(Paragraph("Positionen", style_header))
     elements.append(Spacer(1, 2*mm))
@@ -106,16 +114,36 @@ def generate_pdf(doc_data, output_path=None):
         unit = pos.get("unit", "")
         unit_label = unit_labels.get(unit, unit) if unit else ""
         ppu = pos.get("price_per_unit", 0)
+        orig_p = pos.get("orig_price")
+        orig_u = pos.get("orig_price_unit")
+        if not orig_p or not orig_u:
+            ref_id = pos.get("ref_id")
+            ptype = pos.get("pos_type")
+            if ref_id and ptype == "tool":
+                t = get_db().tool_get(ref_id)
+                if t:
+                    orig_p = t.get("price", 0)
+                    orig_u = t.get("price_unit", "")
+            elif ref_id and ptype == "material":
+                m = get_db().material_get(ref_id)
+                if m:
+                    orig_p = m.get("price_per_m2", 0)
+                    orig_u = "m\u00b2"
+        if orig_p and orig_u:
+            ep_str = f"{float(orig_p):.2f} \u20ac/{orig_u}"
+        else:
+            ep_str = f"{ppu:.2f} \u20ac"
         total = pos.get("total", 0)
         table_data.append([
             str(i),
             Paragraph(desc, style_normal),
             f"{qty:.2f}" if qty != int(qty) else str(int(qty)),
             unit_label,
-            f"{ppu:.2f} \u20ac",
+            ep_str,
             f"{total:.2f} \u20ac",
         ])
-    col_widths = [10*mm, 75*mm, 18*mm, 15*mm, 22*mm, 22*mm]
+    avail_width = (210*mm - 20*mm - 15*mm) * 0.98
+    col_widths = [10*mm, avail_width-10*mm-19*mm-16*mm-24*mm-23*mm, 19*mm, 16*mm, 24*mm, 23*mm]
     pos_table = Table(table_data, colWidths=col_widths)
     pos_style = [
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
@@ -132,33 +160,40 @@ def generate_pdf(doc_data, output_path=None):
     ]
     pos_table.setStyle(TableStyle(pos_style))
     elements.append(pos_table)
-    elements.append(Spacer(1, 5*mm))
-    # Summen
+    elements.append(Spacer(1, 8*mm))
+
+    # Summen (rechtsbündig)
     total_net = doc_data.get("total_net", 0)
     total_tax = doc_data.get("total_tax", 0)
     total_gross = doc_data.get("total_gross", 0)
     discount_value = doc_data.get("discount_value", 0)
     has_discount = discount_value and float(discount_value) > 0
-    tax_rate = float(settings.get("tax_rate", "19"))
+    tax_rate_val = float(settings.get("tax_rate", "19"))
     summary_data = []
     summary_data.append(["Nettobetrag:", f"{total_net:.2f} \u20ac"])
     if has_discount:
-        if doc_data.get("discount_type") == "percent":
-            summary_data.append([f"Rabatt ({discount_value}%):", f"-{total_net * float(discount_value) / 100:.2f} \u20ac"])
+        dtype = doc_data.get("discount_type", "percent")
+        if dtype == "percent":
+            rabatt_abs = total_net * float(discount_value) / 100
+            summary_data.append([f"Rabatt ({discount_value}%):", f"-{rabatt_abs:.2f} \u20ac"])
         else:
-            summary_data.append([f"Rabatt:", f"-{float(discount_value):.2f} \u20ac"])
-        # Netto nach Rabatt
-        if doc_data.get("discount_type") == "percent":
-            net_after = total_net * (1 - float(discount_value) / 100)
-        else:
-            net_after = total_net - float(discount_value)
+            rabatt_abs = float(discount_value)
+            summary_data.append(["Rabatt:", f"-{rabatt_abs:.2f} \u20ac"])
+        net_after = total_net - rabatt_abs
         summary_data.append(["Netto nach Rabatt:", f"{net_after:.2f} \u20ac"])
-    summary_data.append([f"MwSt. ({tax_rate:.0f}%):", f"{total_tax:.2f} \u20ac"])
-    summary_data.append(["<b>Gesamtbetrag:</b>", f"<b>{total_gross:.2f} \u20ac</b>"])
-    sum_table = Table(summary_data, colWidths=[60*mm, 35*mm])
+    summary_data.append([f"MwSt. ({tax_rate_val:.0f}%):", f"{total_tax:.2f} \u20ac"])
+    sum_rows = []
+    for label, value in summary_data:
+        sum_rows.append([Paragraph(label, style_normal), Paragraph(value, style_right)])
+    sum_rows.append([
+        Paragraph("Gesamtbetrag:", style_bold_left),
+        Paragraph(f"{total_gross:.2f} \u20ac", style_bold_right_big)
+    ])
+    sum_table = Table(sum_rows, colWidths=[48*mm, 28*mm], hAlign="RIGHT")
     sum_table.setStyle(TableStyle([
         ("ALIGN", (0, 0), (0, -1), "RIGHT"),
         ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("FONTSIZE", (0, 0), (-1, -1), 10),
         ("TOPPADDING", (0, 0), (-1, -1), 2),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
@@ -166,14 +201,39 @@ def generate_pdf(doc_data, output_path=None):
         ("LINEABOVE", (0, -1), (-1, -1), 1.5, colors.HexColor("#8b0000")),
     ]))
     elements.append(sum_table)
-    elements.append(Spacer(1, 10*mm))
-    # Footer
-    elements.append(Paragraph("Vielen Dank f\xfcr Ihren Auftrag!", style_center))
-    elements.append(Paragraph("Zahlbar innerhalb von 14 Tagen ohne Abzug.", style_small))
-    elements.append(Spacer(1, 5*mm))
-    elements.append(Paragraph("---", style_center))
-    elements.append(Paragraph(f"Erstellt mit {doc_data.get('app_name', 'FerdlWorks')} am {datetime.now().strftime('%d.%m.%Y %H:%M')}",
-                              style_small))
+    elements.append(Spacer(1, 15*mm))
+    return elements
+
+
+def generate_pdf(doc_data, output_path=None):
+    db = get_db()
+    settings = db.settings_get_all()
+    logger = get_logger()
+    os.makedirs(PDF_DIR, exist_ok=True)
+    if not output_path:
+        num = doc_data.get("doc_number", "XXXX")
+        date_str = doc_data.get("date", datetime.now().strftime("%Y-%m-%d"))
+        safe_date = date_str.replace("-", "")
+        output_path = os.path.join(PDF_DIR, f"{num}_{safe_date}.pdf")
+
+    # Alte PDF löschen falls vorhanden
+    if os.path.exists(output_path):
+        try:
+            os.remove(output_path)
+        except Exception:
+            pass
+
+    elements = _build_elements(doc_data, settings, db)
+
+    def footer(canvas, doc):
+        canvas.saveState()
+        canvas.setFont("Helvetica", 9)
+        canvas.drawCentredString(210*mm/2, 12*mm, "Vielen Dank f\xfcr Ihren Auftrag!")
+        canvas.restoreState()
+
+    doc = SimpleDocTemplate(output_path, pagesize=A4, leftMargin=20*mm, rightMargin=15*mm,
+                            topMargin=15*mm, bottomMargin=20*mm,
+                            onFirstPage=footer, onLaterPages=footer)
     doc.build(elements)
     logger.info(f"PDF erstellt: {output_path}")
     return output_path

@@ -52,7 +52,7 @@ class FerdlWorksApp(ctk.CTk):
         except Exception:
             pass
         self.minsize(800, 620)
-        self.geometry("1024x720")
+        self.geometry("1024x900")
         self._current_doc_id = None
         self._positions = []
         self._editing_pos_idx = None
@@ -61,9 +61,14 @@ class FerdlWorksApp(ctk.CTk):
         self.bind("<Button-1>", self._on_global_click, add="+")
         self._new_doc()
         self.update_idletasks()
-        self.after(100, lambda: self.cust_entry.focus_set())
-        self.after(200, lambda: self.art_entry.focus_set())
-        self.after(300, lambda: self.focus_set())
+        # Placeholder-Refresh: Fokus-Reihe durch alle Eingabefelder
+        def _placeholders():
+            for e in (self.cust_entry, self.art_entry, self.discount_entry):
+                e.focus_set()
+                self.update_idletasks()
+            self.focus_set()
+            self.update_idletasks()
+        self.after(100, _placeholders)
         self.after(500, self._check_overdue)
         self.logger.info(f"{APP_NAME} v{VERSION} gestartet (Master-Mode: {master_mode})")
         self.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -71,15 +76,15 @@ class FerdlWorksApp(ctk.CTk):
     # ===================== MENÜ =====================
     def _build_menu(self):
         mb = tk.Menu(self, font=("Segoe UI", 13))
-        datei = tk.Menu(mb, tearoff=False, font=("Segoe UI", 13))
+        datei = tk.Menu(mb, tearoff=False, font=("Segoe UI", 10))
         datei.add_command(label="Neue Rechnung", command=self._new_doc_prompt, accelerator="Strg+N")
         datei.add_command(label="Speichern", command=self._save_doc, accelerator="Strg+S")
         datei.add_separator()
-        datei.add_command(label="Rechnungen & Lieferscheine...", command=self._open_doc_overview, accelerator="Strg+D")
+        datei.add_command(label="Rechnungen...", command=self._open_doc_overview, accelerator="Strg+D")
         datei.add_separator()
         datei.add_command(label="Einstellungen...", command=self._open_settings, accelerator="Strg+E")
         datei.add_separator()
-        backup = tk.Menu(datei, tearoff=False, font=("Segoe UI", 13))
+        backup = tk.Menu(datei, tearoff=False, font=("Segoe UI", 10))
         backup.add_command(label="Datensicherung erstellen...", command=self._backup_data)
         backup.add_command(label="Datensicherung wiederherstellen...", command=self._restore_data)
         backup.add_separator()
@@ -90,7 +95,7 @@ class FerdlWorksApp(ctk.CTk):
         datei.add_command(label="Beenden", command=self._on_close, accelerator="Strg+Q")
         mb.add_cascade(label="Datei", menu=datei)
 
-        verw = tk.Menu(mb, tearoff=False, font=("Segoe UI", 13))
+        verw = tk.Menu(mb, tearoff=False, font=("Segoe UI", 10))
         verw.add_command(label="Kundenverwaltung...", command=self._open_customer_mgmt)
         verw.add_command(label="Materialverwaltung...", command=self._open_material_mgmt)
         verw.add_command(label="Werkzeugverwaltung...", command=self._open_tool_mgmt)
@@ -98,7 +103,7 @@ class FerdlWorksApp(ctk.CTk):
         verw.add_command(label="Texteverwaltung...", command=self._open_text_mgmt)
         mb.add_cascade(label="Verwaltung", menu=verw)
 
-        hilfe = tk.Menu(mb, tearoff=False, font=("Segoe UI", 13))
+        hilfe = tk.Menu(mb, tearoff=False, font=("Segoe UI", 10))
         hilfe.add_command(label="Auf Updates prüfen...", command=self._check_update, accelerator="Strg+U")
         hilfe.add_separator()
         hilfe.add_command(label="Logdatei öffnen", command=self._open_log)
@@ -129,8 +134,11 @@ class FerdlWorksApp(ctk.CTk):
         cust_top.pack(fill="x", padx=10, pady=(8, 0))
         ctk.CTkLabel(cust_top, text="Kunde:", font=("Segoe UI", 13, "bold"),
                      text_color=("#8b0000", "#8b0000"), width=70, anchor="w").pack(side="left")
-        self.cust_entry = ctk.CTkEntry(cust_top, width=500, placeholder_text="Kunde eingeben...")
+        self.cust_entry = ctk.CTkEntry(cust_top, width=500)
+        self.cust_entry._placeholder_text = "Kunde eingeben..."
         self.cust_entry.bind("<KeyRelease>", lambda e: self._filter_customers() if e.keysym not in ("Up", "Down", "Return", "Escape") else None)
+        self.cust_entry.bind("<FocusIn>", lambda e: self._on_placeholder_in(self.cust_entry))
+        self.cust_entry.bind("<FocusOut>", lambda e: self._on_placeholder_out(self.cust_entry))
         self.cust_entry.pack(side="left", padx=5)
         # Buttons Neu / Bearbeiten
         self.cust_btn_new = ctk.CTkButton(cust_top, text="Neu", width=60, 
@@ -165,9 +173,12 @@ class FerdlWorksApp(ctk.CTk):
         art.pack(fill="x", padx=8, pady=1)
         ctk.CTkLabel(art, text="Artikel:", font=("Segoe UI", 13, "bold"),
                      text_color=("#8b0000", "#8b0000"), width=70, anchor="w").pack(side="left", padx=(10, 0))
-        self.art_entry = ctk.CTkEntry(art, width=500, placeholder_text="Werkzeug, Material oder Text eingeben...")
+        self.art_entry = ctk.CTkEntry(art, width=500)
+        self.art_entry._placeholder_text = "Werkzeug, Material oder Text eingeben..."
         self.art_entry.pack(side="left", padx=5, pady=4)
         self.art_entry.bind("<KeyRelease>", lambda e: self._search_articles() if e.keysym not in ("Up", "Down", "Return", "Escape") else None)
+        self.art_entry.bind("<FocusIn>", lambda e: self._on_placeholder_in(self.art_entry))
+        self.art_entry.bind("<FocusOut>", lambda e: self._on_placeholder_out(self.art_entry))
 
         # Kontext-Felder (abhängig vom ausgewählten Artikel-Typ, versteckt)
         self._art_mat_f = ctk.CTkFrame(art, fg_color="transparent")
@@ -205,14 +216,24 @@ class FerdlWorksApp(ctk.CTk):
         self.art_text_btn.pack(side="right", padx=2)
         self.art_text_btn.pack_forget()  # erstmal unsichtbar
 
-        # Dropdown-Liste Artikel (schwebend über anderen Elementen)
+        # Dropdown-Liste Artikel (schwebend, tabellarisch)
         self._art_dropdown_frame = tk.Frame(self, bg="#2a2a2a", highlightbackground="#555555", highlightthickness=1)
-        self.art_dropdown = tk.Listbox(self._art_dropdown_frame, height=5,
-                                       font=("Segoe UI", 13), exportselection=False,
-                                       bg="#2a2a2a", fg="#e0e0e0", selectbackground="#8b0000",
-                                       borderwidth=0, highlightthickness=0)
+        art_style = ttk.Style()
+        art_style.theme_use("clam")
+        art_style.configure("Art.Treeview", background="#2a2a2a", foreground="#e0e0e0",
+                            fieldbackground="#2a2a2a", rowheight=24, font=("Segoe UI", 13))
+        art_style.map("Art.Treeview", background=[("selected", "#8b0000")], foreground=[("selected", "#ffffff")])
+        art_style.configure("Art.Treeview.Heading", font=("Segoe UI", 10))
+        art_style.layout("Art.Treeview", [("Art.Treeview.treearea", {"sticky": "nswe"})])
+        self.art_dropdown = ttk.Treeview(self._art_dropdown_frame, columns=("typ", "name"),
+                                          show="headings", height=5, style="Art.Treeview",
+                                          selectmode="browse")
+        self.art_dropdown.heading("typ", text="Typ", anchor="w")
+        self.art_dropdown.heading("name", text="Name", anchor="w")
+        self.art_dropdown.column("typ", width=150, anchor="w", minwidth=80)
+        self.art_dropdown.column("name", width=350, anchor="w", minwidth=200)
         self.art_dropdown.pack(fill="x", padx=2, pady=2)
-        self.art_dropdown.bind("<<ListboxSelect>>", lambda e: self._select_article())
+        self.art_dropdown.bind("<<TreeviewSelect>>", lambda e: self._select_article())
         self.art_entry.bind("<Down>", lambda e: self._nav_art_down())
         self.art_entry.bind("<Up>", lambda e: self._nav_art_up())
         self.art_entry.bind("<Return>", lambda e: self._enter_art())
@@ -222,22 +243,7 @@ class FerdlWorksApp(ctk.CTk):
         self._art_dropdown_idx = -1
         self._hide_units()
 
-        # --- Notiz + Rabatt ---
-        note_frame = ctk.CTkFrame(main, corner_radius=6)
-        note_frame.pack(fill="x", padx=8, pady=(2, 1))
-        ctk.CTkLabel(note_frame, text="Notiz:", font=("Segoe UI", 13), width=70, anchor="w").pack(side="left", padx=(10, 0))
-        self.doc_note = ctk.CTkTextbox(note_frame, width=400, height=80)
-        self.doc_note.pack(side="left", padx=5, pady=4)
-        ctk.CTkLabel(note_frame, text="Rabatt:", font=("Segoe UI", 13)).pack(side="left", padx=(15, 5))
-        self.discount_var = ctk.StringVar(value="0")
-        self.discount_entry = ctk.CTkEntry(note_frame, width=60, textvariable=self.discount_var)
-        self.discount_entry.pack(side="left", padx=2)
-        self.discount_entry.bind("<KeyRelease>", lambda e: self._recalc_totals())
-        self.discount_type_var = ctk.StringVar(value="%")
-        ctk.CTkOptionMenu(note_frame, variable=self.discount_type_var, values=["%", "\u20ac"],
-                          width=50, command=lambda v: self._recalc_totals()).pack(side="left")
-
-        # --- Positionen (unten) ---
+        # --- Positionen ---
         pos_frame = ctk.CTkFrame(main, corner_radius=6)
         pos_frame.pack(fill="both", expand=True, padx=8, pady=2)
         pos_header = ctk.CTkFrame(pos_frame, fg_color="transparent")
@@ -251,27 +257,82 @@ class FerdlWorksApp(ctk.CTk):
         heads = {"pos": "Pos.", "beschreibung": "Beschreibung", "menge": "Menge",
                  "einheit": "Einheit", "ep": "EP", "gesamt": "Gesamt"}
         widths = {"pos": 40, "beschreibung": 350, "menge": 60, "einheit": 60, "ep": 80, "gesamt": 90}
+        style = ttk.Style()
+        style.theme_use("clam")
+        style.configure("Treeview", background="#2a2a2a", foreground="#e0e0e0",
+                        fieldbackground="#2a2a2a", rowheight=26, font=("Segoe UI", 13))
+        style.map("Treeview", background=[("selected", "#8b0000")], foreground=[("selected", "#ffffff")])
+        style.configure("Treeview.Heading", background="#5c0000", foreground="#ffffff",
+                        font=("Segoe UI", 11, "bold"), relief="flat")
+        style.map("Treeview.Heading", background=[("active", "#8b0000")])
+        style.layout("Treeview", [("Treeview.treearea", {"sticky": "nswe"})])
+        style.layout("Custom.Vertical.TScrollbar",
+                     [("Vertical.Scrollbar.trough", {"sticky": "ns", "children":
+                       [("Vertical.Scrollbar.thumb", {"sticky": "nswe"})]})])
+        style.configure("Custom.Vertical.TScrollbar", background="#444444",
+                        troughcolor="#2a2a2a", arrowcolor="#444444",
+                        bordercolor="#2a2a2a", relief="flat", width=12)
         self.pos_tree = ttk.Treeview(pos_frame, columns=cols, show="headings", height=5)
         for c in cols:
-            self.pos_tree.heading(c, text=heads[c])
-            self.pos_tree.column(c, width=widths[c], minwidth=30, anchor="w" if c in ("pos", "beschreibung") else "e")
+            self.pos_tree.heading(c, text=heads[c], anchor="w" if c == "beschreibung" else "e")
+            self.pos_tree.column(c, width=widths[c], minwidth=30, anchor="w" if c == "beschreibung" else "e")
         self.pos_tree.bind("<Delete>", lambda e: self._remove_selected_position())
         self.pos_tree.bind("<Double-1>", lambda e: self._edit_position())
         self.pos_tree.bind("<Button-3>", self._pos_context_menu)
         self.pos_tree.bind("<Button-2>", self._pos_context_menu)
-        vsb = ttk.Scrollbar(pos_frame, orient="vertical", command=self.pos_tree.yview)
-        self.pos_tree.configure(yscrollcommand=vsb.set)
+        self._pos_vsb = ttk.Scrollbar(pos_frame, orient="vertical", style="Custom.Vertical.TScrollbar",
+                                       command=self.pos_tree.yview)
+        self.pos_tree.configure(yscrollcommand=self._update_vsb)
         self.pos_tree.pack(fill="both", expand=True, padx=10, pady=2)
-        vsb.pack(side="right", fill="y")
-        vsb.place(in_=self.pos_tree, relx=1.0, rely=0, relheight=1.0, x=0)
 
-        # --- Footer ---
+        # --- Notiz + Rabatt ---
+        nr = ctk.CTkFrame(main, fg_color="transparent")
+        nr.pack(fill="x", padx=8, pady=(2, 0))
+        ctk.CTkLabel(nr, text="Notiz:", font=("Segoe UI", 13, "bold"), width=70, anchor="w",
+                     text_color="#8b0000").pack(side="left", anchor="n", padx=(10, 0), pady=(6, 0))
+        self.doc_note = ctk.CTkTextbox(nr, width=500, height=80, border_width=2)
+        self.doc_note.pack(side="left", padx=5, pady=(6, 2))
+        rf = ctk.CTkFrame(nr, fg_color="transparent")
+        rf.pack(side="left", anchor="n", padx=(25, 0), pady=(6, 0))
+        ctk.CTkLabel(rf, text="Rabatt:", font=("Segoe UI", 13, "bold"),
+                     text_color="#8b0000", width=80, anchor="w").pack(side="left")
+        self.discount_var = ctk.StringVar(value="0")
+        self.discount_entry = ctk.CTkEntry(rf, width=80, textvariable=self.discount_var)
+        self.discount_entry.pack(side="left", padx=3)
+        self.discount_entry.bind("<KeyRelease>", lambda e: self._recalc_totals())
+        self.discount_type_var = ctk.StringVar(value="%")
+        ctk.CTkOptionMenu(rf, variable=self.discount_type_var, values=["%", "\u20ac"],
+                          width=50, command=lambda v: self._recalc_totals()).pack(side="left")
+
+        # --- Footer (Summen) ---
         footer = ctk.CTkFrame(main, corner_radius=6)
-        footer.pack(fill="x", padx=8, pady=4)
+        footer.pack(fill="x", padx=8, pady=(0, 2))
         self._build_footer(footer)
+
+        # --- Buttons ---
+        bb = ctk.CTkFrame(main, fg_color="transparent")
+        bb.pack(fill="x", padx=8, pady=(0, 4))
+        for text, cmd in [("PDF", self._save_pdf), ("E-Mail", self._send_email_doc),
+                          ("Drucken", self._print_doc), ("L\u00f6schen", self._delete_doc)]:
+            fg = "#5c0000" if "L\u00f6schen" in text else "#8b0000"
+            ctk.CTkButton(bb, text=text, command=cmd, width=80,
+                          fg_color=fg, hover_color="#b22222",
+                          font=("Segoe UI", 13)).pack(side="left", padx=3)
 
         # --- Status Bar ---
         self._build_statusbar()
+
+    def _on_placeholder_in(self, entry, ph=None):
+        if getattr(entry, '_ph_active', False):
+            entry.delete(0, "end")
+
+    def _on_placeholder_out(self, entry):
+        if not entry.get().strip():
+            ph = getattr(entry, '_placeholder_text', None)
+            if ph:
+                entry.delete(0, "end")
+                entry.insert(0, ph)
+                entry._ph_active = True
 
     # ===================== KUNDEN-DROPDOWN =====================
     def _on_global_click(self, event):
@@ -294,6 +355,7 @@ class FerdlWorksApp(ctk.CTk):
             parts.append(zc)
         self.cust_entry.delete(0, "end")
         self.cust_entry.insert(0, ", ".join(parts))
+        self.cust_entry._ph_active = False
 
     def _filter_customers(self):
         query = self.cust_entry.get().strip()
@@ -344,11 +406,15 @@ class FerdlWorksApp(ctk.CTk):
         self.cust_dropdown.see(idx)
 
     def _enter_cust(self, event=None):
-        if self._cust_dropdown_idx < 0 or self._cust_dropdown_idx >= len(self._cust_data):
+        if not self._cust_data:
             return
-            self._customer_id = self._cust_data[self._cust_dropdown_idx]["id"]
-            self._set_cust_display(self._cust_data[self._cust_dropdown_idx])
-            self.cust_btn_edit.configure(state="normal")
+        if self._cust_dropdown_idx < 0:
+            self._cust_dropdown_idx = 0
+        if self._cust_dropdown_idx >= len(self._cust_data):
+            return
+        self._customer_id = self._cust_data[self._cust_dropdown_idx]["id"]
+        self._set_cust_display(self._cust_data[self._cust_dropdown_idx])
+        self.cust_btn_edit.configure(state="normal")
         self._do_hide_cust_dropdown()
 
     def _nav_art_down(self, event=None):
@@ -358,10 +424,10 @@ class FerdlWorksApp(ctk.CTk):
         if self._art_dropdown_idx >= n - 1:
             return
         self._art_dropdown_idx += 1
-        idx = self._art_dropdown_idx
-        self.art_dropdown.selection_clear(0, "end")
+        idx = str(self._art_dropdown_idx)
+        self.art_dropdown.selection_set()
         self.art_dropdown.selection_set(idx)
-        self.art_dropdown.activate(idx)
+        self.art_dropdown.focus(idx)
         self.art_dropdown.see(idx)
 
     def _nav_art_up(self, event=None):
@@ -370,14 +436,18 @@ class FerdlWorksApp(ctk.CTk):
         if self._art_dropdown_idx <= 0:
             return
         self._art_dropdown_idx -= 1
-        idx = self._art_dropdown_idx
-        self.art_dropdown.selection_clear(0, "end")
+        idx = str(self._art_dropdown_idx)
+        self.art_dropdown.selection_set()
         self.art_dropdown.selection_set(idx)
-        self.art_dropdown.activate(idx)
+        self.art_dropdown.focus(idx)
         self.art_dropdown.see(idx)
 
     def _enter_art(self, event=None):
-        if self._art_dropdown_idx < 0 or self._art_dropdown_idx >= len(self._art_results):
+        if not self._art_results:
+            return
+        if self._art_dropdown_idx < 0:
+            self._art_dropdown_idx = 0
+        if self._art_dropdown_idx >= len(self._art_results):
             return
         self._selected_article = self._art_results[self._art_dropdown_idx]
         self.art_entry.delete(0, "end")
@@ -427,9 +497,10 @@ class FerdlWorksApp(ctk.CTk):
     def _search_articles(self):
         query = self.art_entry.get().strip()
         self._art_results = self.db.combined_search(query) if query else []
-        self.art_dropdown.delete(0, "end")
-        for item in self._art_results:
-            self.art_dropdown.insert("end", f"{item['item_type']:10s} | {item['name']}")
+        for row in self.art_dropdown.get_children():
+            self.art_dropdown.delete(row)
+        for idx, item in enumerate(self._art_results):
+            self.art_dropdown.insert("", "end", iid=str(idx), values=(item["item_type"], item["name"]))
         if query and self._art_results:
             self._show_art_dropdown()
             self.art_text_btn.pack_forget()
@@ -448,13 +519,13 @@ class FerdlWorksApp(ctk.CTk):
 
     def _do_hide_art_dropdown(self):
         self._art_dropdown_frame.place_forget()
-        self.art_dropdown.selection_clear(0, "end")
+        self.art_dropdown.selection_set()
 
     def _select_article(self):
-        sel = self.art_dropdown.curselection()
+        sel = self.art_dropdown.selection()
         if not sel:
             return
-        idx = sel[0]
+        idx = int(sel[0])
         if idx >= len(self._art_results):
             return
         self._art_dropdown_idx = idx
@@ -464,8 +535,10 @@ class FerdlWorksApp(ctk.CTk):
         self._do_hide_art_dropdown()
         if self._selected_article["item_type"] == "Material":
             self._show_mat_units()
+            self.dl_length.focus_set()
         elif self._selected_article["item_type"] == "Werkzeug":
             self._show_tool_units()
+            self.dl_time.focus_set()
         else:
             self._hide_units()
 
@@ -608,6 +681,16 @@ class FerdlWorksApp(ctk.CTk):
         self.art_insert_btn.configure(text="Einfügen")
 
     # ===================== POSITIONEN =====================
+    def _update_vsb(self, first, last):
+        try:
+            if float(first) <= 0.0 and float(last) >= 1.0:
+                self._pos_vsb.pack_forget()
+                return
+        except ValueError:
+            pass
+        self._pos_vsb.pack(side="right", fill="y")
+        self._pos_vsb.set(first, last)
+
     def _refresh_positions(self):
         for row in self.pos_tree.get_children():
             self.pos_tree.delete(row)
@@ -623,7 +706,8 @@ class FerdlWorksApp(ctk.CTk):
                 vals = ("", p.description, "", "", "", "")
             else:
                 vals = (str(i + 1), p.description, qty_str, p.unit, ep_str, f"{p.total:.2f}\u20ac")
-            self.pos_tree.insert("", "end", iid=str(i), values=vals)
+            tag = "even" if i % 2 == 0 else "odd"
+            self.pos_tree.insert("", "end", iid=str(i), values=vals, tags=(tag,))
         self._recalc_totals()
 
     def _pos_context_menu(self, event):
@@ -632,7 +716,7 @@ class FerdlWorksApp(ctk.CTk):
         if not iid:
             return
         self.pos_tree.selection_set(iid)
-        menu = tk.Menu(self, tearoff=False, font=("Segoe UI", 13))
+        menu = tk.Menu(self, tearoff=False, font=("Segoe UI", 10))
         menu.add_command(label="Bearbeiten", command=self._edit_position)
         menu.add_command(label="Löschen", command=self._remove_selected_position)
         menu.tk_popup(event.x_root, event.y_root)
@@ -724,36 +808,27 @@ class FerdlWorksApp(ctk.CTk):
     def _build_footer(self, parent):
         # Summen rechts
         rf = ctk.CTkFrame(parent, fg_color="transparent")
-        rf.pack(side="right", padx=8, pady=6)
+        rf.pack(side="right", anchor="s", padx=8, pady=6)
         self._sum_labels = {}
         self._rabatt_row = None
         for text in ["Netto:", "MwSt:", "Brutto:"]:
             f = ctk.CTkFrame(rf, fg_color="transparent")
-            ctk.CTkLabel(f, text=text, font=("Segoe UI", 13)).pack(side="left")
-            lbl = ctk.CTkLabel(f, text="0,00 \u20ac", font=("Segoe UI", 13, "bold"),
+            ctk.CTkLabel(f, text=text, font=("Segoe UI", 15)).pack(side="left")
+            lbl = ctk.CTkLabel(f, text="0,00 \u20ac", font=("Segoe UI", 15, "bold"),
                                text_color=("#8b0000", "#8b0000"), width=80, anchor="e")
             lbl.pack(side="right", padx=4)
             key = text.replace(":", "").replace(" ", "_").lower()
             self._sum_labels[key] = lbl
-        self._sum_labels["netto"].master.grid(row=0, column=0, sticky="ew", padx=2, pady=1)
+        self._sum_labels["netto"].master.grid(row=0, column=0, sticky="sew", padx=2, pady=1)
         self._rabatt_row = ctk.CTkFrame(rf, fg_color="transparent")
-        self._rabatt_row.grid(row=1, column=0, sticky="ew", padx=2, pady=1)
-        ctk.CTkLabel(self._rabatt_row, text="Rabatt:", font=("Segoe UI", 13)).pack(side="left")
-        self._rabatt_lbl = ctk.CTkLabel(self._rabatt_row, text="0,00 \u20ac", font=("Segoe UI", 13),
+        self._rabatt_row.grid(row=1, column=0, sticky="sew", padx=2, pady=1)
+        ctk.CTkLabel(self._rabatt_row, text="Rabatt:", font=("Segoe UI", 15)).pack(side="left")
+        self._rabatt_lbl = ctk.CTkLabel(self._rabatt_row, text="0,00 \u20ac", font=("Segoe UI", 15, "bold"),
                                         text_color=("#8b0000", "#8b0000"), width=80, anchor="e")
         self._rabatt_lbl.pack(side="right", padx=4)
         self._rabatt_row.grid_remove()
-        self._sum_labels["mwst"].master.grid(row=2, column=0, sticky="ew", padx=2, pady=1)
-        self._sum_labels["brutto"].master.grid(row=3, column=0, sticky="ew", padx=2, pady=1)
-
-        # Buttons links
-        btns = [("PDF", self._save_pdf), ("E-Mail", self._send_email_doc),
-                ("Drucken", self._print_doc), ("L\xf6schen", self._delete_doc)]
-        for text, cmd in btns:
-            fg = "#5c0000" if text in ["L\xf6schen"] else "#8b0000"
-            ctk.CTkButton(parent, text=text, command=cmd, width=80,
-                          fg_color=fg, hover_color="#b22222",
-                          font=("Segoe UI", 13)).pack(side="left", padx=3, pady=6)
+        self._sum_labels["mwst"].master.grid(row=2, column=0, sticky="sew", padx=2, pady=1)
+        self._sum_labels["brutto"].master.grid(row=3, column=0, sticky="sew", padx=2, pady=1)
 
     # ===================== STATUSBAR =====================
     def _build_statusbar(self):
@@ -781,7 +856,11 @@ class FerdlWorksApp(ctk.CTk):
         self._positions.clear()
         self._refresh_positions()
         self.cust_entry.delete(0, "end")
+        self.cust_entry._ph_active = False
+        self._on_placeholder_out(self.cust_entry)
         self.art_entry.delete(0, "end")
+        self.art_entry._ph_active = False
+        self._on_placeholder_out(self.art_entry)
         self.doc_note.delete("1.0", "end")
         self.discount_var.set("0")
         self.doc_type_var.set("RG")
@@ -815,7 +894,7 @@ class FerdlWorksApp(ctk.CTk):
             "doc_type": self.doc_type_var.get(),
             "customer_id": self._get_selected_customer_id(),
             "date": datetime.now().strftime("%Y-%m-%d"),
-            "discount_type": "percent",
+            "discount_type": "percent" if is_percent else "fixed",
             "discount_value": discount_val,
             "total_net": net_after,
             "total_tax": total_tax,
@@ -900,46 +979,63 @@ class FerdlWorksApp(ctk.CTk):
         DocSearchDialog(self)
 
     def _delete_doc(self):
-        if not self._current_doc_id:
+        if self._check_empty():
             return
-        if messagebox.askyesno("Löschen", "Wirklich löschen?"):
+        if messagebox.askyesno("Löschen", "Aktuelles Dokument endgültig löschen?\n\nDiese Aktion kann nicht rückgängig gemacht werden."):
             self.db.doc_delete(self._current_doc_id)
             self._new_doc()
 
     # ===================== PDF / E-MAIL / DRUCKEN =====================
+    def _check_empty(self):
+        if not self._positions:
+            messagebox.showwarning("Hinweis", "Keine Einträge vorhanden.")
+            return True
+        return False
+
     def _save_pdf(self):
-        if not self._current_doc_id:
-            if not self._do_save(silent=True):
-                return
+        if self._check_empty():
+            return
+        if not self._get_selected_customer_id():
+            messagebox.showwarning("Fehler", "Bitte wählen Sie einen Kunden aus.")
+            return
+        if not self._do_save(silent=True):
+            return
         doc = self.db.doc_get(self._current_doc_id)
         if not doc:
+            messagebox.showerror("Fehler", "Dokument konnte nicht geladen werden.")
             return
         doc["app_name"] = APP_NAME
-        path = generate_pdf(doc)
-        if path:
-            self.logger.info(f"PDF erstellt: {path}")
-            try:
-                os.startfile(path)
-            except Exception:
-                pass
+        try:
+            path = generate_pdf(doc)
+            if path:
+                self.logger.info(f"PDF erstellt: {path}")
+                try:
+                    subprocess.Popen(['cmd', '/c', 'start', '', path], shell=True)
+                except Exception:
+                    pass
+            else:
+                messagebox.showerror("Fehler", "PDF konnte nicht erstellt werden.")
+        except Exception as ex:
+            messagebox.showerror("Fehler", f"PDF-Fehler: {ex}")
 
     def _send_email_doc(self):
+        if self._check_empty():
+            return
         settings = self.db.settings_get_all()
         if not settings.get("smtp_host") or not settings.get("smtp_user"):
             messagebox.showwarning("E-Mail", "Bitte zuerst E-Mail-Einstellungen konfigurieren (Einstellungen > E-Mail).")
             return
-        if not self._current_doc_id:
-            if not self._do_save(silent=True):
-                return
+        if not self._current_doc_id and not self._do_save(silent=True):
+            return
         doc = self.db.doc_get(self._current_doc_id)
         if not doc:
             return
         customer = doc.get("customer", {})
         recipient = customer.get("email", "")
         if not recipient:
-            messagebox.showwarning("E-Mail", "Kunde hat keine E-Mail-Adresse.")
+            messagebox.showwarning("E-Mail", "Kunde hat keine E-Mail-Adresse hinterlegt.")
             return
-        if not messagebox.askyesno("E-Mail", "PDF als E-Mail versenden?"):
+        if not messagebox.askyesno("E-Mail", "Dokument per E-Mail verschicken?"):
             return
         doc["app_name"] = APP_NAME
         pdf_path = generate_pdf(doc)
@@ -952,13 +1048,14 @@ class FerdlWorksApp(ctk.CTk):
             messagebox.showerror("Fehler", msg)
 
     def _print_doc(self):
+        if self._check_empty():
+            return
         printer = self.db.settings_get_all().get("printer_name", "")
         if not printer:
             messagebox.showwarning("Drucken", "Kein Drucker ausgewählt. Bitte wählen Sie einen Drucker in den Einstellungen.")
             return
-        if not self._current_doc_id:
-            if not self._do_save(silent=True):
-                return
+        if not self._current_doc_id and not self._do_save(silent=True):
+            return
         doc = self.db.doc_get(self._current_doc_id)
         if not doc:
             return
@@ -1125,7 +1222,7 @@ class DocSearchDialog(ctk.CTkToplevel):
         self.db = get_db()
         self.app = master
         self._overdue_only = overdue_only
-        self.title("Rechnungen & Lieferscheine")
+        self.title("Rechnungen")
         self.geometry("800x500")
         self.transient(master)
         self.grab_set()
@@ -1139,10 +1236,6 @@ class DocSearchDialog(ctk.CTkToplevel):
         self.search_entry = ctk.CTkEntry(top, width=200, placeholder_text="Nr., Kunde...")
         self.search_entry.pack(side="left", padx=5)
         self.search_entry.bind("<KeyRelease>", lambda e: self._load_data())
-        ctk.CTkLabel(top, text="Typ:").pack(side="left", padx=(15, 5))
-        self.type_var = ctk.StringVar(value="all")
-        ctk.CTkOptionMenu(top, values=["Alle", "RG", "LS"], variable=self.type_var,
-                          command=lambda v: self._load_data(), width=70).pack(side="left", padx=5)
         self.overdue_var = ctk.BooleanVar(value=self._overdue_only)
         ctk.CTkCheckBox(top, text="Überfällige Rechnungen", variable=self.overdue_var,
                         command=self._load_data).pack(side="left", padx=(15, 5))
@@ -1153,9 +1246,10 @@ class DocSearchDialog(ctk.CTkToplevel):
                  "faellig": "Fällig", "betrag": "Betrag", "status": "Status"}
         widths = {"doc": 150, "kunde": 180, "datum": 85, "faellig": 85, "betrag": 90, "status": 70}
         self.tree = ttk.Treeview(self, columns=cols, show="headings")
+        left_cols = ("doc", "kunde", "datum", "faellig")
         for c in cols:
-            self.tree.heading(c, text=heads[c])
-            self.tree.column(c, width=widths[c], minwidth=50, anchor="w" if c in ("doc", "kunde") else "e")
+            self.tree.heading(c, text=heads[c], anchor="w" if c in left_cols else "e")
+            self.tree.column(c, width=widths[c], minwidth=50, anchor="w" if c in left_cols else "e")
         self.tree.column("status", width=70, anchor="center")
         self.tree.bind("<Double-1>", lambda e: self._open_selected())
         self.tree.bind("<Button-3>", self._tree_context_menu)
@@ -1173,17 +1267,15 @@ class DocSearchDialog(ctk.CTkToplevel):
         if self.overdue_var.get():
             self._docs = self.db.doc_get_overdue()
         else:
-            type_filter = {"Alle": None, "RG": "RG", "LS": "LS"}.get(self.type_var.get(), None)
             query = self.search_entry.get()
-            self._docs = self.db.doc_search(type_filter, query)
+            self._docs = self.db.doc_search(None, query)
         for doc in self._docs:
             cname = doc.get("customer_name", "")
-            dtype = "RG" if doc["doc_type"] == "RG" else "LS"
             paid = doc.get("paid", "0") == "1"
             status = "\u2713" if paid else "\u2717"
             due = doc.get("due_date", "")
             self.tree.insert("", "end", iid=str(doc["id"]), values=(
-                f"{dtype} {doc['doc_number']}", cname, doc["date"],
+                doc["doc_number"], cname, doc["date"],
                 due, f"{doc.get('total_gross', 0):.2f}\u20ac".replace(".", ","), status
             ))
 
@@ -1195,19 +1287,40 @@ class DocSearchDialog(ctk.CTkToplevel):
         self.tree.selection_set(iid)
         doc_id = int(iid)
         doc = next((d for d in self._docs if d["id"] == doc_id), None)
-        if not doc or doc["doc_type"] != "RG":
+        if not doc:
             return
-        menu = tk.Menu(self, tearoff=False, font=("Segoe UI", 13))
-        is_paid = doc.get("paid", "0") == "1"
-        if is_paid:
-            menu.add_command(label="Als unbezahlt markieren", command=lambda: self._toggle_paid(doc_id, False))
-        else:
-            menu.add_command(label="Als bezahlt markieren", command=lambda: self._toggle_paid(doc_id, True))
+        menu = tk.Menu(self, tearoff=False, font=("Segoe UI", 10))
+        if doc["doc_type"] == "RG":
+            is_paid = doc.get("paid", "0") == "1"
+            menu.add_command(label="Als unbezahlt markieren" if is_paid else "Als bezahlt markieren",
+                             command=lambda d=doc_id, p=not is_paid: self._toggle_paid(d, p))
+            menu.add_separator()
+        menu.add_command(label="Löschen", command=lambda d=doc_id: self._delete_doc(d))
         menu.tk_popup(event.x_root, event.y_root)
         menu.grab_release()
 
     def _toggle_paid(self, doc_id, paid):
         self.db.doc_set_paid(doc_id, paid)
+        self._load_data()
+
+    def _delete_doc(self, doc_id):
+        doc = next((d for d in self._docs if d["id"] == doc_id), None)
+        if not doc:
+            return
+        if not messagebox.askyesno("Löschen", f"{doc['doc_number']} wirklich löschen?\n\nDas Dokument und die zugehörige PDF-Datei werden endgültig gelöscht."):
+            return
+        self.db.doc_delete(doc_id)
+        try:
+            doc_type = doc["doc_type"]
+            num = doc["doc_number"].replace(f"{doc_type}-", "").replace("-", "_")
+            safe_date = doc.get("date", "").replace("-", "")
+            pdf_name = f"{doc_type}_{num}_{safe_date}.pdf"
+            pdf_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "pdfs")
+            pdf_path = os.path.join(pdf_dir, pdf_name)
+            if os.path.exists(pdf_path):
+                os.remove(pdf_path)
+        except Exception:
+            pass
         self._load_data()
 
     def _open_selected(self):
