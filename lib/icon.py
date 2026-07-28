@@ -20,28 +20,18 @@ def create_icon():
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
 
-    # Hintergrund: abgerundetes Rechteck (dunkelrot)
-    draw.rounded_rectangle([(3, 3), (size-3, size-3)], radius=36,
-                           fill=(139, 0, 0), outline=(80, 0, 0), width=4)
+    # Roter Kreis
+    draw.ellipse([(8, 8), (size - 8, size - 8)], fill=(200, 40, 40), outline=(140, 0, 0), width=4)
 
-    # Inneres Rechteck
-    m = size // 6
-    draw.rounded_rectangle([(m, m), (size-m, size-m)], radius=18,
-                           fill=(35, 35, 35, 230))
-
-    # Schrift laden
+    # Schwarzes F
     try:
-        font = ImageFont.truetype("segoeui.ttf", size // 2)
+        font = ImageFont.truetype("segoeui.ttf", size - 8)
     except:
         try:
-            font = ImageFont.truetype("arial.ttf", size // 2)
+            font = ImageFont.truetype("arial.ttf", size // 2 + 10)
         except:
             font = ImageFont.load_default()
-
-    # Schatten vom F
-    draw.text((size//2 + 3, size//2 + 3), "F", fill=(0, 0, 0, 100), font=font, anchor="mm")
-    # F in hellrot
-    draw.text((size//2, size//2), "F", fill=(220, 60, 60), font=font, anchor="mm")
+    draw.text((size // 2, size // 2), "F", fill=(0, 0, 0), font=font, anchor="mm")
 
     img.save(ICON_PNG, "PNG")
     img.save(ICON_ICO, "ICO", sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
