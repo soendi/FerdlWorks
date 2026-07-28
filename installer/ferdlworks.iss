@@ -4,7 +4,7 @@
 
 #define MyAppName "FerdlWorks"
 #ifndef MyAppVersion
-#define MyAppVersion "1.1.18"
+#define MyAppVersion "1.1.19"
 #endif
 #define MyAppVersionFull MyAppVersion + ".0"
 #define MyAppPublisher "Sonderegger Software"
