@@ -7,9 +7,11 @@ ICON_ICO = os.path.join(ICON_DIR, "ferdlworks.ico")
 
 
 def create_icon():
-    if os.path.exists(ICON_ICO):
-        return ICON_ICO
     os.makedirs(ICON_DIR, exist_ok=True)
+    # Immer neu generieren (alte Icons werden überschrieben)
+    for f in (ICON_PNG, ICON_ICO):
+        if os.path.exists(f):
+            os.remove(f)
     size = 256
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
