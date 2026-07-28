@@ -174,9 +174,9 @@ class Database:
             rows = conn.execute("""
                 SELECT * FROM customers
                 WHERE company LIKE ? OR last_name LIKE ? OR first_name LIKE ?
-                  OR city LIKE ? OR zip LIKE ?
+                  OR city LIKE ? OR zip LIKE ? OR street LIKE ? OR email LIKE ? OR phone LIKE ?
                 ORDER BY company, last_name
-            """, (like, like, like, like, like)).fetchall()
+            """, (like, like, like, like, like, like, like, like)).fetchall()
             return [dict(r) for r in rows]
         finally:
             conn.close()
