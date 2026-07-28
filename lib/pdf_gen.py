@@ -109,9 +109,9 @@ def _build_elements(doc_data, settings, db):
     elements.append(Spacer(1, 2*mm))
     pos_data = doc_data.get("positions", [])
 
-    merge_tools = doc_data.get("merge_tools", False)
+    merge_tools = str(doc_data.get("merge_tools", "0")) == "1"
     merge_tool_name = doc_data.get("merge_tool_name", "Werkzeug")
-    round_tools = doc_data.get("round_tools", False)
+    round_tools = str(doc_data.get("round_tools", "0")) == "1"
 
     # Separate positions into groups
     table_rows = []  # material or standalone tool
@@ -181,10 +181,14 @@ def _build_elements(doc_data, settings, db):
             "", "", "",
             f"{tool_total:.2f} \u20ac",
         ])
-        # Merge tool total into displayed total for summary calculation
         pos_data_displayed_total = sum(p.get("total", 0) for p in table_rows) + tool_total
     else:
         pos_data_displayed_total = sum(p.get("total", 0) for p in table_rows) + sum(p.get("total", 0) for p in tool_rows)
+    # Apply rounding to tool portion regardless of merge state
+    if round_tools:
+        all_tool = sum(p.get("total", 0) for p in pos_data if p.get("pos_type") == "tool")
+        all_other = sum(p.get("total", 0) for p in pos_data if p.get("pos_type") != "tool")
+        pos_data_displayed_total = math.ceil(all_tool / 10) * 10 + all_other
 
     avail_width = (210*mm - 20*mm - 15*mm) * 0.98
     col_widths = [10*mm, avail_width-10*mm-19*mm-16*mm-24*mm-23*mm, 19*mm, 16*mm, 24*mm, 23*mm]

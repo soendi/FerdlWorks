@@ -1,5 +1,6 @@
 import sys
 import os
+import math
 import subprocess
 import customtkinter as ctk
 import tkinter as tk
@@ -317,7 +318,7 @@ class FerdlWorksApp(ctk.CTk):
         ctk.CTkLabel(nz, text="Notiz:", font=("Segoe UI", 13, "bold"),
                      text_color="#8b0000").pack(side="left")
         self.print_note_var = ctk.BooleanVar(value=True)
-        ctk.CTkCheckBox(nz, text="RG", variable=self.print_note_var,
+        ctk.CTkCheckBox(nz, text="Auf Rechnung drucken unterhalb der Positionen", variable=self.print_note_var,
                         font=("Segoe UI", 13)).pack(side="left", padx=(6, 0))
         self.doc_note = ctk.CTkTextbox(tl, height=52, border_width=2)
         self.doc_note.pack(fill="x", padx=4, pady=(2, 4))
@@ -378,7 +379,7 @@ class FerdlWorksApp(ctk.CTk):
                                               command=self._on_merge_tools_toggle,
                                               font=("Segoe UI", 13))
         self.merge_tools_cb.pack(side="left")
-        self.merge_tool_name_var = ctk.StringVar(value="Werkzeug")
+        self.merge_tool_name_var = ctk.StringVar(value="Arbeit")
         self.merge_tool_name_entry = ctk.CTkEntry(merge_frame, width=120, textvariable=self.merge_tool_name_var)
         self.merge_tool_name_entry.pack(side="left", padx=(4, 0))
         round_frame = ctk.CTkFrame(top_section, fg_color="transparent")
@@ -912,10 +913,17 @@ class FerdlWorksApp(ctk.CTk):
         self.art_insert_btn.configure(text="Übernehmen")
 
     # ===================== SUMMEN =====================
+    def _get_effective_net(self):
+        tool_sum = sum(p.total for p in self._positions if p.pos_type == "tool")
+        other_sum = sum(p.total for p in self._positions if p.pos_type != "tool")
+        if self.round_tools_var.get():
+            tool_sum = math.ceil(tool_sum / 10) * 10
+        return tool_sum + other_sum
+
     def _recalc_totals(self):
         settings = self.db.settings_get_all()
         tax_rate = float(settings.get("tax_rate", "19"))
-        total_net = sum(p.total for p in self._positions)
+        total_net = self._get_effective_net()
         try:
             discount_val = float(self.discount_var.get().replace(",", "."))
         except ValueError:
@@ -981,10 +989,12 @@ class FerdlWorksApp(ctk.CTk):
     def _on_merge_tools_toggle(self):
         if not self.merge_tools_var.get():
             self.round_tools_var.set(False)
+        self._recalc_totals()
 
     def _on_round_tools_toggle(self):
         if self.round_tools_var.get():
             self.merge_tools_var.set(True)
+        self._recalc_totals()
 
     # ===================== PDF ORDNER =====================
     def _save_pdf_folder(self):
@@ -1046,7 +1056,7 @@ class FerdlWorksApp(ctk.CTk):
     def _get_doc_data(self):
         settings = self.db.settings_get_all()
         tax_rate = float(settings.get("tax_rate", "19"))
-        orig_net = sum(p.total for p in self._positions)
+        orig_net = self._get_effective_net()
         try:
             discount_val = float(self.discount_var.get().replace(",", "."))
         except ValueError:
