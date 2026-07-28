@@ -1,4 +1,5 @@
 import os
+import sys
 from PIL import Image, ImageDraw, ImageFont
 
 ICON_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets")
@@ -7,11 +8,17 @@ ICON_ICO = os.path.join(ICON_DIR, "ferdlworks.ico")
 
 
 def create_icon():
+    # Bei frozen: Icon wurde via --add-data gebündelt – einfach zurückgeben
+    if getattr(sys, "frozen", False):
+        for p in (ICON_ICO, ICON_PNG):
+            if os.path.exists(p):
+                return p
+        # Fallback: im exe-Verzeichnis suchen
+        for p in (os.path.join(os.path.dirname(sys.executable), "ferdlworks.ico"),
+                  os.path.join(os.path.dirname(sys.executable), "assets", "ferdlworks.ico")):
+            if os.path.exists(p):
+                return p
     os.makedirs(ICON_DIR, exist_ok=True)
-    # Immer neu generieren (alte Icons werden überschrieben)
-    for f in (ICON_PNG, ICON_ICO):
-        if os.path.exists(f):
-            os.remove(f)
     size = 256
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
