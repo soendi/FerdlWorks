@@ -406,3 +406,19 @@
 2026-07-28 18:04:55 | INFO     | Anwendung wird beendet
 2026-07-28 18:43:21 | INFO     | FerdlWorks v1.2.3 gestartet (Master-Mode: False)
 2026-07-28 18:43:21 | INFO     | Icon gesetzt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\assets\ferdlworks.ico
+2026-07-28 18:58:25 | INFO     | FerdlWorks v1.2.4 gestartet (Master-Mode: False)
+2026-07-28 18:58:25 | INFO     | Icon gesetzt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\assets\ferdlworks.ico
+2026-07-28 18:59:35 | INFO     | FerdlWorks v1.2.4 gestartet (Master-Mode: False)
+2026-07-28 18:59:35 | INFO     | Icon gesetzt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\assets\ferdlworks.ico
+2026-07-28 18:59:45 | INFO     | Anwendung wird beendet
+2026-07-28 19:27:37 | INFO     | FerdlWorks v1.2.4 gestartet (Master-Mode: False)
+2026-07-28 19:27:37 | INFO     | Icon gesetzt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\assets\ferdlworks.ico
+2026-07-28 19:33:44 | ERROR    | Registry write error (AutoStartPath): [WinError 5] Zugriff verweigert
+2026-07-28 19:33:44 | INFO     | Autostart (Registry) deaktiviert
+2026-07-28 19:37:04 | ERROR    | Registry write error (AutoStartPath): [WinError 5] Zugriff verweigert
+2026-07-28 19:37:04 | INFO     | Autostart (Registry) deaktiviert
+2026-07-28 19:40:01 | INFO     | Dokument RG-2026-0019 gespeichert
+2026-07-28 19:40:03 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0019_20260728.pdf
+2026-07-28 19:40:04 | INFO     | E-Mail gesendet an sondereggerlukas@gmail.com: Ihre Rechnung RG-2026-0019
+2026-07-28 19:51:10 | INFO     | Dokument RG-2026-0019 gespeichert
+2026-07-28 19:51:14 | INFO     | Anwendung wird beendet

@@ -217,6 +217,7 @@ class FerdlWorksApp(ctk.CTk):
         ctk.CTkLabel(self._art_qty_f, text="Anzahl:", font=("Segoe UI", 13)).pack(side="left")
         self.dl_qty = ctk.CTkEntry(self._art_qty_f, width=80)
         self.dl_qty.pack(side="left", padx=2)
+        self.dl_qty.bind("<FocusIn>", lambda e: e.widget.after(10, lambda: e.widget.selection_range(0, "end")))
         self.dl_qty.bind("<Tab>", lambda e: (self._insert_article(), self.art_entry.focus_set()) or "break")
 
         self._art_tool_f = ctk.CTkFrame(art, fg_color="transparent")
@@ -350,6 +351,7 @@ class FerdlWorksApp(ctk.CTk):
         self.doc_date_var.trace_add("write", lambda *a: self._recalc_due_date())
         ctk.CTkButton(dr, text="\u2630", width=28, command=self._open_calendar,
                       fg_color="#555555").pack(side="left", padx=2)
+        self._cal_btn = dr.winfo_children()[1]
         ctk.CTkButton(dr, text="Heute", width=45, command=lambda: self.doc_date_var.set(
             datetime.now().strftime("%d.%m.%Y")), fg_color="#555555").pack(side="left")
         zr = ctk.CTkFrame(tr, fg_color="transparent")
@@ -1263,6 +1265,13 @@ class FerdlWorksApp(ctk.CTk):
         top.transient(self)
         top.grab_set()
         top.resizable(False, False)
+        try:
+            bx = self._cal_btn.winfo_rootx()
+            by = self._cal_btn.winfo_rooty()
+            bh = self._cal_btn.winfo_height()
+            top.geometry(f"280x250+{bx}+{by + bh + 2}")
+        except:
+            pass
         now = datetime.now()
         m, y = now.month, now.year
         sel = self.doc_date_var.get()
@@ -1292,7 +1301,9 @@ class FerdlWorksApp(ctk.CTk):
                     if day == 0:
                         ctk.CTkLabel(cf, text="", width=30).grid(row=r, column=c)
                     else:
-                        btn = ctk.CTkButton(cf, text=str(day), width=30, height=25, fg_color="#555555",
+                        is_today = (day == now.day and month == now.month and year == now.year)
+                        fg = "#8b0000" if is_today else "#555555"
+                        btn = ctk.CTkButton(cf, text=str(day), width=30, height=25, fg_color=fg,
                                             command=lambda d=day, mo=month, yr=year: pick(d, mo, yr))
                         btn.grid(row=r, column=c, padx=1, pady=1)
 
@@ -1362,8 +1373,8 @@ class FerdlWorksApp(ctk.CTk):
             "{vorname}": customer.get("first_name", ""),
             "{nachname}": customer.get("last_name", ""),
             "{rgnr}": doc.get("doc_number", ""),
-            "{rgdat}": doc.get("date", ""),
-            "{bezbisdatum}": doc.get("due_date", ""),
+            "{rgdat}": datetime.strptime(doc.get("date", ""), "%Y-%m-%d").strftime("%d.%m.%Y") if doc.get("date") else "",
+            "{bezbisdatum}": datetime.strptime(doc.get("due_date", ""), "%Y-%m-%d").strftime("%d.%m.%Y") if doc.get("due_date") else "",
             "{bezbistage}": str(max(0, (datetime.strptime(doc.get("due_date", ""), "%Y-%m-%d") - datetime.strptime(doc.get("date", ""), "%Y-%m-%d")).days)) if doc.get("due_date") and doc.get("date") else "30",
             "{betrag}": f"{doc.get('total_gross', 0):.2f}\u20ac".replace(".", ","),
         }
