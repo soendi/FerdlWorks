@@ -62,11 +62,21 @@ class FerdlWorksApp(ctk.CTk):
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
     def _set_icon(self):
-        try:
-            self.iconbitmap(self._icon_path)
-            self.wm_iconbitmap(self._icon_path)
-        except Exception:
-            pass
+        paths = [self._icon_path]
+        if getattr(sys, "frozen", False):
+            base = os.path.dirname(sys.executable)
+            paths += [os.path.join(base, "ferdlworks.ico"),
+                      os.path.join(base, "_internal", "ferdlworks.ico"),
+                      os.path.join(base, "assets", "ferdlworks.ico")]
+        for p in paths:
+            if os.path.exists(p):
+                try:
+                    self.iconbitmap(p)
+                    self.wm_iconbitmap(p)
+                    self.logger.info(f"Icon gesetzt: {p}")
+                    return
+                except Exception:
+                    continue
 
     # ===================== MENÜ =====================
     def _build_menu(self):
