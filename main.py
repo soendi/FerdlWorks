@@ -1439,14 +1439,49 @@ class FerdlWorksApp(ctk.CTk):
 
     def _open_material_template(self):
         from tkinter import messagebox
-        src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "materials_vorlage.xlsx")
-        if not os.path.exists(src):
-            messagebox.showerror("Fehler", "Vorlage nicht gefunden.")
-            return
-        dst = os.path.join(os.environ["TEMP"], "materials_vorlage.xlsx")
-        import shutil
-        shutil.copy2(src, dst)
-        os.startfile(dst)
+        try:
+            import openpyxl
+            from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = "Materialien"
+            ws.page_setup.orientation = "landscape"
+            ws.merge_cells("A1:E1")
+            c = ws["A1"]
+            c.value = "Jede Zeile = ein Material. Einfach unterhalb der Beispiele eintragen."
+            c.font = Font(italic=True, color="2F5496", size=10)
+            c.alignment = Alignment(horizontal="left")
+            headers = ["Name", "Beschreibung", "Preis", "Einheit", "Notiz"]
+            widths = [30, 50, 15, 10, 40]
+            hfont = Font(bold=True, color="FFFFFF", size=11)
+            hfill = PatternFill("solid", fgColor="2F5496")
+            halign = Alignment(horizontal="center", vertical="center")
+            thin = Side(style="thin")
+            border = Border(top=thin, left=thin, right=thin, bottom=thin)
+            lfill = PatternFill("solid", fgColor="D6E4F0")
+            for ci, (h, w) in enumerate(zip(headers, widths), 1):
+                c = ws.cell(row=2, column=ci, value=h)
+                c.font = hfont; c.fill = hfill; c.alignment = halign; c.border = border
+                ws.column_dimensions[openpyxl.utils.get_column_letter(ci)].width = w
+            examples = [
+                ["Eiche Natur", "Massivholz Eiche, naturbelassen, 20mm", 89.50, "m\u00b2", "Innenbereich"],
+                ["Buche Hell", "Buche Leimholz, gehobelt, 18mm", 72.00, "m\u00b2", ""],
+                ["Schrauben 5x60", "Senkkopf, verzinkt, T20", 12.50, "Stk", "5er-Pack"],
+            ]
+            for ri, ex in enumerate(examples, 3):
+                for ci, v in enumerate(ex, 1):
+                    c = ws.cell(row=ri, column=ci, value=v)
+                    c.border = border
+                    if ri % 2 == 1:
+                        c.fill = lfill
+                    if ci == 3:
+                        c.number_format = '#,##0.00'
+            ws.freeze_panes = "A3"
+            dst = os.path.join(os.environ["TEMP"], "materials_vorlage.xlsx")
+            wb.save(dst)
+            os.startfile(dst)
+        except Exception as ex:
+            messagebox.showerror("Fehler", f"Vorlage konnte nicht erstellt werden:\n{ex}")
 
     def _check_update(self):
         self.logger.info("Update-Prüfung gestartet")
