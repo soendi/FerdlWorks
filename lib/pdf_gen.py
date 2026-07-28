@@ -10,7 +10,10 @@ from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
 from lib.database import get_db
 from lib.logger import get_logger
 
-PDF_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "pdfs")
+if getattr(sys, "frozen", False):
+    PDF_DIR = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "FerdlWorks", "data", "pdfs")
+else:
+    PDF_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "pdfs")
 
 
 def _get_sender(settings):
