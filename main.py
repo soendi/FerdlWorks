@@ -300,21 +300,21 @@ class FerdlWorksApp(ctk.CTk):
         # === 2x2 Grid unten (Notizen, Datum, Checkboxen, Buttons, Totalisierung) ===
         bottom = ctk.CTkFrame(main, corner_radius=6)
         bottom.pack(fill="x", padx=8, pady=(2, 0))
-        bottom.grid_columnconfigure(0, weight=70)
-        bottom.grid_columnconfigure(1, weight=30)
+        bottom.grid_columnconfigure(0, weight=60)
+        bottom.grid_columnconfigure(1, weight=40)
         bottom.grid_rowconfigure(0, weight=1)
         bottom.grid_rowconfigure(1, weight=1)
 
         # --- Top-Left: Notizen ---
         tl = ctk.CTkFrame(bottom, fg_color="transparent")
         tl.grid(row=0, column=0, sticky="nsew", padx=(0, 2), pady=(0, 2))
-        ctk.CTkLabel(tl, text="Notiz:", font=("Segoe UI", 13, "bold"),
-                     text_color="#8b0000").pack(anchor="w", padx=4, pady=(4, 0))
-        cb_frame = ctk.CTkFrame(tl, fg_color="transparent")
-        cb_frame.pack(anchor="w", padx=4)
+        nz = ctk.CTkFrame(tl, fg_color="transparent")
+        nz.pack(anchor="w", padx=4, pady=(4, 0))
+        ctk.CTkLabel(nz, text="Notiz:", font=("Segoe UI", 13, "bold"),
+                     text_color="#8b0000").pack(side="left")
         self.print_note_var = ctk.BooleanVar(value=True)
-        ctk.CTkCheckBox(cb_frame, text="RG", variable=self.print_note_var,
-                        font=("Segoe UI", 13)).pack(side="left")
+        ctk.CTkCheckBox(nz, text="RG", variable=self.print_note_var,
+                        font=("Segoe UI", 13)).pack(side="left", padx=(6, 0))
         self.doc_note = ctk.CTkTextbox(tl, height=52, border_width=2)
         self.doc_note.pack(fill="x", padx=4, pady=(2, 4))
         ctk.CTkLabel(tl, text="Notiz (intern):", font=("Segoe UI", 13, "bold"),
@@ -337,10 +337,8 @@ class FerdlWorksApp(ctk.CTk):
                       fg_color="#555555").pack(side="left", padx=2)
         ctk.CTkButton(dr, text="Heute", width=45, command=lambda: self.doc_date_var.set(
             datetime.now().strftime("%d.%m.%Y")), fg_color="#555555").pack(side="left")
-        ctk.CTkLabel(tr, text="Zahlungsziel (Tage):", font=("Segoe UI", 13, "bold"),
-                     text_color="#8b0000").pack(anchor="w", padx=6, pady=(6, 2))
         zr = ctk.CTkFrame(tr, fg_color="transparent")
-        zr.pack(fill="x", padx=6)
+        zr.pack(fill="x", padx=6, pady=(6, 2))
         settings = self.db.settings_get_all()
         default_payment = int(settings.get("payment_term", "30"))
         self.payment_term_var = ctk.StringVar(value=str(default_payment))
@@ -351,18 +349,22 @@ class FerdlWorksApp(ctk.CTk):
                       fg_color="#555555").pack(side="left", padx=1)
         ctk.CTkButton(zr, text="\u25bc", width=25, command=lambda: self._adj_payment(-1),
                       fg_color="#555555").pack(side="left")
-        ctk.CTkLabel(tr, text="Zu bezahlen bis:", font=("Segoe UI", 13, "bold"),
-                     text_color="#8b0000").pack(anchor="w", padx=6, pady=(6, 2))
+        ctk.CTkLabel(zr, text="Zu bezahlen bis:", font=("Segoe UI", 13, "bold"),
+                     text_color="#8b0000").pack(side="left", padx=(10, 0))
         self.due_date_var = ctk.StringVar()
-        self.due_date_entry = ctk.CTkEntry(tr, width=105, textvariable=self.due_date_var,
+        self.due_date_entry = ctk.CTkEntry(zr, width=105, textvariable=self.due_date_var,
                                            state="readonly")
-        self.due_date_entry.pack(anchor="w", padx=6, pady=(0, 6))
+        self.due_date_entry.pack(side="left", padx=(2, 0))
         self._recalc_due_date()
 
         # --- Bottom-Left: Checkboxen + Buttons ---
         bl = ctk.CTkFrame(bottom, fg_color="transparent")
         bl.grid(row=1, column=0, sticky="nsew", padx=(0, 2), pady=(2, 0))
-        merge_frame = ctk.CTkFrame(bl, fg_color="transparent")
+        bl.grid_rowconfigure(0, weight=1)
+        bl.grid_rowconfigure(1, weight=0)
+        top_section = ctk.CTkFrame(bl, fg_color="transparent")
+        top_section.grid(row=0, column=0, sticky="nsew")
+        merge_frame = ctk.CTkFrame(top_section, fg_color="transparent")
         merge_frame.pack(fill="x", padx=6, pady=(4, 0), anchor="w")
         self.merge_tools_var = ctk.BooleanVar(value=True)
         self.merge_tools_cb = ctk.CTkCheckBox(merge_frame, text="Alle Werkzeugpositionen zusammenfassen zu:",
@@ -373,7 +375,7 @@ class FerdlWorksApp(ctk.CTk):
         self.merge_tool_name_var = ctk.StringVar(value="Werkzeug")
         self.merge_tool_name_entry = ctk.CTkEntry(merge_frame, width=120, textvariable=self.merge_tool_name_var)
         self.merge_tool_name_entry.pack(side="left", padx=(4, 0))
-        round_frame = ctk.CTkFrame(bl, fg_color="transparent")
+        round_frame = ctk.CTkFrame(top_section, fg_color="transparent")
         round_frame.pack(fill="x", padx=6, pady=(1, 2))
         rfi = ctk.CTkFrame(round_frame, fg_color="transparent")
         rfi.pack(padx=(20, 0), anchor="w")
@@ -384,7 +386,7 @@ class FerdlWorksApp(ctk.CTk):
                                               font=("Segoe UI", 13))
         self.round_tools_cb.pack(side="left")
         btn_frame = ctk.CTkFrame(bl, fg_color="transparent")
-        btn_frame.pack(fill="x", padx=6, pady=(2, 6))
+        btn_frame.grid(row=1, column=0, sticky="sew", padx=6, pady=(2, 6))
         for text, cmd in [("Speichern", self._save_doc),
                           ("PDF \u00f6ffnen", self._save_pdf),
                           ("PDF Ordner", self._save_pdf_folder),
@@ -901,6 +903,17 @@ class FerdlWorksApp(ctk.CTk):
         total_tax = netto_nach_rabatt * tax_rate / 100
         total_gross = netto_nach_rabatt + total_tax
         self._sum_labels["netto"].configure(text=f"{total_net:.2f}\u20ac".replace(".", ","))
+        if discount_val > 0:
+            dtype = self.discount_type_var.get()
+            if dtype == "%":
+                self._rabatt_label.configure(text=f"Rabatt ({discount_val:.0f}%):")
+            else:
+                self._rabatt_label.configure(text="Rabatt:")
+            self._sum_labels["rabatt"].configure(
+                text=f"-{rabatt:.2f}\u20ac".replace(".", ","))
+            self._rabatt_label.master.pack(fill="x", padx=6, pady=1)
+        else:
+            self._rabatt_label.master.pack_forget()
         self._sum_labels["mwst"].configure(text=f"{total_tax:.2f}\u20ac".replace(".", ","))
         self._sum_labels["brutto"].configure(text=f"{total_gross:.2f}\u20ac".replace(".", ","))
 
@@ -918,14 +931,20 @@ class FerdlWorksApp(ctk.CTk):
         self.discount_type_var = ctk.StringVar(value="%")
         ctk.CTkOptionMenu(r, variable=self.discount_type_var, values=["%", "\u20ac"],
                           width=60, command=lambda v: self._recalc_totals()).pack(side="left")
-        for text, key in [("Netto:", "netto"), ("MwSt:", "mwst"), ("Brutto:", "brutto")]:
+        for text, key in [("Netto:", "netto"), ("", "rabatt"), ("MwSt:", "mwst"), ("Brutto:", "brutto")]:
             f = ctk.CTkFrame(parent, fg_color="transparent")
             f.pack(fill="x", padx=6, pady=1)
-            ctk.CTkLabel(f, text=text, font=("Segoe UI", 17)).pack(side="left")
             lbl = ctk.CTkLabel(f, text="0,00 \u20ac", font=("Segoe UI", 17, "bold"),
                                text_color=("#8b0000", "#8b0000"), width=80, anchor="e")
             lbl.pack(side="right", padx=4)
-            self._sum_labels[key] = lbl
+            if key == "rabatt":
+                self._sum_labels[key] = lbl
+                self._rabatt_label = ctk.CTkLabel(f, text="", font=("Segoe UI", 16),
+                                                  text_color=("#aa0000", "#aa0000"))
+                self._rabatt_label.pack(side="left")
+            else:
+                ctk.CTkLabel(f, text=text, font=("Segoe UI", 17)).pack(side="left")
+                self._sum_labels[key] = lbl
 
     # ===================== DATUM / ZAHLUNGSZIEL =====================
     def _recalc_due_date(self):
