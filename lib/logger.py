@@ -3,7 +3,10 @@ import os
 import sys
 from datetime import datetime
 
-LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+if getattr(sys, "frozen", False):
+    LOG_DIR = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "FerdlWorks")
+else:
+    LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 LOG_FILE = os.path.join(LOG_DIR, "ferdlworks.log")
 
 
