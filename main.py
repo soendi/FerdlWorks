@@ -53,6 +53,8 @@ class FerdlWorksApp(ctk.CTk):
         self._current_doc_id = None
         self._positions = []
         self._editing_pos_idx = None
+        self._nav_arrow_art = False
+        self._nav_arrow_cust = False
         self._build_menu()
         self._build_ui()
         self.bind("<Button-1>", self._on_global_click, add="+")
@@ -169,6 +171,7 @@ class FerdlWorksApp(ctk.CTk):
         self.cust_entry.bind("<Down>", lambda e: self._nav_cust_down())
         self.cust_entry.bind("<Up>", lambda e: self._nav_cust_up())
         self.cust_entry.bind("<Return>", lambda e: self._enter_cust())
+        self.cust_entry.bind("<Tab>", lambda e: self._enter_cust())
         self.cust_entry.bind("<Escape>", lambda e: self._do_hide_cust_dropdown())
         self._cust_data = []
         self._customer_id = None
@@ -198,7 +201,7 @@ class FerdlWorksApp(ctk.CTk):
         self.dl_width = ctk.CTkEntry(self._art_mat_f, width=55)
         self.dl_width.pack(side="left", padx=2)
         self.dl_width.bind("<KeyRelease>", lambda e: self._calc_detail_qm())
-        self.dl_width.bind("<Tab>", lambda e: self._insert_article() or "break")
+        self.dl_width.bind("<Tab>", lambda e: (self._insert_article(), self.art_entry.focus_set()) or "break")
         ctk.CTkLabel(self._art_mat_f, text="cm", font=("Segoe UI", 13, "bold"),
                      text_color=("#666666", "#888888")).pack(side="left", padx=(0, 4))
         self.dl_qm_label = ctk.CTkLabel(self._art_mat_f, text="m\xb2:0,00", font=("Segoe UI", 13, "bold"),
@@ -210,7 +213,7 @@ class FerdlWorksApp(ctk.CTk):
         self.dl_time = ctk.CTkEntry(self._art_tool_f, width=55)
         self.dl_time.insert(0, "1")
         self.dl_time.pack(side="left", padx=2)
-        self.dl_time.bind("<Tab>", lambda e: self._insert_article() or "break")
+        self.dl_time.bind("<Tab>", lambda e: (self._insert_article(), self.art_entry.focus_set()) or "break")
         self.dl_time_unit = ctk.StringVar(value="h")
         ctk.CTkOptionMenu(self._art_tool_f, variable=self.dl_time_unit, values=["h", "min"],
                           width=55).pack(side="left", padx=2)
@@ -245,6 +248,7 @@ class FerdlWorksApp(ctk.CTk):
         self.art_entry.bind("<Down>", lambda e: self._nav_art_down())
         self.art_entry.bind("<Up>", lambda e: self._nav_art_up())
         self.art_entry.bind("<Return>", lambda e: self._enter_art())
+        self.art_entry.bind("<Tab>", lambda e: self._enter_art())
         self.art_entry.bind("<Escape>", lambda e: self._do_hide_art_dropdown())
         self._art_results = []
         self._selected_article = None
@@ -341,9 +345,11 @@ class FerdlWorksApp(ctk.CTk):
         zr.pack(fill="x", padx=6, pady=(6, 2))
         settings = self.db.settings_get_all()
         default_payment = int(settings.get("payment_term", "30"))
+        ctk.CTkLabel(zr, text="Zahlungsziel:", font=("Segoe UI", 13, "bold"),
+                     text_color="#8b0000").pack(side="left")
         self.payment_term_var = ctk.StringVar(value=str(default_payment))
         self.payment_term_entry = ctk.CTkEntry(zr, width=50, textvariable=self.payment_term_var)
-        self.payment_term_entry.pack(side="left")
+        self.payment_term_entry.pack(side="left", padx=(2, 0))
         self.payment_term_var.trace_add("write", lambda *a: self._recalc_due_date())
         ctk.CTkButton(zr, text="\u25b2", width=25, command=lambda: self._adj_payment(1),
                       fg_color="#555555").pack(side="left", padx=1)
@@ -410,6 +416,7 @@ class FerdlWorksApp(ctk.CTk):
     def _on_placeholder_in(self, entry, ph=None):
         if getattr(entry, '_ph_active', False):
             entry.delete(0, "end")
+            entry._ph_active = False
 
     def _on_placeholder_out(self, entry):
         if not entry.get().strip():
@@ -473,10 +480,12 @@ class FerdlWorksApp(ctk.CTk):
             return
         self._cust_dropdown_idx += 1
         idx = self._cust_dropdown_idx
+        self._nav_arrow_cust = True
         self.cust_dropdown.selection_clear(0, "end")
         self.cust_dropdown.selection_set(idx)
         self.cust_dropdown.activate(idx)
         self.cust_dropdown.see(idx)
+        self.after_idle(lambda: setattr(self, '_nav_arrow_cust', False))
 
     def _nav_cust_up(self, event=None):
         if not self._cust_data or not self._cust_dropdown_frame.winfo_viewable():
@@ -485,18 +494,22 @@ class FerdlWorksApp(ctk.CTk):
             return
         self._cust_dropdown_idx -= 1
         idx = self._cust_dropdown_idx
+        self._nav_arrow_cust = True
         self.cust_dropdown.selection_clear(0, "end")
         self.cust_dropdown.selection_set(idx)
         self.cust_dropdown.activate(idx)
         self.cust_dropdown.see(idx)
+        self.after_idle(lambda: setattr(self, '_nav_arrow_cust', False))
 
     def _enter_cust(self, event=None):
         if not self._cust_data:
             return
-        if self._cust_dropdown_idx < 0 or self._cust_dropdown_idx >= len(self._cust_data):
-            return
-        self._customer_id = self._cust_data[self._cust_dropdown_idx]["id"]
-        self._set_cust_display(self._cust_data[self._cust_dropdown_idx])
+        idx = self._cust_dropdown_idx
+        if idx < 0 or idx >= len(self._cust_data):
+            idx = 0
+        self._cust_dropdown_idx = idx
+        self._customer_id = self._cust_data[idx]["id"]
+        self._set_cust_display(self._cust_data[idx])
         self.cust_btn_edit.configure(state="normal")
         self._do_hide_cust_dropdown()
 
@@ -508,10 +521,12 @@ class FerdlWorksApp(ctk.CTk):
             return
         self._art_dropdown_idx += 1
         idx = str(self._art_dropdown_idx)
+        self._nav_arrow_art = True
         self.art_dropdown.selection_set()
         self.art_dropdown.selection_set(idx)
         self.art_dropdown.focus(idx)
         self.art_dropdown.see(idx)
+        self.after_idle(lambda: setattr(self, '_nav_arrow_art', False))
 
     def _nav_art_up(self, event=None):
         if not self._art_results or not self._art_dropdown_frame.winfo_viewable():
@@ -520,17 +535,21 @@ class FerdlWorksApp(ctk.CTk):
             return
         self._art_dropdown_idx -= 1
         idx = str(self._art_dropdown_idx)
+        self._nav_arrow_art = True
         self.art_dropdown.selection_set()
         self.art_dropdown.selection_set(idx)
         self.art_dropdown.focus(idx)
         self.art_dropdown.see(idx)
+        self.after_idle(lambda: setattr(self, '_nav_arrow_art', False))
 
     def _enter_art(self, event=None):
         if not self._art_results:
             return
-        if self._art_dropdown_idx < 0 or self._art_dropdown_idx >= len(self._art_results):
-            return
-        self._selected_article = self._art_results[self._art_dropdown_idx]
+        idx = self._art_dropdown_idx
+        if idx < 0 or idx >= len(self._art_results):
+            idx = 0
+        self._art_dropdown_idx = idx
+        self._selected_article = self._art_results[idx]
         self.art_entry.delete(0, "end")
         self.art_entry.insert(0, self._selected_article["name"])
         self.art_entry._ph_active = False
@@ -545,6 +564,8 @@ class FerdlWorksApp(ctk.CTk):
             self._hide_units()
 
     def _pick_customer(self):
+        if self._nav_arrow_cust:
+            return
         sel = self.cust_dropdown.curselection()
         if not sel:
             return
@@ -604,6 +625,8 @@ class FerdlWorksApp(ctk.CTk):
         self.art_dropdown.selection_set()
 
     def _select_article(self):
+        if self._nav_arrow_art:
+            return
         sel = self.art_dropdown.selection()
         if not sel:
             return
@@ -687,6 +710,8 @@ class FerdlWorksApp(ctk.CTk):
         self._hide_units()
         self._selected_article = None
         self.art_entry.delete(0, "end")
+        self._on_placeholder_out(self.art_entry)
+        self.after_idle(lambda: self.art_entry.focus_set())
 
     def _add_position(self):
         item = self._selected_article
@@ -903,17 +928,8 @@ class FerdlWorksApp(ctk.CTk):
         total_tax = netto_nach_rabatt * tax_rate / 100
         total_gross = netto_nach_rabatt + total_tax
         self._sum_labels["netto"].configure(text=f"{total_net:.2f}\u20ac".replace(".", ","))
-        if discount_val > 0:
-            dtype = self.discount_type_var.get()
-            if dtype == "%":
-                self._rabatt_label.configure(text=f"Rabatt ({discount_val:.0f}%):")
-            else:
-                self._rabatt_label.configure(text="Rabatt:")
-            self._sum_labels["rabatt"].configure(
-                text=f"-{rabatt:.2f}\u20ac".replace(".", ","))
-            self._rabatt_label.master.pack(fill="x", padx=6, pady=1)
-        else:
-            self._rabatt_label.master.pack_forget()
+        self._sum_labels["rabatt"].configure(
+            text=f"-{rabatt:.2f}\u20ac".replace(".", ",") if rabatt > 0 else "0,00\u20ac")
         self._sum_labels["mwst"].configure(text=f"{total_tax:.2f}\u20ac".replace(".", ","))
         self._sum_labels["brutto"].configure(text=f"{total_gross:.2f}\u20ac".replace(".", ","))
 
@@ -931,20 +947,14 @@ class FerdlWorksApp(ctk.CTk):
         self.discount_type_var = ctk.StringVar(value="%")
         ctk.CTkOptionMenu(r, variable=self.discount_type_var, values=["%", "\u20ac"],
                           width=60, command=lambda v: self._recalc_totals()).pack(side="left")
-        for text, key in [("Netto:", "netto"), ("", "rabatt"), ("MwSt:", "mwst"), ("Brutto:", "brutto")]:
+        for text, key in [("Netto:", "netto"), ("Rabatt:", "rabatt"), ("MwSt:", "mwst"), ("Brutto:", "brutto")]:
             f = ctk.CTkFrame(parent, fg_color="transparent")
             f.pack(fill="x", padx=6, pady=1)
+            ctk.CTkLabel(f, text=text, font=("Segoe UI", 17)).pack(side="left")
             lbl = ctk.CTkLabel(f, text="0,00 \u20ac", font=("Segoe UI", 17, "bold"),
                                text_color=("#8b0000", "#8b0000"), width=80, anchor="e")
             lbl.pack(side="right", padx=4)
-            if key == "rabatt":
-                self._sum_labels[key] = lbl
-                self._rabatt_label = ctk.CTkLabel(f, text="", font=("Segoe UI", 16),
-                                                  text_color=("#aa0000", "#aa0000"))
-                self._rabatt_label.pack(side="left")
-            else:
-                ctk.CTkLabel(f, text=text, font=("Segoe UI", 17)).pack(side="left")
-                self._sum_labels[key] = lbl
+            self._sum_labels[key] = lbl
 
     # ===================== DATUM / ZAHLUNGSZIEL =====================
     def _recalc_due_date(self):
@@ -969,10 +979,12 @@ class FerdlWorksApp(ctk.CTk):
         self.payment_term_var.set(str(cur))
 
     def _on_merge_tools_toggle(self):
-        self._on_round_tools_toggle()
+        if not self.merge_tools_var.get():
+            self.round_tools_var.set(False)
 
     def _on_round_tools_toggle(self):
-        pass
+        if self.round_tools_var.get():
+            self.merge_tools_var.set(True)
 
     # ===================== PDF ORDNER =====================
     def _save_pdf_folder(self):
@@ -1052,6 +1064,7 @@ class FerdlWorksApp(ctk.CTk):
             "doc_type": self.doc_type_var.get(),
             "customer_id": self._get_selected_customer_id(),
             "date": datetime.now().strftime("%Y-%m-%d") if not self.doc_date_var.get().strip() else datetime.strptime(self.doc_date_var.get(), "%d.%m.%Y").strftime("%Y-%m-%d"),
+            "due_date": datetime.strptime(self.due_date_var.get(), "%d.%m.%Y").strftime("%Y-%m-%d") if self.due_date_var.get().strip() else "",
             "discount_type": "percent" if is_percent else "fixed",
             "discount_value": discount_val,
             "total_net": orig_net,
@@ -1091,9 +1104,7 @@ class FerdlWorksApp(ctk.CTk):
                 "orig_price_unit": ed.get("price_unit") or ed.get("orig_price_unit", ""),
             })
         data["id"] = self._current_doc_id
-        settings = self.db.settings_get_all()
-        payment_term = int(settings.get("payment_term", "30"))
-        result = self.db.doc_save(data, pos_data, payment_term=payment_term)
+        result = self.db.doc_save(data, pos_data)
         if result:
             self._current_doc_id = result["id"]
             self.logger.info(f"Dokument {result['doc_number']} gespeichert")
@@ -1116,6 +1127,9 @@ class FerdlWorksApp(ctk.CTk):
         self.doc_internal_note.delete("1.0", "end")
         self.doc_internal_note.insert("1.0", doc.get("internal_note", ""))
         self.print_note_var.set(doc.get("print_note", "1") == "1")
+        self.merge_tools_var.set(doc.get("merge_tools", "1") == "1")
+        self.merge_tool_name_var.set(doc.get("merge_tool_name", "Werkzeug"))
+        self.round_tools_var.set(doc.get("round_tools", "1") == "1")
         self.discount_var.set(str(doc.get("discount_value", "0")).replace(".", ","))
         self.discount_type_var.set("%" if doc.get("discount_type", "percent") == "percent" else "\u20ac")
         try:
@@ -1123,6 +1137,13 @@ class FerdlWorksApp(ctk.CTk):
             self.doc_date_var.set(d.strftime("%d.%m.%Y"))
         except ValueError:
             self.doc_date_var.set(datetime.now().strftime("%d.%m.%Y"))
+        try:
+            dd = datetime.strptime(doc.get("due_date", ""), "%Y-%m-%d")
+            self.due_date_var.set(dd.strftime("%d.%m.%Y"))
+            days_diff = (dd - d).days if d else 30
+            self.payment_term_var.set(str(max(0, days_diff)))
+        except (ValueError, TypeError):
+            self._recalc_due_date()
         customer = doc.get("customer")
         if customer:
             self._customer_id = customer["id"]
@@ -1265,7 +1286,7 @@ class FerdlWorksApp(ctk.CTk):
             "{rgnr}": doc.get("doc_number", ""),
             "{rgdat}": doc.get("date", ""),
             "{bezbisdatum}": doc.get("due_date", ""),
-            "{bezbistage}": settings.get("payment_term", "30"),
+            "{bezbistage}": str(max(0, (datetime.strptime(doc.get("due_date", ""), "%Y-%m-%d") - datetime.strptime(doc.get("date", ""), "%Y-%m-%d")).days)) if doc.get("due_date") and doc.get("date") else "30",
             "{betrag}": f"{doc.get('total_gross', 0):.2f}\u20ac".replace(".", ","),
         }
         for key, val in vars_map.items():
@@ -1503,7 +1524,12 @@ class DocSearchDialog(ctk.CTkToplevel):
             query = self.search_entry.get()
             self._docs = self.db.doc_search(None, query)
         for doc in self._docs:
-            cname = doc.get("customer_name", "")
+            company = doc.get("customer_name", "") or ""
+            last = doc.get("customer_last_name", "") or ""
+            first = doc.get("customer_first_name", "") or ""
+            city = doc.get("customer_city", "") or ""
+            name_part = company or f"{last} {first}".strip()
+            cname = f"{name_part}, {city}" if city and name_part else name_part or "?"
             paid = doc.get("paid", "0") == "1"
             status = "\u2713" if paid else "\u2717"
             due = doc.get("due_date", "")

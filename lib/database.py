@@ -35,6 +35,14 @@ class Database:
     def _create_tables(self):
         conn = self._connect()
         try:
+            # Migration: add missing columns for older DBs
+            for col, dtype in [("merge_tools", "TEXT DEFAULT '1'"),
+                               ("merge_tool_name", "TEXT DEFAULT 'Werkzeug'"),
+                               ("round_tools", "TEXT DEFAULT '1'")]:
+                try:
+                    conn.execute(f"ALTER TABLE documents ADD COLUMN {col} {dtype}")
+                except sqlite3.OperationalError:
+                    pass  # column already exists
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS customers (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -393,37 +401,48 @@ class Database:
         finally:
             conn.close()
 
-    def doc_save(self, data, positions, payment_term=30):
+    def doc_save(self, data, positions):
         conn = self._connect()
         try:
             doc_date = data.get("date", datetime.now().strftime("%Y-%m-%d"))
-            from datetime import timedelta
-            due = (datetime.strptime(doc_date, "%Y-%m-%d") + timedelta(days=int(payment_term))).strftime("%Y-%m-%d")
+            due = data.get("due_date", "")
+            if not due:
+                from datetime import timedelta
+                due = (datetime.strptime(doc_date, "%Y-%m-%d") + timedelta(days=30)).strftime("%Y-%m-%d")
             paid = data.get("paid", "0")
             if data.get("id"):
                 conn.execute("""UPDATE documents SET customer_id=?, date=?, discount_type=?,
                     discount_value=?, total_net=?, total_tax=?, total_gross=?, note=?,
-                    internal_note=?, paid=?, due_date=?, print_note=? WHERE id=?""",
+                    internal_note=?, paid=?, due_date=?, print_note=?,
+                    merge_tools=?, merge_tool_name=?, round_tools=? WHERE id=?""",
                     (data["customer_id"], doc_date,
                      data.get("discount_type", "percent"), data.get("discount_value", 0),
                      data.get("total_net", 0), data.get("total_tax", 0),
                      data.get("total_gross", 0), data.get("note", ""),
                      data.get("internal_note", ""), paid, due,
-                     data.get("print_note", "1"), data["id"]))
+                     data.get("print_note", "1"),
+                     "1" if data.get("merge_tools", False) else "0",
+                     data.get("merge_tool_name", "Werkzeug"),
+                     "1" if data.get("round_tools", False) else "0",
+                     data["id"]))
                 conn.execute("DELETE FROM positions WHERE doc_id=?", (data["id"],))
                 doc_id = data["id"]
             else:
                 doc_number, _ = self.doc_get_next_number(data["doc_type"])
                 data["doc_number"] = doc_number
                 cur = conn.execute("""INSERT INTO documents (doc_type, doc_number, customer_id, date,
-                    discount_type, discount_value, total_net, total_tax, total_gross, note, internal_note, paid, due_date, print_note)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    discount_type, discount_value, total_net, total_tax, total_gross, note,
+                    internal_note, paid, due_date, print_note, merge_tools, merge_tool_name, round_tools)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (data["doc_type"], doc_number, data["customer_id"], doc_date,
                      data.get("discount_type", "percent"), data.get("discount_value", 0),
                      data.get("total_net", 0), data.get("total_tax", 0),
                      data.get("total_gross", 0), data.get("note", ""),
                      data.get("internal_note", ""), paid, due,
-                     data.get("print_note", "1")))
+                     data.get("print_note", "1"),
+                     "1" if data.get("merge_tools", False) else "0",
+                     data.get("merge_tool_name", "Werkzeug"),
+                     "1" if data.get("round_tools", False) else "0"))
                 doc_id = cur.lastrowid
             for i, pos in enumerate(positions):
                 conn.execute("""INSERT INTO positions (doc_id, pos_type, ref_id, description,
