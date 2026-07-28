@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from lib.database import get_db
 from lib.password import check_password, is_master_password, hash_password
+from lib.icon import set_window_icon
 
 
 class LoginDialog(ctk.CTkToplevel):
@@ -16,6 +17,7 @@ class LoginDialog(ctk.CTkToplevel):
         self._build_ui()
         self.center_on_screen()
         self.grab_set()
+        self.after(50, lambda: set_window_icon(self, self.master))
 
     def center_on_screen(self):
         self.update_idletasks()

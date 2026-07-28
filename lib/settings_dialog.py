@@ -3,6 +3,7 @@ from lib.database import get_db
 from lib.registry import reg_read, reg_write
 from lib.autostart import autostart_enable, autostart_disable, autostart_is_enabled
 from lib.password import hash_password, check_password, is_master_password
+from lib.icon import set_window_icon
 
 
 class SettingsDialog(ctk.CTkToplevel):
@@ -15,6 +16,7 @@ class SettingsDialog(ctk.CTkToplevel):
         self.resizable(False, False)
         self.transient(master)
         self.grab_set()
+        self.after(50, lambda: set_window_icon(self, self.master))
         self.settings = self.db.settings_get_all()
         self._build_ui()
 

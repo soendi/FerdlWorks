@@ -27,6 +27,22 @@ def create_icon():
     img.save(ICON_ICO, "ICO", sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
     return ICON_ICO
 
+def set_window_icon(window, master=None):
+    icon_paths = [ICON_ICO]
+    if master and hasattr(master, '_icon_path'):
+        icon_paths.insert(0, master._icon_path)
+    if getattr(sys, "frozen", False):
+        base = os.path.dirname(sys.executable)
+        icon_paths += [os.path.join(base, "ferdlworks.ico"),
+                       os.path.join(base, "_internal", "ferdlworks.ico")]
+    for p in icon_paths:
+        if os.path.exists(p):
+            try:
+                window.iconbitmap(p)
+                return
+            except Exception:
+                continue
+
 def get_icon_path():
     return ICON_ICO
 

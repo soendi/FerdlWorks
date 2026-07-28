@@ -49,7 +49,7 @@ Source: "..\assets\ferdlworks.ico"; DestDir: "{app}"; Flags: ignoreversion
 Name: "{app}\data"; Permissions: users-modify
 
 [Registry]
-Root: HKLM; Subkey: "SOFTWARE\SondereggerSoftware\{#MyAppName}"; Flags: uninsdeletekeyifempty
+Root: HKLM; Subkey: "SOFTWARE\SondereggerSoftware\{#MyAppName}"; Flags: uninsdeletekey
 Root: HKLM; Subkey: "SOFTWARE\SondereggerSoftware\{#MyAppName}"; ValueType: string; ValueName: "InstallPath"; ValueData: "{app}"; Flags: uninsdeletevalue
 Root: HKLM; Subkey: "SOFTWARE\SondereggerSoftware\{#MyAppName}"; ValueType: string; ValueName: "UninstallPath"; ValueData: "{app}\unins000.exe"; Flags: uninsdeletevalue
 

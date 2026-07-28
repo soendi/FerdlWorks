@@ -1,5 +1,6 @@
 import customtkinter as ctk
 from lib.database import get_db
+from lib.icon import set_window_icon
 
 
 class CustomerDialog(ctk.CTkToplevel):
@@ -12,6 +13,7 @@ class CustomerDialog(ctk.CTkToplevel):
         self.resizable(False, False)
         self.transient(master)
         self.grab_set()
+        self.after(50, lambda: set_window_icon(self, self.master))
         self.result = None
         data = self.db.customer_get(customer_id) if customer_id else {}
         self._build_ui(data)

@@ -2,6 +2,7 @@ import customtkinter as ctk
 from tkinter import ttk
 from lib.database import get_db
 from lib.customer_dialog import CustomerDialog
+from lib.icon import set_window_icon
 
 
 class CustomerDatabase(ctk.CTkToplevel):
@@ -12,6 +13,7 @@ class CustomerDatabase(ctk.CTkToplevel):
         self.geometry("800x500")
         self.transient(master)
         self.grab_set()
+        self.after(50, lambda: set_window_icon(self, self.master))
         self._build_ui()
         self._load()
 

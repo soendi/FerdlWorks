@@ -23,6 +23,7 @@ from lib.updater import check_for_update, download_installer, install_update, in
 from lib.autostart import autostart_enable, autostart_disable, autostart_is_enabled
 from lib.cloud_backup import gdrive_backup, gdrive_authorize, onedrive_backup, onedrive_authorize
 from version import VERSION, APP_NAME, COMPANY_NAME
+from lib.icon import set_window_icon
 
 THEME_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "ferdlworks_theme.json")
 
@@ -1297,6 +1298,7 @@ class DocSearchDialog(ctk.CTkToplevel):
         self.geometry("800x500")
         self.transient(master)
         self.grab_set()
+        self.after(50, lambda: set_window_icon(self, self.master))
         self._build_ui()
         self._load_data()
 

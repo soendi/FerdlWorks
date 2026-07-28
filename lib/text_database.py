@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from tkinter import ttk, messagebox
 from lib.database import get_db
+from lib.icon import set_window_icon
 
 
 class TextDatabase(ctk.CTkToplevel):
@@ -11,6 +12,7 @@ class TextDatabase(ctk.CTkToplevel):
         self.geometry("700x500")
         self.transient(master)
         self.grab_set()
+        self.after(50, lambda: set_window_icon(self, self.master))
         self._build_ui()
         self._load()
 

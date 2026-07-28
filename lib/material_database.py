@@ -2,6 +2,7 @@ import customtkinter as ctk
 from tkinter import ttk
 from lib.database import get_db
 from lib.material_dialog import MaterialDialog
+from lib.icon import set_window_icon
 
 
 class MaterialDatabase(ctk.CTkToplevel):
@@ -12,6 +13,7 @@ class MaterialDatabase(ctk.CTkToplevel):
         self.geometry("700x450")
         self.transient(master)
         self.grab_set()
+        self.after(50, lambda: set_window_icon(self, self.master))
         self._build_ui()
         self._load()
 
