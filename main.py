@@ -329,6 +329,17 @@ class FerdlWorksApp(ctk.CTk):
         ctk.CTkOptionMenu(rf, variable=self.discount_type_var, values=["%", "\u20ac"],
                           width=50, command=lambda v: self._recalc_totals()).pack(side="left")
 
+        # --- Rechnungsdatum ---
+        dr = ctk.CTkFrame(main, fg_color="transparent")
+        dr.pack(fill="x", padx=8, pady=(1, 0))
+        ctk.CTkLabel(dr, text="Rechnungsdatum:", font=("Segoe UI", 13, "bold"),
+                     text_color="#8b0000").pack(side="left", padx=(10, 5))
+        self.doc_date_var = ctk.StringVar(value=datetime.now().strftime("%d.%m.%Y"))
+        self.doc_date_entry = ctk.CTkEntry(dr, width=100, textvariable=self.doc_date_var)
+        self.doc_date_entry.pack(side="left", padx=2)
+        ctk.CTkButton(dr, text="Heute", width=60, command=lambda: self.doc_date_var.set(
+            datetime.now().strftime("%d.%m.%Y")), fg_color="#555555").pack(side="left", padx=5)
+
         # --- Footer (Summen) ---
         footer = ctk.CTkFrame(main, corner_radius=6)
         footer.pack(fill="x", padx=8, pady=(0, 2))
@@ -911,6 +922,7 @@ class FerdlWorksApp(ctk.CTk):
         self.art_entry._ph_active = False
         self._on_placeholder_out(self.art_entry)
         self.doc_note.delete("1.0", "end")
+        self.doc_date_var.set(datetime.now().strftime("%d.%m.%Y"))
         self.discount_var.set("0")
         self.doc_type_var.set("RG")
         self._customer_id = None
@@ -943,7 +955,7 @@ class FerdlWorksApp(ctk.CTk):
         return {
             "doc_type": self.doc_type_var.get(),
             "customer_id": self._get_selected_customer_id(),
-            "date": datetime.now().strftime("%Y-%m-%d"),
+            "date": datetime.now().strftime("%Y-%m-%d") if not self.doc_date_var.get().strip() else datetime.strptime(self.doc_date_var.get(), "%d.%m.%Y").strftime("%Y-%m-%d"),
             "discount_type": "percent" if is_percent else "fixed",
             "discount_value": discount_val,
             "total_net": orig_net,
@@ -1007,6 +1019,11 @@ class FerdlWorksApp(ctk.CTk):
         self.print_note_var.set(doc.get("print_note", "1") == "1")
         self.discount_var.set(str(doc.get("discount_value", "0")).replace(".", ","))
         self.discount_type_var.set("%" if doc.get("discount_type", "percent") == "percent" else "\u20ac")
+        try:
+            d = datetime.strptime(doc.get("date", ""), "%Y-%m-%d")
+            self.doc_date_var.set(d.strftime("%d.%m.%Y"))
+        except ValueError:
+            self.doc_date_var.set(datetime.now().strftime("%d.%m.%Y"))
         customer = doc.get("customer")
         if customer:
             self._customer_id = customer["id"]
