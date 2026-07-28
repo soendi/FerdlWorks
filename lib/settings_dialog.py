@@ -205,6 +205,8 @@ class SettingsDialog(ctk.CTkToplevel):
         for key, entry in self._smtp_entries.items():
             data[key] = entry.get()
         data["printer_name"] = self._printer_var.get()
+        data["email_subject"] = self.email_subject_entry.get()
+        data["email_body"] = self.email_body_text.get("1.0", "end-1c")
         old_pw = self.old_pw.get()
         new_pw = self.new_pw.get()
         stored_hash = self.settings.get("user_password", "")

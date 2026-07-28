@@ -455,7 +455,9 @@ class Database:
     def doc_search(self, doc_type=None, query=""):
         conn = self._connect()
         try:
-            sql = """SELECT d.*, c.company as customer_name FROM documents d
+            sql = """SELECT d.*, c.company as customer_name, c.city as customer_city,
+                     c.last_name as customer_last_name, c.first_name as customer_first_name
+                     FROM documents d
                      LEFT JOIN customers c ON d.customer_id = c.id
                      WHERE 1=1"""
             params = []
@@ -483,7 +485,9 @@ class Database:
     def doc_get_overdue(self):
         conn = self._connect()
         try:
-            rows = conn.execute("""SELECT d.*, c.company as customer_name FROM documents d
+            rows = conn.execute("""SELECT d.*, c.company as customer_name, c.city as customer_city,
+                c.last_name as customer_last_name, c.first_name as customer_first_name
+                FROM documents d
                 LEFT JOIN customers c ON d.customer_id = c.id
                 WHERE d.doc_type='RG' AND d.paid='0' AND d.due_date != ''
                 AND date(d.due_date) < date('now') ORDER BY d.due_date""").fetchall()

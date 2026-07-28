@@ -1,5 +1,6 @@
 import os
 import sys
+import math
 from datetime import datetime, timedelta
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
@@ -107,9 +108,33 @@ def _build_elements(doc_data, settings, db):
     elements.append(Paragraph("Positionen", style_header))
     elements.append(Spacer(1, 2*mm))
     pos_data = doc_data.get("positions", [])
-    table_data = [["Pos.", "Beschreibung", "Menge", "Einheit", "EP", "Gesamt"]]
+
+    merge_tools = doc_data.get("merge_tools", False)
+    merge_tool_name = doc_data.get("merge_tool_name", "Werkzeug")
+    round_tools = doc_data.get("round_tools", False)
+
+    # Separate positions into groups
+    table_rows = []  # material or standalone tool
+    text_rows = []   # text entries (rendered as paragraphs)
+    tool_rows = []   # tool entries (for merging)
+    for pos in pos_data:
+        if pos.get("pos_type") == "text":
+            text_rows.append(pos)
+        elif merge_tools and pos.get("pos_type") == "tool":
+            tool_rows.append(pos)
+        else:
+            table_rows.append(pos)
+
+    # Add text entries as plain paragraphs BEFORE the table
+    for pos in text_rows:
+        txt = pos.get("description", "")
+        if txt.strip():
+            elements.append(Paragraph(txt, style_normal))
+            elements.append(Spacer(1, 2*mm))
+
     unit_labels = {"h": "Std.", "min": "Min.", "m": "m", "qm": "m\u00b2", "Stk": "Stk.", "m\u00b2": "m\u00b2"}
-    for i, pos in enumerate(pos_data, 1):
+    table_data = [["Pos.", "Beschreibung", "Menge", "Einheit", "EP", "Gesamt"]]
+    for i, pos in enumerate(table_rows, 1):
         desc = pos.get("description", "")
         qty = pos.get("quantity", 1)
         unit = pos.get("unit", "")
@@ -143,6 +168,24 @@ def _build_elements(doc_data, settings, db):
             ep_str,
             f"{total:.2f} \u20ac",
         ])
+
+    # Add merged tool row if applicable
+    if tool_rows:
+        tool_total = sum(p.get("total", 0) for p in tool_rows)
+        if round_tools:
+            tool_total = math.ceil(tool_total / 10) * 10
+        i = len(table_rows) + 1
+        table_data.append([
+            str(i),
+            Paragraph(merge_tool_name, style_normal),
+            "", "", "",
+            f"{tool_total:.2f} \u20ac",
+        ])
+        # Merge tool total into displayed total for summary calculation
+        pos_data_displayed_total = sum(p.get("total", 0) for p in table_rows) + tool_total
+    else:
+        pos_data_displayed_total = sum(p.get("total", 0) for p in table_rows) + sum(p.get("total", 0) for p in tool_rows)
+
     avail_width = (210*mm - 20*mm - 15*mm) * 0.98
     col_widths = [10*mm, avail_width-10*mm-19*mm-16*mm-24*mm-23*mm, 19*mm, 16*mm, 24*mm, 23*mm]
     pos_table = Table(table_data, colWidths=col_widths)
@@ -163,13 +206,14 @@ def _build_elements(doc_data, settings, db):
     elements.append(pos_table)
     elements.append(Spacer(1, 8*mm))
 
-    # Summen (rechtsbündig)
-    total_net = doc_data.get("total_net", 0)
+    # Summen (rechtsbündig) – use displayed positions
+    total_net = pos_data_displayed_total
     total_tax = doc_data.get("total_tax", 0)
     total_gross = doc_data.get("total_gross", 0)
     discount_value = doc_data.get("discount_value", 0)
     has_discount = discount_value and float(discount_value) > 0
     tax_rate_val = float(settings.get("tax_rate", "19"))
+    rabatt_abs = 0
     summary_data = []
     summary_data.append(["Nettobetrag:", f"{total_net:.2f} \u20ac"])
     if has_discount:
@@ -182,6 +226,8 @@ def _build_elements(doc_data, settings, db):
             summary_data.append(["Rabatt:", f"-{rabatt_abs:.2f} \u20ac"])
         net_after = total_net - rabatt_abs
         summary_data.append(["Netto nach Rabatt:", f"{net_after:.2f} \u20ac"])
+    total_tax = (total_net - (rabatt_abs if has_discount else 0)) * tax_rate_val / 100
+    total_gross = (total_net - (rabatt_abs if has_discount else 0)) + total_tax
     summary_data.append([f"MwSt. ({tax_rate_val:.0f}%):", f"{total_tax:.2f} \u20ac"])
     sum_rows = []
     for label, value in summary_data:

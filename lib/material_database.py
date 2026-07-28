@@ -34,8 +34,9 @@ class MaterialDatabase(ctk.CTkToplevel):
         widths = {"name": 200, "beschreibung": 300, "preis": 120}
         self.tree = ttk.Treeview(self, columns=cols, show="headings", selectmode="browse")
         for c in cols:
-            self.tree.heading(c, text=heads[c])
-            self.tree.column(c, width=widths[c], minwidth=50)
+            align = "e" if c == "preis" else "w"
+            self.tree.heading(c, text=heads[c], anchor=align)
+            self.tree.column(c, width=widths[c], minwidth=50, anchor=align)
         self.tree.bind("<Double-1>", lambda e: self._edit())
         vsb = ttk.Scrollbar(self, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=vsb.set)

@@ -5,7 +5,7 @@ import customtkinter as ctk
 import tkinter as tk
 from tkinter import messagebox, ttk
 from PIL import Image
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from lib.logger import setup_logger, get_logger, get_log_path
 from lib.registry import reg_write, reg_read, reg_delete_all
@@ -198,6 +198,7 @@ class FerdlWorksApp(ctk.CTk):
         self.dl_width = ctk.CTkEntry(self._art_mat_f, width=55)
         self.dl_width.pack(side="left", padx=2)
         self.dl_width.bind("<KeyRelease>", lambda e: self._calc_detail_qm())
+        self.dl_width.bind("<Tab>", lambda e: self._insert_article() or "break")
         ctk.CTkLabel(self._art_mat_f, text="cm", font=("Segoe UI", 13, "bold"),
                      text_color=("#666666", "#888888")).pack(side="left", padx=(0, 4))
         self.dl_qm_label = ctk.CTkLabel(self._art_mat_f, text="m\xb2:0,00", font=("Segoe UI", 13, "bold"),
@@ -209,6 +210,7 @@ class FerdlWorksApp(ctk.CTk):
         self.dl_time = ctk.CTkEntry(self._art_tool_f, width=55)
         self.dl_time.insert(0, "1")
         self.dl_time.pack(side="left", padx=2)
+        self.dl_time.bind("<Tab>", lambda e: self._insert_article() or "break")
         self.dl_time_unit = ctk.StringVar(value="h")
         ctk.CTkOptionMenu(self._art_tool_f, variable=self.dl_time_unit, values=["h", "min"],
                           width=55).pack(side="left", padx=2)
@@ -295,65 +297,110 @@ class FerdlWorksApp(ctk.CTk):
         self.pos_tree.configure(yscrollcommand=self._update_vsb)
         self.pos_tree.pack(fill="both", expand=True, padx=10, pady=2)
 
-        # --- Notiz + Rabatt ---
-        nr = ctk.CTkFrame(main, fg_color="transparent")
-        nr.pack(fill="x", padx=8, pady=(2, 0))
-        nleft = ctk.CTkFrame(nr, fg_color="transparent")
-        nleft.pack(side="left", fill="y", padx=(10, 0), pady=(6, 0))
-        ctk.CTkLabel(nleft, text="Notiz:", font=("Segoe UI", 13, "bold"), width=120, anchor="w",
-                     text_color="#8b0000").pack(anchor="w")
+        # === 2x2 Grid unten (Notizen, Datum, Checkboxen, Buttons, Totalisierung) ===
+        bottom = ctk.CTkFrame(main, corner_radius=6)
+        bottom.pack(fill="x", padx=8, pady=(2, 0))
+        bottom.grid_columnconfigure(0, weight=70)
+        bottom.grid_columnconfigure(1, weight=30)
+        bottom.grid_rowconfigure(0, weight=1)
+        bottom.grid_rowconfigure(1, weight=1)
+
+        # --- Top-Left: Notizen ---
+        tl = ctk.CTkFrame(bottom, fg_color="transparent")
+        tl.grid(row=0, column=0, sticky="nsew", padx=(0, 2), pady=(0, 2))
+        ctk.CTkLabel(tl, text="Notiz:", font=("Segoe UI", 13, "bold"),
+                     text_color="#8b0000").pack(anchor="w", padx=4, pady=(4, 0))
+        cb_frame = ctk.CTkFrame(tl, fg_color="transparent")
+        cb_frame.pack(anchor="w", padx=4)
         self.print_note_var = ctk.BooleanVar(value=True)
-        ctk.CTkCheckBox(nleft, text="RG", variable=self.print_note_var,
-                        font=("Segoe UI", 13)).pack(anchor="w", pady=(2, 0))
-        self.doc_note = ctk.CTkTextbox(nr, width=500, height=80, border_width=2)
-        self.doc_note.pack(side="left", padx=5, pady=(6, 2))
-        rf = ctk.CTkFrame(nr, fg_color="transparent")
+        ctk.CTkCheckBox(cb_frame, text="RG", variable=self.print_note_var,
+                        font=("Segoe UI", 13)).pack(side="left")
+        self.doc_note = ctk.CTkTextbox(tl, height=52, border_width=2)
+        self.doc_note.pack(fill="x", padx=4, pady=(2, 4))
+        ctk.CTkLabel(tl, text="Notiz (intern):", font=("Segoe UI", 13, "bold"),
+                     text_color="#8b0000").pack(anchor="w", padx=4, pady=(0, 0))
+        self.doc_internal_note = ctk.CTkTextbox(tl, height=52, border_width=2)
+        self.doc_internal_note.pack(fill="x", padx=4, pady=(2, 4))
 
-        # --- Notiz (intern) ---
-        ni = ctk.CTkFrame(main, fg_color="transparent")
-        ni.pack(fill="x", padx=8, pady=(1, 0))
-        nileft = ctk.CTkFrame(ni, fg_color="transparent")
-        nileft.pack(side="left", fill="y", padx=(10, 0), pady=(4, 0))
-        ctk.CTkLabel(nileft, text="Notiz (intern):", font=("Segoe UI", 13, "bold"), width=120, anchor="w",
-                     text_color="#8b0000").pack(anchor="w")
-        self.doc_internal_note = ctk.CTkTextbox(ni, width=500, height=80, border_width=2)
-        self.doc_internal_note.pack(side="left", padx=5, pady=4)
-        rf.pack(side="right", anchor="n", padx=(0, 10), pady=(6, 0))
-        ctk.CTkLabel(rf, text="Rabatt:", font=("Segoe UI", 13, "bold"),
-                     text_color="#8b0000", width=80, anchor="w").pack(side="left")
-        self.discount_var = ctk.StringVar(value="0")
-        self.discount_entry = ctk.CTkEntry(rf, width=80, textvariable=self.discount_var)
-        self.discount_entry.pack(side="left", padx=3)
-        self.discount_entry.bind("<KeyRelease>", lambda e: self._recalc_totals())
-        self.discount_type_var = ctk.StringVar(value="%")
-        ctk.CTkOptionMenu(rf, variable=self.discount_type_var, values=["%", "\u20ac"],
-                          width=50, command=lambda v: self._recalc_totals()).pack(side="left")
-
-        # --- Rechnungsdatum ---
-        dr = ctk.CTkFrame(main, fg_color="transparent")
-        dr.pack(fill="x", padx=8, pady=(1, 0))
-        ctk.CTkLabel(dr, text="Rechnungsdatum:", font=("Segoe UI", 13, "bold"),
-                     text_color="#8b0000").pack(side="left", padx=(10, 5))
+        # --- Top-Right: Datum + Zahlungsziel ---
+        tr = ctk.CTkFrame(bottom, fg_color="transparent")
+        tr.grid(row=0, column=1, sticky="nsew", padx=(2, 0), pady=(0, 2))
+        ctk.CTkLabel(tr, text="Rechnungsdatum:", font=("Segoe UI", 13, "bold"),
+                     text_color="#8b0000").pack(anchor="w", padx=6, pady=(6, 2))
+        dr = ctk.CTkFrame(tr, fg_color="transparent")
+        dr.pack(fill="x", padx=6)
         self.doc_date_var = ctk.StringVar(value=datetime.now().strftime("%d.%m.%Y"))
-        self.doc_date_entry = ctk.CTkEntry(dr, width=100, textvariable=self.doc_date_var)
-        self.doc_date_entry.pack(side="left", padx=2)
-        ctk.CTkButton(dr, text="Heute", width=60, command=lambda: self.doc_date_var.set(
-            datetime.now().strftime("%d.%m.%Y")), fg_color="#555555").pack(side="left", padx=5)
+        self.doc_date_entry = ctk.CTkEntry(dr, width=85, textvariable=self.doc_date_var)
+        self.doc_date_entry.pack(side="left")
+        self.doc_date_var.trace_add("write", lambda *a: self._recalc_due_date())
+        ctk.CTkButton(dr, text="\u2630", width=28, command=self._open_calendar,
+                      fg_color="#555555").pack(side="left", padx=2)
+        ctk.CTkButton(dr, text="Heute", width=45, command=lambda: self.doc_date_var.set(
+            datetime.now().strftime("%d.%m.%Y")), fg_color="#555555").pack(side="left")
+        ctk.CTkLabel(tr, text="Zahlungsziel (Tage):", font=("Segoe UI", 13, "bold"),
+                     text_color="#8b0000").pack(anchor="w", padx=6, pady=(6, 2))
+        zr = ctk.CTkFrame(tr, fg_color="transparent")
+        zr.pack(fill="x", padx=6)
+        settings = self.db.settings_get_all()
+        default_payment = int(settings.get("payment_term", "30"))
+        self.payment_term_var = ctk.StringVar(value=str(default_payment))
+        self.payment_term_entry = ctk.CTkEntry(zr, width=50, textvariable=self.payment_term_var)
+        self.payment_term_entry.pack(side="left")
+        self.payment_term_var.trace_add("write", lambda *a: self._recalc_due_date())
+        ctk.CTkButton(zr, text="\u25b2", width=25, command=lambda: self._adj_payment(1),
+                      fg_color="#555555").pack(side="left", padx=1)
+        ctk.CTkButton(zr, text="\u25bc", width=25, command=lambda: self._adj_payment(-1),
+                      fg_color="#555555").pack(side="left")
+        ctk.CTkLabel(tr, text="Zu bezahlen bis:", font=("Segoe UI", 13, "bold"),
+                     text_color="#8b0000").pack(anchor="w", padx=6, pady=(6, 2))
+        self.due_date_var = ctk.StringVar()
+        self.due_date_entry = ctk.CTkEntry(tr, width=105, textvariable=self.due_date_var,
+                                           state="readonly")
+        self.due_date_entry.pack(anchor="w", padx=6, pady=(0, 6))
+        self._recalc_due_date()
 
-        # --- Footer (Summen) ---
-        footer = ctk.CTkFrame(main, corner_radius=6)
-        footer.pack(fill="x", padx=8, pady=(0, 2))
-        self._build_footer(footer)
-
-        # --- Buttons ---
-        bb = ctk.CTkFrame(main, fg_color="transparent")
-        bb.pack(fill="x", padx=8, pady=(0, 4))
-        for text, cmd in [("PDF", self._save_pdf), ("E-Mail", self._send_email_doc),
-                          ("Drucken", self._print_doc), ("L\u00f6schen", self._delete_doc)]:
+        # --- Bottom-Left: Checkboxen + Buttons ---
+        bl = ctk.CTkFrame(bottom, fg_color="transparent")
+        bl.grid(row=1, column=0, sticky="nsew", padx=(0, 2), pady=(2, 0))
+        merge_frame = ctk.CTkFrame(bl, fg_color="transparent")
+        merge_frame.pack(fill="x", padx=6, pady=(4, 0), anchor="w")
+        self.merge_tools_var = ctk.BooleanVar(value=True)
+        self.merge_tools_cb = ctk.CTkCheckBox(merge_frame, text="Alle Werkzeugpositionen zusammenfassen zu:",
+                                              variable=self.merge_tools_var,
+                                              command=self._on_merge_tools_toggle,
+                                              font=("Segoe UI", 13))
+        self.merge_tools_cb.pack(side="left")
+        self.merge_tool_name_var = ctk.StringVar(value="Werkzeug")
+        self.merge_tool_name_entry = ctk.CTkEntry(merge_frame, width=120, textvariable=self.merge_tool_name_var)
+        self.merge_tool_name_entry.pack(side="left", padx=(4, 0))
+        round_frame = ctk.CTkFrame(bl, fg_color="transparent")
+        round_frame.pack(fill="x", padx=6, pady=(1, 2))
+        rfi = ctk.CTkFrame(round_frame, fg_color="transparent")
+        rfi.pack(padx=(20, 0), anchor="w")
+        self.round_tools_var = ctk.BooleanVar(value=True)
+        self.round_tools_cb = ctk.CTkCheckBox(rfi, text="Auf ganze 10\u20ac aufrunden",
+                                              variable=self.round_tools_var,
+                                              command=self._on_round_tools_toggle,
+                                              font=("Segoe UI", 13))
+        self.round_tools_cb.pack(side="left")
+        btn_frame = ctk.CTkFrame(bl, fg_color="transparent")
+        btn_frame.pack(fill="x", padx=6, pady=(2, 6))
+        for text, cmd in [("Speichern", self._save_doc),
+                          ("PDF \u00f6ffnen", self._save_pdf),
+                          ("PDF Ordner", self._save_pdf_folder),
+                          ("E-Mail", self._send_email_doc),
+                          ("Drucken", self._print_doc),
+                          ("L\u00f6schen", self._delete_doc)]:
             fg = "#5c0000" if "L\u00f6schen" in text else "#8b0000"
-            ctk.CTkButton(bb, text=text, command=cmd, width=80,
+            width = 95 if text == "PDF \u00f6ffnen" else 80
+            ctk.CTkButton(btn_frame, text=text, command=cmd, width=width,
                           fg_color=fg, hover_color="#b22222",
-                          font=("Segoe UI", 13)).pack(side="left", padx=3)
+                          font=("Segoe UI", 13)).pack(side="left", padx=2)
+
+        # --- Bottom-Right: Totalisierung ---
+        br = ctk.CTkFrame(bottom, fg_color="transparent")
+        br.grid(row=1, column=1, sticky="nsew", padx=(2, 0), pady=(2, 0))
+        self._build_totals(br)
 
         # --- Status Bar ---
         self._build_statusbar()
@@ -444,9 +491,7 @@ class FerdlWorksApp(ctk.CTk):
     def _enter_cust(self, event=None):
         if not self._cust_data:
             return
-        if self._cust_dropdown_idx < 0:
-            self._cust_dropdown_idx = 0
-        if self._cust_dropdown_idx >= len(self._cust_data):
+        if self._cust_dropdown_idx < 0 or self._cust_dropdown_idx >= len(self._cust_data):
             return
         self._customer_id = self._cust_data[self._cust_dropdown_idx]["id"]
         self._set_cust_display(self._cust_data[self._cust_dropdown_idx])
@@ -481,13 +526,12 @@ class FerdlWorksApp(ctk.CTk):
     def _enter_art(self, event=None):
         if not self._art_results:
             return
-        if self._art_dropdown_idx < 0:
-            self._art_dropdown_idx = 0
-        if self._art_dropdown_idx >= len(self._art_results):
+        if self._art_dropdown_idx < 0 or self._art_dropdown_idx >= len(self._art_results):
             return
         self._selected_article = self._art_results[self._art_dropdown_idx]
         self.art_entry.delete(0, "end")
         self.art_entry.insert(0, self._selected_article["name"])
+        self.art_entry._ph_active = False
         self._do_hide_art_dropdown()
         if self._selected_article["item_type"] == "Material":
             self._show_mat_units()
@@ -568,6 +612,7 @@ class FerdlWorksApp(ctk.CTk):
         self._selected_article = self._art_results[idx]
         self.art_entry.delete(0, "end")
         self.art_entry.insert(0, self._selected_article["name"])
+        self.art_entry._ph_active = False
         self._do_hide_art_dropdown()
         if self._selected_article["item_type"] == "Material":
             self._show_mat_units()
@@ -856,39 +901,70 @@ class FerdlWorksApp(ctk.CTk):
         total_tax = netto_nach_rabatt * tax_rate / 100
         total_gross = netto_nach_rabatt + total_tax
         self._sum_labels["netto"].configure(text=f"{total_net:.2f}\u20ac".replace(".", ","))
-        if discount_val > 0 and self._rabatt_row and self._rabatt_lbl:
-            self._rabatt_row.grid()
-            self._rabatt_lbl.configure(text=f"-{rabatt:.2f}\u20ac".replace(".", ","))
-        elif self._rabatt_row:
-            self._rabatt_row.grid_remove()
         self._sum_labels["mwst"].configure(text=f"{total_tax:.2f}\u20ac".replace(".", ","))
         self._sum_labels["brutto"].configure(text=f"{total_gross:.2f}\u20ac".replace(".", ","))
 
-    # ===================== FOOTER =====================
-    def _build_footer(self, parent):
-        # Summen rechts
-        rf = ctk.CTkFrame(parent, fg_color="transparent")
-        rf.pack(side="right", anchor="s", padx=8, pady=6)
+    # ===================== TOTALISIERUNG =====================
+    def _build_totals(self, parent):
         self._sum_labels = {}
-        self._rabatt_row = None
-        for text in ["Netto:", "MwSt:", "Brutto:"]:
-            f = ctk.CTkFrame(rf, fg_color="transparent")
+        r = ctk.CTkFrame(parent, fg_color="transparent")
+        r.pack(fill="x", padx=6, pady=(8, 2))
+        ctk.CTkLabel(r, text="Rabatt:", font=("Segoe UI", 15, "bold"),
+                     text_color="#8b0000", width=55, anchor="w").pack(side="left")
+        self.discount_var = ctk.StringVar(value="0")
+        self.discount_entry = ctk.CTkEntry(r, width=70, textvariable=self.discount_var)
+        self.discount_entry.pack(side="left", padx=2)
+        self.discount_entry.bind("<KeyRelease>", lambda e: self._recalc_totals())
+        self.discount_type_var = ctk.StringVar(value="%")
+        ctk.CTkOptionMenu(r, variable=self.discount_type_var, values=["%", "\u20ac"],
+                          width=60, command=lambda v: self._recalc_totals()).pack(side="left")
+        for text, key in [("Netto:", "netto"), ("MwSt:", "mwst"), ("Brutto:", "brutto")]:
+            f = ctk.CTkFrame(parent, fg_color="transparent")
+            f.pack(fill="x", padx=6, pady=1)
             ctk.CTkLabel(f, text=text, font=("Segoe UI", 17)).pack(side="left")
             lbl = ctk.CTkLabel(f, text="0,00 \u20ac", font=("Segoe UI", 17, "bold"),
-                               text_color=("#8b0000", "#8b0000"), width=90, anchor="e")
+                               text_color=("#8b0000", "#8b0000"), width=80, anchor="e")
             lbl.pack(side="right", padx=4)
-            key = text.replace(":", "").replace(" ", "_").lower()
             self._sum_labels[key] = lbl
-        self._sum_labels["netto"].master.grid(row=0, column=0, sticky="sew", padx=2, pady=2)
-        self._rabatt_row = ctk.CTkFrame(rf, fg_color="transparent")
-        self._rabatt_row.grid(row=1, column=0, sticky="sew", padx=2, pady=2)
-        ctk.CTkLabel(self._rabatt_row, text="Rabatt:", font=("Segoe UI", 17)).pack(side="left")
-        self._rabatt_lbl = ctk.CTkLabel(self._rabatt_row, text="0,00 \u20ac", font=("Segoe UI", 17, "bold"),
-                                        text_color=("#8b0000", "#8b0000"), width=80, anchor="e")
-        self._rabatt_lbl.pack(side="right", padx=4)
-        self._rabatt_row.grid_remove()
-        self._sum_labels["mwst"].master.grid(row=2, column=0, sticky="sew", padx=2, pady=1)
-        self._sum_labels["brutto"].master.grid(row=3, column=0, sticky="sew", padx=2, pady=1)
+
+    # ===================== DATUM / ZAHLUNGSZIEL =====================
+    def _recalc_due_date(self):
+        try:
+            doc_date = datetime.strptime(self.doc_date_var.get(), "%d.%m.%Y")
+        except (ValueError, TypeError):
+            self.due_date_var.set("")
+            return
+        try:
+            days = int(self.payment_term_var.get())
+        except ValueError:
+            days = 30
+        due = doc_date + timedelta(days=days)
+        self.due_date_var.set(due.strftime("%d.%m.%Y"))
+
+    def _adj_payment(self, delta):
+        try:
+            cur = int(self.payment_term_var.get())
+        except ValueError:
+            cur = 30
+        cur = max(0, cur + delta)
+        self.payment_term_var.set(str(cur))
+
+    def _on_merge_tools_toggle(self):
+        self._on_round_tools_toggle()
+
+    def _on_round_tools_toggle(self):
+        pass
+
+    # ===================== PDF ORDNER =====================
+    def _save_pdf_folder(self):
+        if getattr(sys, 'frozen', False):
+            folder = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "FerdlWorks", "data", "pdfs")
+        else:
+            folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "pdfs")
+        if os.path.isdir(folder):
+            os.startfile(folder)
+        else:
+            messagebox.showinfo("PDF Ordner", f"PDF-Ordner existiert noch nicht:\n{folder}")
 
     # ===================== STATUSBAR =====================
     def _build_statusbar(self):
@@ -922,6 +998,7 @@ class FerdlWorksApp(ctk.CTk):
         self.art_entry._ph_active = False
         self._on_placeholder_out(self.art_entry)
         self.doc_note.delete("1.0", "end")
+        self.doc_internal_note.delete("1.0", "end")
         self.doc_date_var.set(datetime.now().strftime("%d.%m.%Y"))
         self.discount_var.set("0")
         self.doc_type_var.set("RG")
@@ -964,6 +1041,9 @@ class FerdlWorksApp(ctk.CTk):
             "note": self.doc_note.get("1.0", "end-1c"),
             "internal_note": self.doc_internal_note.get("1.0", "end-1c"),
             "print_note": "1" if self.print_note_var.get() else "0",
+            "merge_tools": self.merge_tools_var.get(),
+            "merge_tool_name": self.merge_tool_name_var.get(),
+            "round_tools": self.round_tools_var.get(),
         }
 
     def _do_save(self, silent=False):
@@ -1057,6 +1137,53 @@ class FerdlWorksApp(ctk.CTk):
             self.db.doc_delete(self._current_doc_id)
             self._new_doc()
 
+    def _open_calendar(self):
+        from tkinter import ttk
+        top = ctk.CTkToplevel(self)
+        top.title("Datum auswählen")
+        top.geometry("280x250")
+        top.transient(self)
+        top.grab_set()
+        top.resizable(False, False)
+        now = datetime.now()
+        m, y = now.month, now.year
+        sel = self.doc_date_var.get()
+        try:
+            sd = datetime.strptime(sel, "%d.%m.%Y")
+            cm, cy = sd.month, sd.year
+        except:
+            cm, cy = m, y
+
+        def build(month, year):
+            for w in top.winfo_children():
+                w.destroy()
+            hf = ctk.CTkFrame(top, fg_color="transparent")
+            hf.pack(fill="x", padx=5, pady=5)
+            ctk.CTkButton(hf, text="<", width=30, command=lambda: build(month-1 if month>1 else 12, year if month>1 else year-1)).pack(side="left")
+            ctk.CTkLabel(hf, text=f"{month:02d}/{year}", font=("Segoe UI", 13, "bold")).pack(side="left", expand=True)
+            ctk.CTkButton(hf, text=">", width=30, command=lambda: build(month+1 if month<12 else 1, year if month<12 else year+1)).pack(side="right")
+            cf = ctk.CTkFrame(top, fg_color="transparent")
+            cf.pack(padx=5, pady=2)
+            days = ["Mo","Di","Mi","Do","Fr","Sa","So"]
+            for i, d in enumerate(days):
+                ctk.CTkLabel(cf, text=d, width=30, font=("Segoe UI", 9)).grid(row=0, column=i)
+            import calendar
+            cal = calendar.monthcalendar(year, month)
+            for r, week in enumerate(cal, 1):
+                for c, day in enumerate(week):
+                    if day == 0:
+                        ctk.CTkLabel(cf, text="", width=30).grid(row=r, column=c)
+                    else:
+                        btn = ctk.CTkButton(cf, text=str(day), width=30, height=25, fg_color="#555555",
+                                            command=lambda d=day, mo=month, yr=year: pick(d, mo, yr))
+                        btn.grid(row=r, column=c, padx=1, pady=1)
+
+        def pick(day, month, year):
+            self.doc_date_var.set(f"{day:02d}.{month:02d}.{year}")
+            top.destroy()
+
+        build(cm, cy)
+
     # ===================== PDF / E-MAIL / DRUCKEN =====================
     def _check_empty(self):
         if not self._positions:
@@ -1080,12 +1207,8 @@ class FerdlWorksApp(ctk.CTk):
         try:
             path = generate_pdf(doc)
             if path:
-                self.logger.info(f"PDF erstellt: {path}")
-                messagebox.showinfo("PDF", f"PDF erstellt:\n{path}")
-                try:
-                    os.startfile(path)
-                except Exception:
-                    pass
+                self.logger.info(f"PDF geöffnet: {path}")
+                os.startfile(path)
             else:
                 messagebox.showerror("Fehler", "PDF konnte nicht erstellt werden.")
         except Exception as ex:
