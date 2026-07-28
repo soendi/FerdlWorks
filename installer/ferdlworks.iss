@@ -42,11 +42,7 @@ AlwaysShowDirOnReadyPage=yes
 Name: "german"; MessagesFile: "compiler:Languages\German.isl"
 
 [Files]
-Source: "..\dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\assets\ferdlworks.ico"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\assets\ferdlworks_theme.json"; DestDir: "{app}\assets"; Flags: ignoreversion
-Source: "..\lib\*"; DestDir: "{app}\lib"; Flags: ignoreversion recursesubdirs
-Source: "..\data\*"; DestDir: "{app}\data"; Flags: ignoreversion recursesubdirs; Check: DirExists(ExpandConstant('{src}\..\data'))
+Source: "..\dist\{#MyAppName}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Dirs]
 Name: "{app}\data"; Permissions: users-modify
