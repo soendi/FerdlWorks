@@ -34,8 +34,8 @@ class TextDatabase(ctk.CTkToplevel):
         heads = {"name": "Name", "content": "Text"}
         self.tree = ttk.Treeview(self, columns=cols, show="headings", selectmode="browse", height=8)
         for c in cols:
-            self.tree.heading(c, text=heads[c])
-            self.tree.column(c, width=200, minwidth=80)
+            self.tree.heading(c, text=heads[c], anchor="w")
+            self.tree.column(c, width=200, minwidth=80, anchor="w")
         self.tree.column("name", width=200)
         self.tree.column("content", width=450)
         self.tree.bind("<Double-1>", lambda e: self._edit())
