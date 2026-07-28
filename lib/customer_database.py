@@ -10,7 +10,7 @@ class CustomerDatabase(ctk.CTkToplevel):
         super().__init__(master)
         self.db = get_db()
         self.title("Kundenkartei")
-        self.geometry("800x500")
+        self.geometry("1000x600")
         self.transient(master)
         self.grab_set()
         self.after(50, lambda: set_window_icon(self, self.master))
@@ -35,8 +35,9 @@ class CustomerDatabase(ctk.CTkToplevel):
         widths = {"firma": 180, "vorname": 100, "nachname": 120, "plz": 60, "ort": 120, "telefon": 120, "email": 180}
         self.tree = ttk.Treeview(self, columns=cols, show="headings", selectmode="browse")
         for c in cols:
-            self.tree.heading(c, text=heads[c])
-            self.tree.column(c, width=widths[c], minwidth=50)
+            align = "e" if c == "plz" else "w"
+            self.tree.heading(c, text=heads[c], anchor=align)
+            self.tree.column(c, width=widths[c], minwidth=50, anchor=align)
         self.tree.bind("<Double-1>", lambda e: self._edit())
         vsb = ttk.Scrollbar(self, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=vsb.set)
