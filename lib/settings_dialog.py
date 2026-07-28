@@ -35,6 +35,7 @@ class SettingsDialog(ctk.CTkToplevel):
             ("phone", "Telefon:"),
             ("email", "E-Mail:"),
             ("tax_id", "Steuernummer:"),
+            ("iban", "IBAN:"),
         ]
         for i, (key, label) in enumerate(fields):
             ctk.CTkLabel(tab1, text=label, width=100, anchor="w").grid(row=i, column=0, padx=(10, 5), pady=3, sticky="w")
@@ -96,37 +97,61 @@ class SettingsDialog(ctk.CTkToplevel):
                 entry.grid(row=i, column=1, padx=5, pady=3, sticky="w")
                 self._smtp_entries[key] = entry
 
+        # --- E-Mail (Versand) ---
+        tab4 = tabview.add("E-Mail (Versand)")
+        ctk.CTkLabel(tab4, text="Betreff:", anchor="w").grid(row=0, column=0, padx=(10, 5), pady=5, sticky="w")
+        self.email_subject_entry = ctk.CTkEntry(tab4, width=450)
+        self.email_subject_entry.insert(0, self.settings.get("email_subject", "Ihre Rechnung {rgnr}"))
+        self.email_subject_entry.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+        ctk.CTkLabel(tab4, text="Nachrichtentext:", anchor="w").grid(row=1, column=0, padx=(10, 5), pady=5, sticky="nw")
+        self.email_body_text = ctk.CTkTextbox(tab4, width=450, height=120)
+        body_default = "Sehr geehrte Damen und Herren,\n\nanbei erhalten Sie die Rechnung {rgnr} vom {rgdat} über {betrag}.\n\nBitte überweisen Sie den Betrag bis zum {bezbisdatum}.\n\nMit freundlichen Grüßen"
+        self.email_body_text.insert("1.0", self.settings.get("email_body", body_default))
+        self.email_body_text.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+        # Variablen-Liste
+        var_frame = ctk.CTkFrame(tab4, fg_color="transparent")
+        var_frame.grid(row=2, column=0, columnspan=2, padx=10, pady=10, sticky="w")
+        vars_text = ("Verfügbare Variablen:\n"
+                     "{vorname} = Vorname\n{nachname} = Nachname\n"
+                     "{rgnr} = Rechnungsnummer\n{rgdat} = Rechnungsdatum\n"
+                     "{bezbisdatum} = Zahlbar bis (Datum)\n{bezbistage} = Zahlbar in (Tagen)\n"
+                     "{betrag} = Rechnungsbetrag")
+        ctk.CTkLabel(var_frame, text=vars_text, font=("Segoe UI", 13), justify="left",
+                     anchor="w").pack()
+
         # --- Drucker ---
-        tab4 = tabview.add("Drucker")
+        tab5 = tabview.add("Drucker")
         self._printer_var = ctk.StringVar(value=self.settings.get("printer_name", ""))
-        ctk.CTkLabel(tab4, text="Standard-Drucker:", anchor="w").grid(row=0, column=0, padx=(10, 5), pady=10, sticky="w")
-        self.printer_menu = ctk.CTkOptionMenu(tab4, values=self._get_printers(), variable=self._printer_var, width=300)
+        ctk.CTkLabel(tab5, text="Standard-Drucker:", anchor="w").grid(row=0, column=0, padx=(10, 5), pady=10, sticky="w")
+        self.printer_menu = ctk.CTkOptionMenu(tab5, values=self._get_printers(), variable=self._printer_var, width=300)
         self.printer_menu.grid(row=0, column=1, padx=5, pady=10, sticky="w")
-        ctk.CTkLabel(tab4, text="(Leer lassen für Systemstandard)", font=("Segoe UI", 13),
+        ctk.CTkButton(tab5, text="L\u00f6schen", width=70,
+                      command=lambda: self._printer_var.set("")).grid(row=0, column=2, padx=5, pady=10)
+        ctk.CTkLabel(tab5, text="(Leer lassen f\u00fcr Systemstandard)", font=("Segoe UI", 13),
                      text_color="#888888").grid(row=1, column=1, padx=5, pady=0, sticky="w")
 
         # --- Allgemein ---
-        tab5 = tabview.add("Allgemein")
+        tab6 = tabview.add("Allgemein")
         self.autostart_var = ctk.BooleanVar(value=autostart_is_enabled())
-        ctk.CTkCheckBox(tab5, text="Autostart (mit Windows starten)", variable=self.autostart_var,
+        ctk.CTkCheckBox(tab6, text="Autostart (mit Windows starten)", variable=self.autostart_var,
                         font=("Segoe UI", 13)).grid(row=0, column=0, columnspan=2, padx=15, pady=10, sticky="w")
-        ctk.CTkLabel(tab5, text="Passwort-Schutz:", font=("Segoe UI", 13, "bold"),
+        ctk.CTkLabel(tab6, text="Passwort-Schutz:", font=("Segoe UI", 13, "bold"),
                      text_color=("#8b0000", "#8b0000")).grid(row=1, column=0, columnspan=2, padx=15, pady=(15, 5), sticky="w")
         stored_hash = self.settings.get("user_password", "")
         has_password = bool(stored_hash)
-        ctk.CTkLabel(tab5, text="Aktuelles Passwort:", anchor="w").grid(row=2, column=0, padx=15, pady=3, sticky="w")
-        self.old_pw = ctk.CTkEntry(tab5, width=250, show="*")
+        ctk.CTkLabel(tab6, text="Aktuelles Passwort:", anchor="w").grid(row=2, column=0, padx=15, pady=3, sticky="w")
+        self.old_pw = ctk.CTkEntry(tab6, width=250, show="*")
         self.old_pw.grid(row=2, column=1, padx=5, pady=3, sticky="w")
         self.old_pw.bind("<KeyRelease>", lambda e: self._check_pw_access())
-        ctk.CTkLabel(tab5, text="Neues Passwort:", anchor="w").grid(row=3, column=0, padx=15, pady=3, sticky="w")
-        self.new_pw = ctk.CTkEntry(tab5, width=250, show="*")
+        ctk.CTkLabel(tab6, text="Neues Passwort:", anchor="w").grid(row=3, column=0, padx=15, pady=3, sticky="w")
+        self.new_pw = ctk.CTkEntry(tab6, width=250, show="*")
         self.new_pw.grid(row=3, column=1, padx=5, pady=3, sticky="w")
         self._pw_unlocked = False
-        self._pw_unlock_label = ctk.CTkLabel(tab5, text="", font=("Segoe UI", 13, "bold"),
+        self._pw_unlock_label = ctk.CTkLabel(tab6, text="", font=("Segoe UI", 13, "bold"),
                                               text_color=("#8b0000", "#8b0000"))
         self._pw_unlock_label.grid(row=4, column=0, columnspan=2, padx=15, pady=2, sticky="w")
 
-        ctk.CTkLabel(tab5, text="(Leer lassen = Passwort löschen)", font=("Segoe UI", 13),
+        ctk.CTkLabel(tab6, text="(Leer lassen = Passwort löschen)", font=("Segoe UI", 13),
                      text_color="#666666").grid(row=5, column=1, padx=5, pady=0, sticky="w")
 
         # --- Buttons ---

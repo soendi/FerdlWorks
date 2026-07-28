@@ -84,6 +84,9 @@ def _build_elements(doc_data, settings, db):
                    f"Datum: {date_formatted}"]
     if due_formatted:
         right_lines.append(f"Zahlbar bis: {due_formatted}")
+    iban = settings.get("sender_iban", "").strip()
+    if iban:
+        right_lines.append(f"IBAN: {iban}")
     header_table = Table([
         [Paragraph(addr_text, style_normal),
          Paragraph("<br/>".join(right_lines), style_right)]
@@ -95,12 +98,6 @@ def _build_elements(doc_data, settings, db):
     ]))
     elements.append(header_table)
     elements.append(Spacer(1, 28*mm))
-
-    # Notiz
-    note = doc_data.get("note", "")
-    if note:
-        elements.append(Paragraph(note, style_normal))
-        elements.append(Spacer(1, 6*mm))
 
     # Positionen
     elements.append(Paragraph("Positionen", style_header))
@@ -201,7 +198,14 @@ def _build_elements(doc_data, settings, db):
         ("LINEABOVE", (0, -1), (-1, -1), 1.5, colors.HexColor("#8b0000")),
     ]))
     elements.append(sum_table)
-    elements.append(Spacer(1, 15*mm))
+    elements.append(Spacer(1, 8*mm))
+    # Notiz auf Rechnung (nur wenn print_note=1)
+    if doc_data.get("print_note", "1") == "1":
+        note = doc_data.get("note", "").strip()
+        if note:
+            elements.append(Paragraph(note, style_normal))
+            elements.append(Spacer(1, 6*mm))
+    elements.append(Spacer(1, 10*mm))
     return elements
 
 
@@ -231,9 +235,10 @@ def generate_pdf(doc_data, output_path=None):
         canvas.drawCentredString(210*mm/2, 12*mm, "Vielen Dank f\xfcr Ihren Auftrag!")
         canvas.restoreState()
 
+    title = doc_data.get("doc_number", "FerdlWorks")
     doc = SimpleDocTemplate(output_path, pagesize=A4, leftMargin=20*mm, rightMargin=15*mm,
                             topMargin=15*mm, bottomMargin=20*mm,
-                            onFirstPage=footer, onLaterPages=footer)
+                            onFirstPage=footer, onLaterPages=footer, title=title)
     doc.build(elements)
     logger.info(f"PDF erstellt: {output_path}")
     return output_path

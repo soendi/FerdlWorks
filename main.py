@@ -60,15 +60,6 @@ class FerdlWorksApp(ctk.CTk):
         self._build_ui()
         self.bind("<Button-1>", self._on_global_click, add="+")
         self._new_doc()
-        self.update_idletasks()
-        # Placeholder-Refresh: Fokus-Reihe durch alle Eingabefelder
-        def _placeholders():
-            for e in (self.cust_entry, self.art_entry, self.discount_entry):
-                e.focus_set()
-                self.update_idletasks()
-            self.focus_set()
-            self.update_idletasks()
-        self.after(100, _placeholders)
         self.after(500, self._check_overdue)
         self.logger.info(f"{APP_NAME} v{VERSION} gestartet (Master-Mode: {master_mode})")
         self.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -280,6 +271,10 @@ class FerdlWorksApp(ctk.CTk):
         self.pos_tree.bind("<Double-1>", lambda e: self._edit_position())
         self.pos_tree.bind("<Button-3>", self._pos_context_menu)
         self.pos_tree.bind("<Button-2>", self._pos_context_menu)
+        self._drag_data = {"item": None, "start_y": 0}
+        self.pos_tree.bind("<Button-1>", self._drag_start, add="+")
+        self.pos_tree.bind("<B1-Motion>", self._drag_motion)
+        self.pos_tree.bind("<ButtonRelease-1>", self._drag_drop, add="+")
         self._pos_vsb = ttk.Scrollbar(pos_frame, orient="vertical", style="Custom.Vertical.TScrollbar",
                                        command=self.pos_tree.yview)
         self.pos_tree.configure(yscrollcommand=self._update_vsb)
@@ -288,12 +283,27 @@ class FerdlWorksApp(ctk.CTk):
         # --- Notiz + Rabatt ---
         nr = ctk.CTkFrame(main, fg_color="transparent")
         nr.pack(fill="x", padx=8, pady=(2, 0))
-        ctk.CTkLabel(nr, text="Notiz:", font=("Segoe UI", 13, "bold"), width=70, anchor="w",
-                     text_color="#8b0000").pack(side="left", anchor="n", padx=(10, 0), pady=(6, 0))
+        nleft = ctk.CTkFrame(nr, fg_color="transparent")
+        nleft.pack(side="left", fill="y", padx=(10, 0), pady=(6, 0))
+        ctk.CTkLabel(nleft, text="Notiz:", font=("Segoe UI", 13, "bold"), width=120, anchor="w",
+                     text_color="#8b0000").pack(anchor="w")
+        self.print_note_var = ctk.BooleanVar(value=True)
+        ctk.CTkCheckBox(nleft, text="RG", variable=self.print_note_var,
+                        font=("Segoe UI", 13)).pack(anchor="w", pady=(2, 0))
         self.doc_note = ctk.CTkTextbox(nr, width=500, height=80, border_width=2)
         self.doc_note.pack(side="left", padx=5, pady=(6, 2))
         rf = ctk.CTkFrame(nr, fg_color="transparent")
-        rf.pack(side="left", anchor="n", padx=(25, 0), pady=(6, 0))
+
+        # --- Notiz (intern) ---
+        ni = ctk.CTkFrame(main, fg_color="transparent")
+        ni.pack(fill="x", padx=8, pady=(1, 0))
+        nileft = ctk.CTkFrame(ni, fg_color="transparent")
+        nileft.pack(side="left", fill="y", padx=(10, 0), pady=(4, 0))
+        ctk.CTkLabel(nileft, text="Notiz (intern):", font=("Segoe UI", 13, "bold"), width=120, anchor="w",
+                     text_color="#8b0000").pack(anchor="w")
+        self.doc_internal_note = ctk.CTkTextbox(ni, width=500, height=80, border_width=2)
+        self.doc_internal_note.pack(side="left", padx=5, pady=4)
+        rf.pack(side="right", anchor="n", padx=(0, 10), pady=(6, 0))
         ctk.CTkLabel(rf, text="Rabatt:", font=("Segoe UI", 13, "bold"),
                      text_color="#8b0000", width=80, anchor="w").pack(side="left")
         self.discount_var = ctk.StringVar(value="0")
@@ -710,6 +720,30 @@ class FerdlWorksApp(ctk.CTk):
             self.pos_tree.insert("", "end", iid=str(i), values=vals, tags=(tag,))
         self._recalc_totals()
 
+    def _drag_start(self, event):
+        iid = self.pos_tree.identify_row(event.y)
+        if iid:
+            self._drag_data["item"] = int(iid)
+            self._drag_data["start_y"] = event.y
+
+    def _drag_motion(self, event):
+        iid = self.pos_tree.identify_row(event.y)
+        if iid is not None and self._drag_data["item"] is not None:
+            self.pos_tree.selection_set(iid)
+
+    def _drag_drop(self, event):
+        if self._drag_data["item"] is None:
+            return
+        target_iid = self.pos_tree.identify_row(event.y)
+        if target_iid and int(target_iid) != self._drag_data["item"]:
+            src = self._drag_data["item"]
+            dst = int(target_iid)
+            item = self._positions.pop(src)
+            self._positions.insert(dst, item)
+            self._refresh_positions()
+            self.pos_tree.selection_set(str(dst))
+        self._drag_data["item"] = None
+
     def _pos_context_menu(self, event):
         # select the clicked row
         iid = self.pos_tree.identify_row(event.y)
@@ -813,17 +847,17 @@ class FerdlWorksApp(ctk.CTk):
         self._rabatt_row = None
         for text in ["Netto:", "MwSt:", "Brutto:"]:
             f = ctk.CTkFrame(rf, fg_color="transparent")
-            ctk.CTkLabel(f, text=text, font=("Segoe UI", 15)).pack(side="left")
-            lbl = ctk.CTkLabel(f, text="0,00 \u20ac", font=("Segoe UI", 15, "bold"),
-                               text_color=("#8b0000", "#8b0000"), width=80, anchor="e")
+            ctk.CTkLabel(f, text=text, font=("Segoe UI", 17)).pack(side="left")
+            lbl = ctk.CTkLabel(f, text="0,00 \u20ac", font=("Segoe UI", 17, "bold"),
+                               text_color=("#8b0000", "#8b0000"), width=90, anchor="e")
             lbl.pack(side="right", padx=4)
             key = text.replace(":", "").replace(" ", "_").lower()
             self._sum_labels[key] = lbl
-        self._sum_labels["netto"].master.grid(row=0, column=0, sticky="sew", padx=2, pady=1)
+        self._sum_labels["netto"].master.grid(row=0, column=0, sticky="sew", padx=2, pady=2)
         self._rabatt_row = ctk.CTkFrame(rf, fg_color="transparent")
-        self._rabatt_row.grid(row=1, column=0, sticky="sew", padx=2, pady=1)
-        ctk.CTkLabel(self._rabatt_row, text="Rabatt:", font=("Segoe UI", 15)).pack(side="left")
-        self._rabatt_lbl = ctk.CTkLabel(self._rabatt_row, text="0,00 \u20ac", font=("Segoe UI", 15, "bold"),
+        self._rabatt_row.grid(row=1, column=0, sticky="sew", padx=2, pady=2)
+        ctk.CTkLabel(self._rabatt_row, text="Rabatt:", font=("Segoe UI", 17)).pack(side="left")
+        self._rabatt_lbl = ctk.CTkLabel(self._rabatt_row, text="0,00 \u20ac", font=("Segoe UI", 17, "bold"),
                                         text_color=("#8b0000", "#8b0000"), width=80, anchor="e")
         self._rabatt_lbl.pack(side="right", padx=4)
         self._rabatt_row.grid_remove()
@@ -877,17 +911,18 @@ class FerdlWorksApp(ctk.CTk):
     def _get_doc_data(self):
         settings = self.db.settings_get_all()
         tax_rate = float(settings.get("tax_rate", "19"))
-        total_net = sum(p.total for p in self._positions)
+        orig_net = sum(p.total for p in self._positions)
         try:
             discount_val = float(self.discount_var.get().replace(",", "."))
         except ValueError:
             discount_val = 0
         is_percent = self.discount_type_var.get() == "%"
         if discount_val > 0:
-            net_after = total_net * (1 - discount_val / 100) if is_percent else total_net - discount_val
-            net_after = max(0, net_after)
+            rabatt = orig_net * discount_val / 100 if is_percent else discount_val
+            net_after = max(0, orig_net - rabatt)
         else:
-            net_after = total_net
+            rabatt = 0
+            net_after = orig_net
         total_tax = net_after * tax_rate / 100
         total_gross = net_after + total_tax
         return {
@@ -896,10 +931,12 @@ class FerdlWorksApp(ctk.CTk):
             "date": datetime.now().strftime("%Y-%m-%d"),
             "discount_type": "percent" if is_percent else "fixed",
             "discount_value": discount_val,
-            "total_net": net_after,
+            "total_net": orig_net,
             "total_tax": total_tax,
             "total_gross": total_gross,
             "note": self.doc_note.get("1.0", "end-1c"),
+            "internal_note": self.doc_internal_note.get("1.0", "end-1c"),
+            "print_note": "1" if self.print_note_var.get() else "0",
         }
 
     def _do_save(self, silent=False):
@@ -950,6 +987,9 @@ class FerdlWorksApp(ctk.CTk):
         self.doc_type_var.set(doc["doc_type"])
         self.doc_note.delete("1.0", "end")
         self.doc_note.insert("1.0", doc.get("note", ""))
+        self.doc_internal_note.delete("1.0", "end")
+        self.doc_internal_note.insert("1.0", doc.get("internal_note", ""))
+        self.print_note_var.set(doc.get("print_note", "1") == "1")
         self.discount_var.set(str(doc.get("discount_value", "0")).replace(".", ","))
         self.discount_type_var.set("%" if doc.get("discount_type", "percent") == "percent" else "\u20ac")
         customer = doc.get("customer")
@@ -1039,8 +1079,25 @@ class FerdlWorksApp(ctk.CTk):
             return
         doc["app_name"] = APP_NAME
         pdf_path = generate_pdf(doc)
-        subject = f"{'Rechnung' if doc['doc_type'] == 'RG' else 'Lieferschein'} {doc['doc_number']}"
-        body = f"Sehr geehrte Damen und Herren,\n\nanbei erhalten Sie die {'Rechnung' if doc['doc_type'] == 'RG' else 'den Lieferschein'} {doc['doc_number']}.\n\nMit freundlichen Grüßen\nFerdlWorks"
+        # Variablen ersetzen
+        def _fmt(v):
+            return v.replace(".", ",") if isinstance(v, str) else f"{v:.2f}\u20ac".replace(".", ",")
+        raw_subject = settings.get("email_subject", "Ihre Rechnung {rgnr}")
+        raw_body = settings.get("email_body", "")
+        vars_map = {
+            "{vorname}": customer.get("first_name", ""),
+            "{nachname}": customer.get("last_name", ""),
+            "{rgnr}": doc.get("doc_number", ""),
+            "{rgdat}": doc.get("date", ""),
+            "{bezbisdatum}": doc.get("due_date", ""),
+            "{bezbistage}": settings.get("payment_term", "30"),
+            "{betrag}": f"{doc.get('total_gross', 0):.2f}\u20ac".replace(".", ","),
+        }
+        for key, val in vars_map.items():
+            raw_subject = raw_subject.replace(key, str(val))
+            raw_body = raw_body.replace(key, str(val))
+        subject = raw_subject
+        body = raw_body
         success, msg = send_email(recipient, subject, body, pdf_path)
         if success:
             messagebox.showinfo("E-Mail", msg)

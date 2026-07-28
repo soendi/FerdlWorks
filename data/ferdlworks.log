@@ -227,3 +227,83 @@
 2026-07-28 03:09:20 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
 2026-07-28 03:09:24 | INFO     | Logdatei geöffnet: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\ferdlworks.log
 2026-07-28 03:11:29 | INFO     | Anwendung wird beendet
+2026-07-28 03:11:34 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 03:11:56 | INFO     | Dokument RG-2026-0002 gespeichert
+2026-07-28 03:11:56 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 03:11:56 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 03:18:42 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 03:18:49 | INFO     | Anwendung wird beendet
+2026-07-28 03:20:44 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 03:21:55 | INFO     | Anwendung wird beendet
+2026-07-28 03:22:49 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 03:23:23 | INFO     | Dokument RG-2026-0002 gespeichert
+2026-07-28 03:23:23 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 03:23:23 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 03:24:28 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 03:26:16 | INFO     | Anwendung wird beendet
+2026-07-28 03:26:27 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 03:26:51 | ERROR    | Registry write error (AutoStartPath): [WinError 5] Zugriff verweigert
+2026-07-28 03:26:51 | INFO     | Autostart (Registry) deaktiviert
+2026-07-28 03:28:00 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 03:29:30 | ERROR    | Registry write error (AutoStartPath): [WinError 5] Zugriff verweigert
+2026-07-28 03:29:30 | INFO     | Autostart (Registry) deaktiviert
+2026-07-28 03:29:46 | INFO     | Dokument RG-2026-0002 gespeichert
+2026-07-28 03:29:46 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 03:29:46 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 03:31:47 | INFO     | Anwendung wird beendet
+2026-07-28 03:33:04 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 03:34:11 | INFO     | Anwendung wird beendet
+2026-07-28 03:34:51 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 03:36:26 | INFO     | Anwendung wird beendet
+2026-07-28 03:38:15 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 03:39:25 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 03:40:05 | INFO     | Anwendung wird beendet
+2026-07-28 03:41:16 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 03:41:43 | INFO     | Anwendung wird beendet
+2026-07-28 03:42:47 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 03:43:28 | INFO     | Anwendung wird beendet
+2026-07-28 03:44:14 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 03:44:44 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 03:45:15 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 03:46:39 | INFO     | Anwendung wird beendet
+2026-07-28 03:46:49 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 03:48:05 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 03:50:20 | INFO     | Dokument RG-2026-0003 gespeichert
+2026-07-28 03:50:20 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0003_20260728.pdf
+2026-07-28 03:50:20 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0003_20260728.pdf
+2026-07-28 05:14:15 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0003_20260728.pdf
+2026-07-28 05:15:46 | INFO     | Dokument RG-2026-0003 gespeichert
+2026-07-28 05:15:46 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0003_20260728.pdf
+2026-07-28 05:15:46 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0003_20260728.pdf
+2026-07-28 05:15:58 | INFO     | Dokument RG-2026-0003 gespeichert
+2026-07-28 05:15:58 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0003_20260728.pdf
+2026-07-28 05:15:58 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0003_20260728.pdf
+2026-07-28 05:16:48 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0003_20260728.pdf
+2026-07-28 05:18:53 | ERROR    | Registry write error (AutoStartPath): [WinError 5] Zugriff verweigert
+2026-07-28 05:18:53 | INFO     | Autostart (Registry) deaktiviert
+2026-07-28 05:18:55 | INFO     | Anwendung wird beendet
+2026-07-28 05:20:49 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: True)
+2026-07-28 05:21:03 | ERROR    | Registry write error (AutoStartPath): [WinError 5] Zugriff verweigert
+2026-07-28 05:21:03 | INFO     | Autostart (Registry) deaktiviert
+2026-07-28 05:21:27 | INFO     | Anwendung wird beendet
+2026-07-28 05:21:48 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 05:23:25 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 05:25:32 | INFO     | Dokument RG-2026-0003 gespeichert
+2026-07-28 05:25:32 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0003_20260728.pdf
+2026-07-28 05:25:32 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0003_20260728.pdf
+2026-07-28 05:26:29 | INFO     | Anwendung wird beendet
+2026-07-28 05:26:31 | INFO     | Anwendung wird beendet
+2026-07-28 05:26:44 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 05:26:52 | INFO     | Dokument RG-2026-0003 gespeichert
+2026-07-28 05:26:52 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0003_20260728.pdf
+2026-07-28 05:26:52 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0003_20260728.pdf
+2026-07-28 05:28:59 | INFO     | FerdlWorks v1.0.13 gestartet (Master-Mode: False)
+2026-07-28 05:29:12 | ERROR    | Registry write error (AutoStartPath): [WinError 5] Zugriff verweigert
+2026-07-28 05:29:12 | INFO     | Autostart (Registry) deaktiviert
+2026-07-28 05:29:21 | INFO     | Dokument RG-2026-0003 gespeichert
+2026-07-28 05:29:21 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0003_20260728.pdf
+2026-07-28 05:29:21 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0003_20260728.pdf
+2026-07-28 05:30:21 | INFO     | Dokument RG-2026-0002 gespeichert
+2026-07-28 05:30:22 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 05:30:22 | INFO     | PDF erstellt: C:\Users\sonde\Desktop\Python Projekte\FerdlWorks\data\pdfs\RG-2026-0002_20260728.pdf
+2026-07-28 05:30:37 | INFO     | Anwendung wird beendet

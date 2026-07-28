@@ -84,8 +84,10 @@ class Database:
                     total_tax REAL DEFAULT 0,
                     total_gross REAL DEFAULT 0,
                     note TEXT DEFAULT '',
+                    internal_note TEXT DEFAULT '',
                     paid TEXT DEFAULT '0',
                     due_date TEXT DEFAULT '',
+                    print_note TEXT DEFAULT '1',
                     created_at TEXT DEFAULT (datetime('now','localtime')),
                     FOREIGN KEY (customer_id) REFERENCES customers(id)
                 );
@@ -124,8 +126,8 @@ class Database:
                     value TEXT NOT NULL
                 );
             """)
-            # Migration: documents – paid, due_date, discount_type
-            for col in ("paid", "due_date"):
+            # Migration: documents – paid, due_date, discount_type, print_note
+            for col in ("paid", "due_date", "print_note", "internal_note"):
                 try:
                     conn.execute(f"ALTER TABLE documents ADD COLUMN {col} TEXT DEFAULT ''")
                 except sqlite3.OperationalError:
@@ -401,23 +403,27 @@ class Database:
             if data.get("id"):
                 conn.execute("""UPDATE documents SET customer_id=?, date=?, discount_type=?,
                     discount_value=?, total_net=?, total_tax=?, total_gross=?, note=?,
-                    paid=?, due_date=? WHERE id=?""",
+                    internal_note=?, paid=?, due_date=?, print_note=? WHERE id=?""",
                     (data["customer_id"], doc_date,
                      data.get("discount_type", "percent"), data.get("discount_value", 0),
                      data.get("total_net", 0), data.get("total_tax", 0),
-                     data.get("total_gross", 0), data.get("note", ""), paid, due, data["id"]))
+                     data.get("total_gross", 0), data.get("note", ""),
+                     data.get("internal_note", ""), paid, due,
+                     data.get("print_note", "1"), data["id"]))
                 conn.execute("DELETE FROM positions WHERE doc_id=?", (data["id"],))
                 doc_id = data["id"]
             else:
                 doc_number, _ = self.doc_get_next_number(data["doc_type"])
                 data["doc_number"] = doc_number
                 cur = conn.execute("""INSERT INTO documents (doc_type, doc_number, customer_id, date,
-                    discount_type, discount_value, total_net, total_tax, total_gross, note, paid, due_date)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    discount_type, discount_value, total_net, total_tax, total_gross, note, internal_note, paid, due_date, print_note)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (data["doc_type"], doc_number, data["customer_id"], doc_date,
                      data.get("discount_type", "percent"), data.get("discount_value", 0),
                      data.get("total_net", 0), data.get("total_tax", 0),
-                     data.get("total_gross", 0), data.get("note", ""), paid, due))
+                     data.get("total_gross", 0), data.get("note", ""),
+                     data.get("internal_note", ""), paid, due,
+                     data.get("print_note", "1")))
                 doc_id = cur.lastrowid
             for i, pos in enumerate(positions):
                 conn.execute("""INSERT INTO positions (doc_id, pos_type, ref_id, description,
