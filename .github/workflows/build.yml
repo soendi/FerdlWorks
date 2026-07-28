@@ -28,10 +28,26 @@ jobs:
         run: |
           python -c "from lib.icon import create_icon; create_icon()"
 
-      - name: Build EXE with PyInstaller (spec)
+      - name: Build EXE with PyInstaller
         shell: pwsh
         run: |
-          pyinstaller --noconfirm ferdlworks.spec
+          $dll = python -c "import sysconfig,os; d=sysconfig.get_config_var('LDLIBRARY'); p=os.path.join(sys.base_prefix,d) if d else ''; print(p if os.path.exists(p) else '')"
+          if (-not $dll) { $dll = python -c "import glob; r=glob.glob('C:/hostedtoolcache/**/python3*.dll',recursive=True); print(r[0] if r else '')" }
+          if (-not $dll) { $dll = python -c "import glob,os; r=glob.glob(os.environ.get('Python_ROOT_DIR','')+'/**/python3*.dll',recursive=True); print(r[0] if r else '')" }
+          if (-not $dll) { $dll = python -c "import glob; r=glob.glob(os.path.split(os.__file__)[0]+'/DLLs/python3*.dll'); print(r[0] if r else '')" }
+          Write-Host "python DLL: $dll"
+          $args = @('--noconfirm','--onefile','--windowed','--name','FerdlWorks',
+            '--icon','assets\ferdlworks.ico',
+            '--add-data','assets\ferdlworks_theme.json;assets',
+            '--add-data','assets\ferdlworks.ico;.',
+            '--hidden-import','customtkinter',
+            '--hidden-import','PIL._tkinter_finder',
+            '--hidden-import','win32print',
+            '--hidden-import','packaging',
+            '--hidden-import','packaging.version',
+            '--collect-all','reportlab')
+          if ($dll) { $args += @('--add-binary',"$dll;.") }
+          & pyinstaller @args main.py
 
       - name: Install Inno Setup
         shell: pwsh
