@@ -103,7 +103,7 @@ class Database:
                 CREATE TABLE IF NOT EXISTS positions (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     doc_id INTEGER NOT NULL,
-                    pos_type TEXT NOT NULL CHECK(pos_type IN('tool','material')),
+                    pos_type TEXT NOT NULL CHECK(pos_type IN('tool','material','text')),
                     ref_id INTEGER,
                     description TEXT NOT NULL,
                     quantity REAL NOT NULL DEFAULT 1,
