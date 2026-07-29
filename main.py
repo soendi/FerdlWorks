@@ -106,8 +106,11 @@ class FerdlWorksApp(ctk.CTk):
 
         verw = tk.Menu(mb, tearoff=False, font=("Segoe UI", 10))
         verw.add_command(label="Kundenverwaltung...", command=self._open_customer_mgmt)
-        verw.add_separator()
+        verw.add_command(label="Arbeitenverwaltung...", command=self._open_arbeit_mgmt)
         verw.add_command(label="Materialverwaltung...", command=self._open_material_mgmt)
+        verw.add_command(label="Werkzeugverwaltung...", command=self._open_tool_mgmt)
+        verw.add_command(label="Textverwaltung...", command=self._open_text_mgmt)
+        verw.add_separator()
         
         # Import / Export Submenu
         imp_exp = tk.Menu(verw, tearoff=False, font=("Segoe UI", 10))
@@ -133,6 +136,13 @@ class FerdlWorksApp(ctk.CTk):
         tool_menu.add_command(label="Werkzeug-Vorlage öffnen...", command=lambda: self._open_template("tool"))
         imp_exp.add_cascade(label="Werkzeuge", menu=tool_menu)
         
+        # Arbeiten
+        arbeit_menu = tk.Menu(imp_exp, tearoff=False, font=("Segoe UI", 10))
+        arbeit_menu.add_command(label="Arbeitsliste exportieren...", command=lambda: self._export_list("arbeit"))
+        arbeit_menu.add_command(label="Arbeitsliste importieren...", command=lambda: self._import_list("arbeit"))
+        arbeit_menu.add_command(label="Arbeit-Vorlage öffnen...", command=lambda: self._open_template("arbeit"))
+        imp_exp.add_cascade(label="Arbeiten", menu=arbeit_menu)
+        
         # Texte
         text_menu = tk.Menu(imp_exp, tearoff=False, font=("Segoe UI", 10))
         text_menu.add_command(label="Textliste exportieren...", command=lambda: self._export_list("text"))
@@ -141,10 +151,6 @@ class FerdlWorksApp(ctk.CTk):
         imp_exp.add_cascade(label="Texte", menu=text_menu)
         
         verw.add_cascade(label="Import / Export", menu=imp_exp)
-        verw.add_separator()
-        verw.add_command(label="Werkzeugverwaltung...", command=self._open_tool_mgmt)
-        verw.add_separator()
-        verw.add_command(label="Texteverwaltung...", command=self._open_text_mgmt)
         mb.add_cascade(label="Verwaltung", menu=verw)
 
         hilfe = tk.Menu(mb, tearoff=False, font=("Segoe UI", 10))
@@ -372,9 +378,13 @@ class FerdlWorksApp(ctk.CTk):
         # --- Top-Right: Datum + Zahlungsziel ---
         tr = ctk.CTkFrame(bottom, fg_color="transparent")
         tr.grid(row=0, column=1, sticky="nsew", padx=(2, 0), pady=(0, 2))
-        ctk.CTkLabel(tr, text="Rechnungsdatum:", font=("Segoe UI", 13, "bold"),
+
+        # Spalte 1: Rechnungsdatum
+        col1 = ctk.CTkFrame(tr, fg_color="transparent")
+        col1.pack(side="left", fill="x", expand=True, anchor="n")
+        ctk.CTkLabel(col1, text="Rechnungsdatum:", font=("Segoe UI", 13, "bold"),
                      text_color="#8b0000").pack(anchor="w", padx=6, pady=(6, 2))
-        dr = ctk.CTkFrame(tr, fg_color="transparent")
+        dr = ctk.CTkFrame(col1, fg_color="transparent")
         dr.pack(fill="x", padx=6)
         self.doc_date_var = ctk.StringVar(value=datetime.now().strftime("%d.%m.%Y"))
         self.doc_date_entry = ctk.CTkEntry(dr, width=85, textvariable=self.doc_date_var)
@@ -385,26 +395,34 @@ class FerdlWorksApp(ctk.CTk):
         self._cal_btn = dr.winfo_children()[1]
         ctk.CTkButton(dr, text="Heute", width=45, command=lambda: self.doc_date_var.set(
             datetime.now().strftime("%d.%m.%Y")), fg_color="#555555").pack(side="left")
-        zr = ctk.CTkFrame(tr, fg_color="transparent")
-        zr.pack(fill="x", padx=6, pady=(6, 2))
+
+        # Spalte 2: Zahlungsziel (Tage)
+        col2 = ctk.CTkFrame(tr, fg_color="transparent")
+        col2.pack(side="left", fill="x", expand=True, anchor="n")
+        ctk.CTkLabel(col2, text="Zahlungsziel:", font=("Segoe UI", 13, "bold"),
+                     text_color="#8b0000").pack(anchor="w", padx=6, pady=(6, 2))
+        zr = ctk.CTkFrame(col2, fg_color="transparent")
+        zr.pack(fill="x", padx=6)
         settings = self.db.settings_get_all()
         default_payment = int(settings.get("payment_term", "30"))
-        ctk.CTkLabel(zr, text="Zahlungsziel:", font=("Segoe UI", 13, "bold"),
-                     text_color="#8b0000").pack(side="left")
         self.payment_term_var = ctk.StringVar(value=str(default_payment))
         self.payment_term_entry = ctk.CTkEntry(zr, width=50, textvariable=self.payment_term_var)
-        self.payment_term_entry.pack(side="left", padx=(2, 0))
+        self.payment_term_entry.pack(side="left")
         self.payment_term_var.trace_add("write", lambda *a: self._recalc_due_date())
         ctk.CTkButton(zr, text="\u25b2", width=25, command=lambda: self._adj_payment(1),
                       fg_color="#555555").pack(side="left", padx=1)
         ctk.CTkButton(zr, text="\u25bc", width=25, command=lambda: self._adj_payment(-1),
                       fg_color="#555555").pack(side="left")
-        ctk.CTkLabel(zr, text="Zu bezahlen bis:", font=("Segoe UI", 13, "bold"),
-                     text_color="#8b0000").pack(side="left", padx=(10, 0))
+
+        # Spalte 3: Zu bezahlen bis
+        col3 = ctk.CTkFrame(tr, fg_color="transparent")
+        col3.pack(side="left", fill="x", expand=True, anchor="n")
+        ctk.CTkLabel(col3, text="Zu bezahlen bis:", font=("Segoe UI", 13, "bold"),
+                     text_color="#8b0000").pack(anchor="w", padx=6, pady=(6, 2))
         self.due_date_var = ctk.StringVar()
-        self.due_date_entry = ctk.CTkEntry(zr, width=105, textvariable=self.due_date_var,
+        self.due_date_entry = ctk.CTkEntry(col3, width=105, textvariable=self.due_date_var,
                                            state="readonly")
-        self.due_date_entry.pack(side="left", padx=(2, 0))
+        self.due_date_entry.pack(padx=6)
         self._recalc_due_date()
 
         # --- Bottom-Left: Checkboxen + Buttons ---
@@ -609,6 +627,9 @@ class FerdlWorksApp(ctk.CTk):
         elif self._selected_article["item_type"] == "Werkzeug":
             self._show_tool_units()
             self.dl_time.focus_set()
+        elif self._selected_article["item_type"] == "Arbeit":
+            self._show_mat_qty()
+            self.dl_qty.focus_set()
         else:
             self._hide_units()
 
@@ -699,6 +720,9 @@ class FerdlWorksApp(ctk.CTk):
         elif self._selected_article["item_type"] == "Werkzeug":
             self._show_tool_units()
             self.dl_time.focus_set()
+        elif self._selected_article["item_type"] == "Arbeit":
+            self._show_mat_qty()
+            self.dl_qty.focus_set()
         else:
             self._hide_units()
 
@@ -825,6 +849,19 @@ class FerdlWorksApp(ctk.CTk):
                 "tool", item["id"], desc, time_val, unit_label, price_per, total,
                 {"price_unit": item.get("price_unit", "h"), "price": item.get("price", 0)}
             ))
+        elif item["item_type"] == "Arbeit":
+            try:
+                qty = float(self.dl_qty.get().replace(",", ".")) if self.dl_qty.get() else 0
+            except ValueError:
+                qty = 1
+            price = item.get("price", 0)
+            unit = item.get("price_unit", "h")
+            total = qty * price
+            desc = item['name']
+            self._positions.append(PositionItem(
+                "arbeit", item["id"], desc, qty, unit, price, total,
+                {"qty": qty, "price_unit": unit}
+            ))
         elif item["item_type"] == "Text":
             desc = item.get("content") or item["name"]
             self._positions.append(PositionItem(
@@ -875,6 +912,19 @@ class FerdlWorksApp(ctk.CTk):
             self._positions[idx] = PositionItem(
                 "tool", item["id"], desc, time_val, unit_label, price_per, total,
                 {"price_unit": item.get("price_unit", "h"), "price": item.get("price", 0)}
+            )
+        elif item["item_type"] == "Arbeit":
+            try:
+                qty = float(self.dl_qty.get().replace(",", ".")) if self.dl_qty.get() else 0
+            except ValueError:
+                qty = 1
+            price = item.get("price", 0)
+            unit = item.get("price_unit", "h")
+            total = qty * price
+            desc = item['name']
+            self._positions[idx] = PositionItem(
+                "arbeit", item["id"], desc, qty, unit, price, total,
+                {"qty": qty, "price_unit": unit}
             )
         elif item["item_type"] == "Text":
             desc = item.get("content") or item["name"]
@@ -1004,6 +1054,10 @@ class FerdlWorksApp(ctk.CTk):
                 self._show_mat_qty()
                 self.dl_qty.delete(0, "end")
                 self.dl_qty.insert(0, str(int(pos.quantity)))
+        elif pos.pos_type == "arbeit":
+            self._show_mat_qty()
+            self.dl_qty.delete(0, "end")
+            self.dl_qty.insert(0, str(int(pos.quantity)))
         elif pos.pos_type == "tool":
             self._show_tool_units()
             self.dl_time.delete(0, "end")
@@ -1452,6 +1506,10 @@ class FerdlWorksApp(ctk.CTk):
     def _open_material_mgmt(self):
         MaterialDatabase(self)
 
+    def _open_arbeit_mgmt(self):
+        from lib.arbeit_database import ArbeitDatabase
+        ArbeitDatabase(self)
+
     def _open_text_mgmt(self):
         TextDatabase(self)
 
@@ -1620,6 +1678,14 @@ class FerdlWorksApp(ctk.CTk):
                 "search_fn": self.db.tool_search,
                 "filename": "werkzeuge_export.xlsx",
             },
+            "arbeit": {
+                "title": "Arbeiten",
+                "sheet": "Arbeiten",
+                "headers": ["Name", "Beschreibung", "Preis", "Einheit", "Notiz"],
+                "widths": [30, 50, 15, 10, 40],
+                "search_fn": self.db.arbeit_search,
+                "filename": "arbeiten_export.xlsx",
+            },
             "text": {
                 "title": "Texte",
                 "sheet": "Texte",
@@ -1665,13 +1731,17 @@ class FerdlWorksApp(ctk.CTk):
                     row = [item.get("name", ""), item.get("description", ""),
                            item.get("price", 0), item.get("price_unit", ""),
                            item.get("note", "")]
+                elif list_type == "arbeit":
+                    row = [item.get("name", ""), item.get("description", ""),
+                           item.get("price", 0), item.get("price_unit", ""),
+                           item.get("note", "")]
                 else:  # text
                     row = [item.get("name", ""), item.get("content", "")]
 
                 for ci, v in enumerate(row, 1):
                     c = ws.cell(row=ri, column=ci, value=v)
                     c.border = border
-                    if list_type in ("material", "tool") and ci == 3:
+                    if list_type in ("material", "tool", "arbeit") and ci == 3:
                         c.number_format = '#,##0.00'
 
             ws.freeze_panes = "A2"
@@ -1696,6 +1766,7 @@ class FerdlWorksApp(ctk.CTk):
             "material": {"import_fn": self.db.material_import_from_excel, "name": "Materialien"},
             "customer": {"import_fn": self.db.customer_import_from_excel, "name": "Kunden"},
             "tool": {"import_fn": self.db.tool_import_from_excel, "name": "Werkzeuge"},
+            "arbeit": {"import_fn": self.db.arbeit_import_from_excel, "name": "Arbeiten"},
             "text": {"import_fn": self.db.text_import_from_excel, "name": "Texte"},
         }
         cfg = configs[list_type]
@@ -1760,6 +1831,19 @@ class FerdlWorksApp(ctk.CTk):
                     ["Handwerkzeug-Set", "Schraubendreher, Zangen, etc.", 25.00, "h", ""],
                 ],
                 "filename": "werkzeuge_vorlage.xlsx",
+            },
+            "arbeit": {
+                "title": "Arbeiten",
+                "sheet": "Arbeiten",
+                "headers": ["Name", "Beschreibung", "Preis", "Einheit", "Notiz"],
+                "widths": [30, 50, 15, 10, 40],
+                "examples": [
+                    ["Fliesenlegen", "Verlegen von Wand- und Bodenfliesen", 45.00, "m²", "inkl. Material"],
+                    ["Malerarbeiten", "Streichen von Wänden und Decken", 18.00, "m²", ""],
+                    ["Trockenbau", "Montage von Gipskartonwänden", 35.00, "m", ""],
+                    ["Pauschal: Kleinreparatur", "Kleinreparaturen aller Art", 120.00, "Pauschal", "bis 2h"],
+                ],
+                "filename": "arbeiten_vorlage.xlsx",
             },
             "text": {
                 "title": "Texte",

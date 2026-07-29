@@ -70,11 +70,22 @@ class Database:
                     updated_at TEXT DEFAULT (datetime('now','localtime'))
                 );
 
-                CREATE TABLE IF NOT EXISTS materials (
+CREATE TABLE IF NOT EXISTS materials (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT NOT NULL,
                     description TEXT DEFAULT '',
                     price_per_m2 REAL NOT NULL DEFAULT 0,
+                    note TEXT DEFAULT '',
+                    created_at TEXT DEFAULT (datetime('now','localtime')),
+                    updated_at TEXT DEFAULT (datetime('now','localtime'))
+                );
+
+                CREATE TABLE IF NOT EXISTS arbeiten (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    description TEXT DEFAULT '',
+                    price REAL NOT NULL DEFAULT 0,
+                    price_unit TEXT NOT NULL DEFAULT 'h',
                     note TEXT DEFAULT '',
                     created_at TEXT DEFAULT (datetime('now','localtime')),
                     updated_at TEXT DEFAULT (datetime('now','localtime'))
@@ -103,7 +114,7 @@ class Database:
                 CREATE TABLE IF NOT EXISTS positions (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     doc_id INTEGER NOT NULL,
-                    pos_type TEXT NOT NULL CHECK(pos_type IN('tool','material','text')),
+                    pos_type TEXT NOT NULL CHECK(pos_type IN('tool','material','text','arbeit')),
                     ref_id INTEGER,
                     description TEXT NOT NULL,
                     quantity REAL NOT NULL DEFAULT 1,
@@ -155,17 +166,17 @@ class Database:
                 conn.execute("ALTER TABLE materials ADD COLUMN price_unit TEXT NOT NULL DEFAULT 'm\u00b2'")
             except sqlite3.OperationalError:
                 pass
-            # Migration: pos_type CHECK um 'text' erweitern + Spalten ergänzen
+            # Migration: pos_type CHECK um 'text' und 'arbeit' erweitern + Spalten ergänzen
             conn.execute("PRAGMA foreign_keys=OFF")
             try:
-                conn.execute("INSERT INTO positions (doc_id, pos_type, description) VALUES (-2, 'text', '__migrate__')")
+                conn.execute("INSERT INTO positions (doc_id, pos_type, description) VALUES (-2, 'arbeit', '__migrate__')")
                 conn.execute("DELETE FROM positions WHERE description='__migrate__'")
             except sqlite3.IntegrityError:
                 cur = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='positions'")
                 old_sql = cur.fetchone()["sql"]
                 new_sql = old_sql.replace(
-                    "CHECK(pos_type IN('tool','material'))",
-                    "CHECK(pos_type IN('tool','material','text'))"
+                    "CHECK(pos_type IN('tool','material','text'))",
+                    "CHECK(pos_type IN('tool','material','text','arbeit'))"
                 )
                 if "orig_price" not in old_sql:
                     new_sql = new_sql.replace(
@@ -276,6 +287,52 @@ class Database:
         finally:
             conn.close()
 
+    # --- Arbeiten ---
+    def arbeit_search(self, query=""):
+        conn = self._connect()
+        try:
+            like = f"%{query}%"
+            rows = conn.execute("SELECT * FROM arbeiten WHERE name LIKE ? OR description LIKE ? ORDER BY name",
+                                (like, like)).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            conn.close()
+
+    def arbeit_get(self, aid):
+        conn = self._connect()
+        try:
+            r = conn.execute("SELECT * FROM arbeiten WHERE id=?", (aid,)).fetchone()
+            return dict(r) if r else None
+        finally:
+            conn.close()
+
+    def arbeit_save(self, data):
+        conn = self._connect()
+        try:
+            keys = ["name", "description", "price", "price_unit", "note"]
+            if data.get("id"):
+                sets = ", ".join(f"{k}=?" for k in keys)
+                vals = [data.get(k, "") for k in keys] + [data["id"]]
+                conn.execute(f"UPDATE arbeiten SET {sets}, updated_at=datetime('now','localtime') WHERE id=?", vals)
+            else:
+                ks = ", ".join(keys)
+                qs = ", ".join("?" for _ in keys)
+                vals = [data.get(k, "") for k in keys]
+                cur = conn.execute(f"INSERT INTO arbeiten ({ks}) VALUES ({qs})", vals)
+                data["id"] = cur.lastrowid
+            conn.commit()
+            return data
+        finally:
+            conn.close()
+
+    def arbeit_delete(self, aid):
+        conn = self._connect()
+        try:
+            conn.execute("DELETE FROM arbeiten WHERE id=?", (aid,))
+            conn.commit()
+        finally:
+            conn.close()
+
     # --- Materialien ---
     def material_search(self, query=""):
         conn = self._connect()
@@ -321,6 +378,83 @@ class Database:
             conn.commit()
         finally:
             conn.close()
+
+    # --- Arbeiten ---
+    def arbeit_search(self, query=""):
+        conn = self._connect()
+        try:
+            like = f"%{query}%"
+            rows = conn.execute("""
+                SELECT * FROM arbeiten
+                WHERE name LIKE ? OR description LIKE ?
+                ORDER BY name
+            """, (like, like)).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            conn.close()
+
+    def arbeit_get(self, aid):
+        conn = self._connect()
+        try:
+            r = conn.execute("SELECT * FROM arbeiten WHERE id=?", (aid,)).fetchone()
+            return dict(r) if r else None
+        finally:
+            conn.close()
+
+    def arbeit_save(self, data):
+        conn = self._connect()
+        try:
+            keys = ["name", "description", "price", "price_unit", "note"]
+            if data.get("id"):
+                sets = ", ".join(f"{k}=?" for k in keys)
+                vals = [data.get(k, "") for k in keys] + [data["id"]]
+                conn.execute(f"UPDATE arbeiten SET {sets}, updated_at=datetime('now','localtime') WHERE id=?", vals)
+            else:
+                ks = ", ".join(keys)
+                qs = ", ".join("?" for _ in keys)
+                vals = [data.get(k, "") for k in keys]
+                cur = conn.execute(f"INSERT INTO arbeiten ({ks}) VALUES ({qs})", vals)
+                data["id"] = cur.lastrowid
+            conn.commit()
+            return data
+        finally:
+            conn.close()
+
+    def arbeit_delete(self, aid):
+        conn = self._connect()
+        try:
+            conn.execute("DELETE FROM arbeiten WHERE id=?", (aid,))
+            conn.commit()
+        finally:
+            conn.close()
+
+    def arbeit_import_from_excel(self, filepath):
+        import openpyxl
+        wb = openpyxl.load_workbook(filepath)
+        ws = wb["Arbeiten"]
+        imported = 0
+        skipped = 0
+        errors = []
+        for row in ws.iter_rows(min_row=3, values_only=True):
+            name = str(row[0]).strip() if row[0] else ""
+            if not name:
+                skipped += 1
+                continue
+            desc = str(row[1]).strip() if len(row) > 1 and row[1] else ""
+            raw_price = row[2] if len(row) > 2 and row[2] is not None else 0
+            unit = str(row[3]).strip() if len(row) > 3 and row[3] else "h"
+            note = str(row[4]).strip() if len(row) > 4 and row[4] else ""
+            try:
+                price = float(str(raw_price).replace(",", "."))
+            except (ValueError, TypeError):
+                errors.append(f"Zeile {imported + skipped + 3}: '{name}' - ungültiger Preis '{raw_price}'")
+                skipped += 1
+                continue
+            data = {"name": name, "description": desc, "price": price, "price_unit": unit, "note": note}
+            self.arbeit_save(data)
+            imported += 1
+        wb.close()
+        return imported, skipped, errors
 
     def material_import_from_excel(self, filepath):
         import openpyxl
@@ -471,12 +605,15 @@ class Database:
         finally:
             conn.close()
 
-    # --- Kombinierte Suche (Werkzeug + Material + Text) ---
+    # --- Kombinierte Suche (Arbeit + Werkzeug + Material + Text) ---
     def combined_search(self, query=""):
         conn = self._connect()
         try:
             like = f"%{query}%"
             rows = conn.execute("""
+                SELECT id, name, 'Arbeit' as item_type, price, price_unit, 0 as price_per_m2, '' as content
+                FROM arbeiten WHERE name LIKE ? OR description LIKE ?
+                UNION ALL
                 SELECT id, name, 'Werkzeug' as item_type, price, price_unit, 0 as price_per_m2, '' as content
                 FROM tools WHERE name LIKE ? OR description LIKE ?
                 UNION ALL
@@ -486,7 +623,7 @@ class Database:
                 SELECT id, name, 'Text' as item_type, 0 as price, '' as price_unit, 0 as price_per_m2, content
                 FROM texts WHERE name LIKE ?
                 ORDER BY name LIMIT 100
-            """, (like, like, like, like, like)).fetchall()
+            """, (like, like, like, like, like, like, like)).fetchall()
             return [dict(r) for r in rows]
         finally:
             conn.close()
