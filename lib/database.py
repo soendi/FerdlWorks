@@ -350,6 +350,81 @@ class Database:
         wb.close()
         return imported, skipped, errors
 
+    def customer_import_from_excel(self, filepath):
+        import openpyxl
+        wb = openpyxl.load_workbook(filepath)
+        ws = wb["Kunden"]
+        imported = 0
+        skipped = 0
+        errors = []
+        for row in ws.iter_rows(min_row=3, values_only=True):
+            company = str(row[0]).strip() if row[0] else ""
+            first_name = str(row[1]).strip() if len(row) > 1 and row[1] else ""
+            last_name = str(row[2]).strip() if len(row) > 2 and row[2] else ""
+            if not company and not last_name:
+                skipped += 1
+                continue
+            street = str(row[3]).strip() if len(row) > 3 and row[3] else ""
+            zip_code = str(row[4]).strip() if len(row) > 4 and row[4] else ""
+            city = str(row[5]).strip() if len(row) > 5 and row[5] else ""
+            phone = str(row[6]).strip() if len(row) > 6 and row[6] else ""
+            email = str(row[7]).strip() if len(row) > 7 and row[7] else ""
+            note = str(row[8]).strip() if len(row) > 8 and row[8] else ""
+            data = {"company": company, "first_name": first_name, "last_name": last_name,
+                    "street": street, "zip": zip_code, "city": city,
+                    "phone": phone, "email": email, "note": note}
+            self.customer_save(data)
+            imported += 1
+        wb.close()
+        return imported, skipped, errors
+
+    def tool_import_from_excel(self, filepath):
+        import openpyxl
+        wb = openpyxl.load_workbook(filepath)
+        ws = wb["Werkzeuge"]
+        imported = 0
+        skipped = 0
+        errors = []
+        for row in ws.iter_rows(min_row=3, values_only=True):
+            name = str(row[0]).strip() if row[0] else ""
+            if not name:
+                skipped += 1
+                continue
+            desc = str(row[1]).strip() if len(row) > 1 and row[1] else ""
+            raw_price = row[2] if len(row) > 2 and row[2] is not None else 0
+            unit = str(row[3]).strip() if len(row) > 3 and row[3] else "h"
+            note = str(row[4]).strip() if len(row) > 4 and row[4] else ""
+            try:
+                price = float(str(raw_price).replace(",", "."))
+            except (ValueError, TypeError):
+                errors.append(f"Zeile {imported + skipped + 3}: '{name}' - ungültiger Preis '{raw_price}'")
+                skipped += 1
+                continue
+            data = {"name": name, "description": desc, "price": price, "price_unit": unit, "note": note}
+            self.tool_save(data)
+            imported += 1
+        wb.close()
+        return imported, skipped, errors
+
+    def text_import_from_excel(self, filepath):
+        import openpyxl
+        wb = openpyxl.load_workbook(filepath)
+        ws = wb["Texte"]
+        imported = 0
+        skipped = 0
+        errors = []
+        for row in ws.iter_rows(min_row=3, values_only=True):
+            name = str(row[0]).strip() if row[0] else ""
+            if not name:
+                skipped += 1
+                continue
+            content = str(row[1]).strip() if len(row) > 1 and row[1] else ""
+            data = {"name": name, "content": content}
+            self.text_save(data)
+            imported += 1
+        wb.close()
+        return imported, skipped, errors
+
     # --- Texte ---
     def text_search(self, query=""):
         conn = self._connect()

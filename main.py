@@ -108,8 +108,39 @@ class FerdlWorksApp(ctk.CTk):
         verw.add_command(label="Kundenverwaltung...", command=self._open_customer_mgmt)
         verw.add_separator()
         verw.add_command(label="Materialverwaltung...", command=self._open_material_mgmt)
-        verw.add_command(label="Material importieren...", command=self._import_materials)
-        verw.add_command(label="Material-Vorlage \u00f6ffnen...", command=self._open_material_template)
+        
+        # Import / Export Submenu
+        imp_exp = tk.Menu(verw, tearoff=False, font=("Segoe UI", 10))
+        
+        # Material
+        mat_menu = tk.Menu(imp_exp, tearoff=False, font=("Segoe UI", 10))
+        mat_menu.add_command(label="Materialliste exportieren...", command=lambda: self._export_list("material"))
+        mat_menu.add_command(label="Materialliste importieren...", command=lambda: self._import_list("material"))
+        mat_menu.add_command(label="Material-Vorlage öffnen...", command=lambda: self._open_template("material"))
+        imp_exp.add_cascade(label="Material", menu=mat_menu)
+        
+        # Kunden
+        cust_menu = tk.Menu(imp_exp, tearoff=False, font=("Segoe UI", 10))
+        cust_menu.add_command(label="Kundenliste exportieren...", command=lambda: self._export_list("customer"))
+        cust_menu.add_command(label="Kundenliste importieren...", command=lambda: self._import_list("customer"))
+        cust_menu.add_command(label="Kunden-Vorlage öffnen...", command=lambda: self._open_template("customer"))
+        imp_exp.add_cascade(label="Kunden", menu=cust_menu)
+        
+        # Werkzeuge
+        tool_menu = tk.Menu(imp_exp, tearoff=False, font=("Segoe UI", 10))
+        tool_menu.add_command(label="Werkzeugliste exportieren...", command=lambda: self._export_list("tool"))
+        tool_menu.add_command(label="Werkzeugliste importieren...", command=lambda: self._import_list("tool"))
+        tool_menu.add_command(label="Werkzeug-Vorlage öffnen...", command=lambda: self._open_template("tool"))
+        imp_exp.add_cascade(label="Werkzeuge", menu=tool_menu)
+        
+        # Texte
+        text_menu = tk.Menu(imp_exp, tearoff=False, font=("Segoe UI", 10))
+        text_menu.add_command(label="Textliste exportieren...", command=lambda: self._export_list("text"))
+        text_menu.add_command(label="Textliste importieren...", command=lambda: self._import_list("text"))
+        text_menu.add_command(label="Text-Vorlage öffnen...", command=lambda: self._open_template("text"))
+        imp_exp.add_cascade(label="Texte", menu=text_menu)
+        
+        verw.add_cascade(label="Import / Export", menu=imp_exp)
         verw.add_separator()
         verw.add_command(label="Werkzeugverwaltung...", command=self._open_tool_mgmt)
         verw.add_separator()
@@ -1551,6 +1582,234 @@ class FerdlWorksApp(ctk.CTk):
                         c.number_format = '#,##0.00'
             ws.freeze_panes = "A3"
             dst = os.path.join(os.environ["TEMP"], "materials_vorlage.xlsx")
+            wb.save(dst)
+            os.startfile(dst)
+        except Exception as ex:
+            messagebox.showerror("Fehler", f"Vorlage konnte nicht erstellt werden:\n{ex}")
+
+    # ===================== GENERIC IMPORT / EXPORT / TEMPLATE =====================
+    def _export_list(self, list_type: str):
+        from tkinter import filedialog, messagebox
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
+        import os
+
+        # Config per type
+        configs = {
+            "material": {
+                "title": "Materialien",
+                "sheet": "Materialien",
+                "headers": ["Name", "Beschreibung", "Preis", "Einheit", "Notiz"],
+                "widths": [30, 50, 15, 10, 40],
+                "search_fn": self.db.material_search,
+                "filename": "materialien_export.xlsx",
+            },
+            "customer": {
+                "title": "Kunden",
+                "sheet": "Kunden",
+                "headers": ["Firma", "Vorname", "Nachname", "Straße", "PLZ", "Ort", "Telefon", "E-Mail", "Notiz"],
+                "widths": [30, 15, 15, 30, 10, 20, 15, 30, 40],
+                "search_fn": self.db.customer_search,
+                "filename": "kunden_export.xlsx",
+            },
+            "tool": {
+                "title": "Werkzeuge",
+                "sheet": "Werkzeuge",
+                "headers": ["Name", "Beschreibung", "Preis", "Einheit", "Notiz"],
+                "widths": [30, 50, 15, 10, 40],
+                "search_fn": self.db.tool_search,
+                "filename": "werkzeuge_export.xlsx",
+            },
+            "text": {
+                "title": "Texte",
+                "sheet": "Texte",
+                "headers": ["Name", "Inhalt"],
+                "widths": [30, 80],
+                "search_fn": self.db.text_search,
+                "filename": "texte_export.xlsx",
+            },
+        }
+        cfg = configs[list_type]
+
+        try:
+            data = cfg["search_fn"]("")
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = cfg["sheet"]
+            ws.page_setup.orientation = "landscape"
+
+            hfont = Font(bold=True, color="FFFFFF", size=11)
+            hfill = PatternFill("solid", fgColor="2F5496")
+            halign = Alignment(horizontal="center", vertical="center")
+            thin = Side(style="thin")
+            border = Border(top=thin, left=thin, right=thin, bottom=thin)
+
+            for ci, (h, w) in enumerate(zip(cfg["headers"], cfg["widths"]), 1):
+                c = ws.cell(row=1, column=ci, value=h)
+                c.font = hfont; c.fill = hfill; c.alignment = halign; c.border = border
+                ws.column_dimensions[openpyxl.utils.get_column_letter(ci)].width = w
+
+            # Map data to rows
+            for ri, item in enumerate(data, 2):
+                if list_type == "material":
+                    row = [item.get("name", ""), item.get("description", ""),
+                           item.get("price_per_m2", item.get("price", 0)),
+                           item.get("price_unit", ""), item.get("note", "")]
+                elif list_type == "customer":
+                    row = [item.get("company", ""), item.get("first_name", ""),
+                           item.get("last_name", ""), item.get("street", ""),
+                           item.get("zip", ""), item.get("city", ""),
+                           item.get("phone", ""), item.get("email", ""),
+                           item.get("note", "")]
+                elif list_type == "tool":
+                    row = [item.get("name", ""), item.get("description", ""),
+                           item.get("price", 0), item.get("price_unit", ""),
+                           item.get("note", "")]
+                else:  # text
+                    row = [item.get("name", ""), item.get("content", "")]
+
+                for ci, v in enumerate(row, 1):
+                    c = ws.cell(row=ri, column=ci, value=v)
+                    c.border = border
+                    if list_type in ("material", "tool") and ci == 3:
+                        c.number_format = '#,##0.00'
+
+            ws.freeze_panes = "A2"
+
+            path = filedialog.asksaveasfilename(
+                title=f"{cfg['title']} exportieren",
+                defaultextension=".xlsx",
+                filetypes=[("Excel-Dateien", "*.xlsx"), ("Alle Dateien", "*.*")],
+                initialfile=cfg["filename"],
+            )
+            if path:
+                wb.save(path)
+                messagebox.showinfo("Export abgeschlossen", f"{len(data)} {cfg['title'].lower()} exportiert.")
+        except Exception as ex:
+            messagebox.showerror("Export-Fehler", f"Fehler beim Export:\n{ex}")
+
+    def _import_list(self, list_type: str):
+        from tkinter import filedialog, messagebox
+        import os
+
+        configs = {
+            "material": {"import_fn": self.db.material_import_from_excel, "name": "Materialien"},
+            "customer": {"import_fn": self.db.customer_import_from_excel, "name": "Kunden"},
+            "tool": {"import_fn": self.db.tool_import_from_excel, "name": "Werkzeuge"},
+            "text": {"import_fn": self.db.text_import_from_excel, "name": "Texte"},
+        }
+        cfg = configs[list_type]
+
+        path = filedialog.askopenfilename(
+            title=f"Excel-Datei für {cfg['name']} auswählen",
+            filetypes=[("Excel-Dateien", "*.xlsx *.xls"), ("Alle Dateien", "*.*")]
+        )
+        if not path:
+            return
+        try:
+            imported, skipped, errors = cfg["import_fn"](path)
+            msg = f"{imported} {cfg['name'][:-1] if cfg['name'].endswith('e') else cfg['name']} importiert."
+            if skipped:
+                msg += f"\n{skipped} leere Zeilen übersprungen."
+            if errors:
+                msg += f"\n\nFehler:\n" + "\n".join(errors[:10])
+                if len(errors) > 10:
+                    msg += f"\n... und {len(errors) - 10} weitere"
+            messagebox.showinfo("Import abgeschlossen", msg)
+        except Exception as ex:
+            messagebox.showerror("Import-Fehler", f"Fehler beim Import:\n{ex}")
+
+    def _open_template(self, list_type: str):
+        from tkinter import messagebox
+        import openpyxl
+        from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+        import os
+
+        configs = {
+            "material": {
+                "title": "Materialien",
+                "sheet": "Materialien",
+                "headers": ["Name", "Beschreibung", "Preis", "Einheit", "Notiz"],
+                "widths": [30, 50, 15, 10, 40],
+                "examples": [
+                    ["Eiche Natur", "Massivholz Eiche, naturbelassen, 20mm", 89.50, "m²", "Innenbereich"],
+                    ["Buche Hell", "Buche Leimholz, gehobelt, 18mm", 72.00, "m²", ""],
+                    ["Schrauben 5x60", "Senkkopf, verzinkt, T20", 12.50, "Stk", "5er-Pack"],
+                ],
+                "filename": "materialien_vorlage.xlsx",
+            },
+            "customer": {
+                "title": "Kunden",
+                "sheet": "Kunden",
+                "headers": ["Firma", "Vorname", "Nachname", "Straße", "PLZ", "Ort", "Telefon", "E-Mail", "Notiz"],
+                "widths": [30, 15, 15, 30, 10, 20, 15, 30, 40],
+                "examples": [
+                    ["Müller GmbH", "Hans", "Müller", "Hauptstr. 1", "12345", "Berlin", "030-123456", "info@mueller.de", "Stammkunde"],
+                    ["Schmidt Bau", "Klaus", "Schmidt", "Bauweg 5", "54321", "München", "089-987654", "bau@schmidt.de", ""],
+                ],
+                "filename": "kunden_vorlage.xlsx",
+            },
+            "tool": {
+                "title": "Werkzeuge",
+                "sheet": "Werkzeuge",
+                "headers": ["Name", "Beschreibung", "Preis", "Einheit", "Notiz"],
+                "widths": [30, 50, 15, 10, 40],
+                "examples": [
+                    ["Bohrmaschine", "Akku-Bohrschrauber 18V", 45.00, "h", "Tagespreis"],
+                    ["Schleifmaschine", "Exzenterschleifer 150mm", 35.00, "h", ""],
+                    ["Handwerkzeug-Set", "Schraubendreher, Zangen, etc.", 25.00, "h", ""],
+                ],
+                "filename": "werkzeuge_vorlage.xlsx",
+            },
+            "text": {
+                "title": "Texte",
+                "sheet": "Texte",
+                "headers": ["Name", "Inhalt"],
+                "widths": [30, 80],
+                "examples": [
+                    ["AGB Standard", "Allgemeine Geschäftsbedingungen...\n1. Geltungsbereich..."],
+                    ["Zahlungshinweis", "Zahlbar innerhalb von 14 Tagen netto."],
+                    ["Dankesbrief", "Vielen Dank für Ihren Auftrag!"],
+                ],
+                "filename": "texte_vorlage.xlsx",
+            },
+        }
+        cfg = configs[list_type]
+
+        try:
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = cfg["sheet"]
+            ws.page_setup.orientation = "landscape"
+            ws.merge_cells(f"A1:{openpyxl.utils.get_column_letter(len(cfg['headers']))}1")
+            c = ws["A1"]
+            c.value = "Jede Zeile = ein Eintrag. Einfach unterhalb der Beispiele eintragen."
+            c.font = Font(italic=True, color="2F5496", size=10)
+            c.alignment = Alignment(horizontal="left")
+
+            hfont = Font(bold=True, color="FFFFFF", size=11)
+            hfill = PatternFill("solid", fgColor="2F5496")
+            halign = Alignment(horizontal="center", vertical="center")
+            thin = Side(style="thin")
+            border = Border(top=thin, left=thin, right=thin, bottom=thin)
+            lfill = PatternFill("solid", fgColor="D6E4F0")
+
+            for ci, (h, w) in enumerate(zip(cfg["headers"], cfg["widths"]), 1):
+                c = ws.cell(row=2, column=ci, value=h)
+                c.font = hfont; c.fill = hfill; c.alignment = halign; c.border = border
+                ws.column_dimensions[openpyxl.utils.get_column_letter(ci)].width = w
+
+            for ri, ex in enumerate(cfg["examples"], 3):
+                for ci, v in enumerate(ex, 1):
+                    c = ws.cell(row=ri, column=ci, value=v)
+                    c.border = border
+                    if ri % 2 == 1:
+                        c.fill = lfill
+                    if list_type in ("material", "tool") and ci == 3:
+                        c.number_format = '#,##0.00'
+
+            ws.freeze_panes = "A3"
+            dst = os.path.join(os.environ["TEMP"], cfg["filename"])
             wb.save(dst)
             os.startfile(dst)
         except Exception as ex:
