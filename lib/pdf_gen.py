@@ -137,7 +137,7 @@ def _build_elements(doc_data, settings, db):
             elements.append(Spacer(1, 2*mm))
 
     unit_labels = {"h": "Std.", "min": "Min.", "m": "m", "qm": "m\u00b2", "Stk": "Stk.", "m\u00b2": "m\u00b2"}
-    table_data = [["Pos.", "Beschreibung", "Anzahl", "Einz.-Menge", "Einheit", "EP", "Gesamt"]]
+    table_data = [["Pos.", "Beschreibung", "Anz.", "E-Mg.", "Einh.", "EP", "Gesamt"]]
     for i, pos in enumerate(table_rows, 1):
         desc = pos.get("description", "")
         qty = pos.get("quantity", 1)
