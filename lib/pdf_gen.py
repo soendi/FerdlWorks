@@ -229,6 +229,7 @@ def _build_elements(doc_data, settings, db):
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
         ("ALIGN", (1, 0), (1, -1), "LEFT"),
         ("ALIGN", (2, 0), (-1, -1), "RIGHT"),
+        ("ALIGN", (4, 0), (4, -1), "LEFT"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#cccccc")),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f5f5f5")]),

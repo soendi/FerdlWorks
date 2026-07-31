@@ -25,7 +25,7 @@ from lib.updater import check_for_update, download_installer, install_update, in
 from lib.autostart import autostart_enable, autostart_disable, autostart_is_enabled
 from lib.cloud_backup import gdrive_backup, gdrive_authorize, onedrive_backup, onedrive_authorize
 from version import VERSION, APP_NAME, COMPANY_NAME
-from lib.icon import set_window_icon
+from lib.icon import set_window_icon, install_auto as install_icon_auto
 
 THEME_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "ferdlworks_theme.json")
 
@@ -49,10 +49,12 @@ class FerdlWorksApp(ctk.CTk):
         self.db = get_db()
         from lib.winstate import install_auto, WinState
         install_auto(self.db)
+        install_icon_auto()
         self._winstate = WinState(self.db)
         self._master_mode = master_mode
         self.title(f"{APP_NAME} v{VERSION}")
         self._icon_path = create_icon()
+        self._set_icon()
         self.minsize(1200, 900)
         self.geometry("1200x900")
         self._current_doc_id = None

@@ -64,10 +64,44 @@ class WinState:
             x = max(0, sw - w)
         if sh and y + h > sh:
             y = max(0, sh - h)
-        win.geometry("{}x{}+{}+{}".format(w, h, x, y))
-        if zoom:
+        def _apply():
             try:
-                win.state("zoomed")
+                win.geometry("{}x{}+{}+{}".format(w, h, x, y))
+            except tk.TclError:
+                pass
+
+        def _apply_zoom():
+            if zoom:
+                try:
+                    win.state("zoomed")
+                except tk.TclError:
+                    pass
+
+        _apply()
+        _apply_zoom()
+
+        # Solange das Fenster noch nicht gemappt ist, kann die Größenangabe
+        # beim Anzeigen durch den Geometry-Manager verworfen werden (nur die
+        # Position bleibt). Deshalb die Geometrie beim ersten Map-Event
+        # erneut anwenden.
+        try:
+            is_mapped = win.winfo_ismapped()
+        except tk.TclError:
+            is_mapped = False
+        if not is_mapped:
+            bind_id = None
+
+            def _on_map(_e=None):
+                if bind_id is not None:
+                    try:
+                        win.unbind("<Map>", bind_id)
+                    except tk.TclError:
+                        pass
+                _apply()
+                _apply_zoom()
+
+            try:
+                bind_id = win.bind("<Map>", _on_map)
             except tk.TclError:
                 pass
 
