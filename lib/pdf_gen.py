@@ -1,6 +1,7 @@
 import os
 import sys
 import math
+import json
 from datetime import datetime, timedelta
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
@@ -109,6 +110,9 @@ def _build_elements(doc_data, settings, db):
     elements.append(Spacer(1, 2*mm))
     pos_data = doc_data.get("positions", [])
 
+    surcharge_pct = float(doc_data.get("surcharge_percent", 0) or 0)
+    factor = 1 + surcharge_pct / 100 if surcharge_pct > 0 else 1
+
     merge_tools = str(doc_data.get("merge_tools", "0")) == "1"
     merge_tool_name = doc_data.get("merge_tool_name", "Werkzeug")
     round_tools = str(doc_data.get("round_tools", "0")) == "1"
@@ -133,13 +137,37 @@ def _build_elements(doc_data, settings, db):
             elements.append(Spacer(1, 2*mm))
 
     unit_labels = {"h": "Std.", "min": "Min.", "m": "m", "qm": "m\u00b2", "Stk": "Stk.", "m\u00b2": "m\u00b2"}
-    table_data = [["Pos.", "Beschreibung", "Menge", "Einheit", "EP", "Gesamt"]]
+    table_data = [["Pos.", "Beschreibung", "Anzahl", "Einz.-Menge", "Einheit", "EP", "Gesamt"]]
     for i, pos in enumerate(table_rows, 1):
         desc = pos.get("description", "")
         qty = pos.get("quantity", 1)
         unit = pos.get("unit", "")
         unit_label = unit_labels.get(unit, unit) if unit else ""
-        ppu = pos.get("price_per_unit", 0)
+        anzahl = ""
+        menge_str = f"{qty:.2f}" if qty != int(qty) else str(int(qty))
+        if pos.get("pos_type") == "material":
+            low_unit = unit.strip().lower()
+            if low_unit in ("m2", "m\u00b2", "qm"):
+                ed = pos.get("extra_data") or {}
+                if isinstance(ed, str):
+                    try:
+                        ed = json.loads(ed) or {}
+                    except ValueError:
+                        ed = {}
+                q = ed.get("qty")
+                if q is not None:
+                    anzahl = str(int(q)) if float(q) == int(float(q)) else f"{float(q):g}"
+                length = ed.get("length")
+                width = ed.get("width")
+                if length and width:
+                    l = float(length)
+                    b = float(width)
+                    single_qm = (l / 100) * (b / 100)
+                    menge_str = f"{single_qm:g}"
+            else:
+                anzahl = menge_str
+                menge_str = "1"
+        ppu = pos.get("price_per_unit", 0) * factor
         orig_p = pos.get("orig_price")
         orig_u = pos.get("orig_price_unit")
         if not orig_p or not orig_u:
@@ -156,14 +184,15 @@ def _build_elements(doc_data, settings, db):
                     orig_p = m.get("price_per_m2", 0)
                     orig_u = m.get("price_unit", "m\u00b2")
         if orig_p and orig_u:
-            ep_str = f"{float(orig_p):.2f} \u20ac/{orig_u}"
+            ep_str = f"{float(orig_p) * factor:.2f} \u20ac/{orig_u}"
         else:
             ep_str = f"{ppu:.2f} \u20ac"
-        total = pos.get("total", 0)
+        total = pos.get("total", 0) * factor
         table_data.append([
             str(i),
             Paragraph(desc, style_normal),
-            f"{qty:.2f}" if qty != int(qty) else str(int(qty)),
+            anzahl,
+            menge_str,
             unit_label,
             ep_str,
             f"{total:.2f} \u20ac",
@@ -171,27 +200,27 @@ def _build_elements(doc_data, settings, db):
 
     # Add merged tool row if applicable
     if tool_rows:
-        tool_total = sum(p.get("total", 0) for p in tool_rows)
+        tool_total = sum(p.get("total", 0) for p in tool_rows) * factor
         if round_tools:
             tool_total = math.ceil(tool_total / 10) * 10
         i = len(table_rows) + 1
         table_data.append([
             str(i),
             Paragraph(merge_tool_name, style_normal),
-            "", "", "",
+            "", "", "", "",
             f"{tool_total:.2f} \u20ac",
         ])
-        pos_data_displayed_total = sum(p.get("total", 0) for p in table_rows) + tool_total
+        pos_data_displayed_total = sum(p.get("total", 0) for p in table_rows) * factor + tool_total
     else:
-        pos_data_displayed_total = sum(p.get("total", 0) for p in table_rows) + sum(p.get("total", 0) for p in tool_rows)
+        pos_data_displayed_total = sum(p.get("total", 0) for p in table_rows) * factor + sum(p.get("total", 0) for p in tool_rows) * factor
     # Apply rounding to tool portion regardless of merge state
     if round_tools:
-        all_tool = sum(p.get("total", 0) for p in pos_data if p.get("pos_type") == "tool")
-        all_other = sum(p.get("total", 0) for p in pos_data if p.get("pos_type") != "tool")
+        all_tool = sum(p.get("total", 0) for p in pos_data if p.get("pos_type") == "tool") * factor
+        all_other = sum(p.get("total", 0) for p in pos_data if p.get("pos_type") != "tool") * factor
         pos_data_displayed_total = math.ceil(all_tool / 10) * 10 + all_other
 
     avail_width = (210*mm - 20*mm - 15*mm) * 0.98
-    col_widths = [10*mm, avail_width-10*mm-19*mm-16*mm-24*mm-23*mm, 19*mm, 16*mm, 24*mm, 23*mm]
+    col_widths = [10*mm, avail_width-10*mm-12*mm-15*mm-14*mm-24*mm-23*mm, 12*mm, 15*mm, 14*mm, 24*mm, 23*mm]
     pos_table = Table(table_data, colWidths=col_widths)
     pos_style = [
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),

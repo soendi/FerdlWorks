@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import json
 from datetime import datetime
 from lib.logger import get_logger
 
@@ -70,11 +71,14 @@ class Database:
                     updated_at TEXT DEFAULT (datetime('now','localtime'))
                 );
 
-CREATE TABLE IF NOT EXISTS materials (
+                CREATE TABLE IF NOT EXISTS materials (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT NOT NULL,
                     description TEXT DEFAULT '',
                     price_per_m2 REAL NOT NULL DEFAULT 0,
+                    price_unit TEXT NOT NULL DEFAULT 'm\u00b2',
+                    length REAL DEFAULT 0,
+                    width REAL DEFAULT 0,
                     note TEXT DEFAULT '',
                     created_at TEXT DEFAULT (datetime('now','localtime')),
                     updated_at TEXT DEFAULT (datetime('now','localtime'))
@@ -124,6 +128,7 @@ CREATE TABLE IF NOT EXISTS materials (
                     sort_order INTEGER DEFAULT 0,
                     orig_price TEXT DEFAULT '',
                     orig_price_unit TEXT DEFAULT '',
+                    extra_data TEXT DEFAULT '',
                     FOREIGN KEY (doc_id) REFERENCES documents(id) ON DELETE CASCADE
                 );
 
@@ -161,11 +166,22 @@ CREATE TABLE IF NOT EXISTS materials (
                     conn.execute(f"ALTER TABLE positions ADD COLUMN {col} TEXT DEFAULT ''")
                 except sqlite3.OperationalError:
                     pass  # Spalte existiert bereits
+            # Migration: extra_data für Zusatzdaten (qm-Anzahl etc.)
+            try:
+                conn.execute("ALTER TABLE positions ADD COLUMN extra_data TEXT DEFAULT ''")
+            except sqlite3.OperationalError:
+                pass  # Spalte existiert bereits
             # Migration: price_unit für Materialien
             try:
                 conn.execute("ALTER TABLE materials ADD COLUMN price_unit TEXT NOT NULL DEFAULT 'm\u00b2'")
             except sqlite3.OperationalError:
                 pass
+            # Migration: length / width für Materialien (optional)
+            for col in ("length", "width"):
+                try:
+                    conn.execute(f"ALTER TABLE materials ADD COLUMN {col} REAL DEFAULT 0")
+                except sqlite3.OperationalError:
+                    pass
             # Migration: pos_type CHECK um 'text' und 'arbeit' erweitern + Spalten ergänzen
             conn.execute("PRAGMA foreign_keys=OFF")
             try:
@@ -355,7 +371,7 @@ CREATE TABLE IF NOT EXISTS materials (
     def material_save(self, data):
         conn = self._connect()
         try:
-            keys = ["name", "description", "price_per_m2", "price_unit", "note"]
+            keys = ["name", "description", "price_per_m2", "price_unit", "length", "width", "note"]
             if data.get("id"):
                 sets = ", ".join(f"{k}=?" for k in keys)
                 vals = [data.get(k, "") for k in keys] + [data["id"]]
@@ -458,27 +474,85 @@ CREATE TABLE IF NOT EXISTS materials (
 
     def material_import_from_excel(self, filepath):
         import openpyxl
-        wb = openpyxl.load_workbook(filepath)
+        wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
         ws = wb["Materialien"]
         imported = 0
         skipped = 0
         errors = []
-        for row in ws.iter_rows(min_row=3, values_only=True):
-            name = str(row[0]).strip() if row[0] else ""
+
+        rows = list(ws.iter_rows(values_only=True))
+
+        header_idx = None
+        for i, row in enumerate(rows[:5]):
+            first = str(row[0]).strip() if row and row[0] is not None else ""
+            if first.lower() == "name":
+                header_idx = i
+                break
+        if header_idx is None:
+            header_idx = 1
+
+        def norm(s):
+            return str(s).strip().lower().replace("\u00e4", "ae").replace("\u00f6", "oe") \
+                .replace("\u00fc", "ue").replace("\u00df", "ss").replace("\u00b2", "2")
+
+        def find_col(*variants):
+            for i, h in enumerate(rows[header_idx]):
+                if h is None:
+                    continue
+                hn = norm(h)
+                for v in variants:
+                    if hn.startswith(v):
+                        return i
+            return None
+
+        ci_name = find_col("name") or 0
+        ci_desc = find_col("beschreibung") or 1
+        ci_price = find_col("preis") or 2
+        ci_unit = find_col("einheit") or 3
+        ci_len = find_col("laenge", "lange")
+        ci_wid = find_col("breite")
+        ci_note = find_col("notiz") or 4
+
+        def cell(row, idx):
+            if idx is None:
+                return None
+            try:
+                return row[idx]
+            except (IndexError, TypeError):
+                return None
+
+        def to_float(val):
+            if val is None:
+                return 0.0
+            if isinstance(val, (int, float)):
+                return float(val)
+            return float(str(val).strip().replace(",", "."))
+
+        for k, row in enumerate(rows[header_idx + 1:]):
+            name = str(cell(row, ci_name) or "").strip()
             if not name:
                 skipped += 1
                 continue
-            desc = str(row[1]).strip() if len(row) > 1 and row[1] else ""
-            raw_price = row[2] if len(row) > 2 and row[2] is not None else 0
-            unit = str(row[3]).strip() if len(row) > 3 and row[3] else "m\u00b2"
-            note = str(row[4]).strip() if len(row) > 4 and row[4] else ""
+            desc = str(cell(row, ci_desc) or "").strip()
+            unit = str(cell(row, ci_unit) or "").strip() or "m\u00b2"
+            note = str(cell(row, ci_note) or "").strip()
+            line = header_idx + k + 2
             try:
-                price = float(str(raw_price).replace(",", "."))
+                price = to_float(cell(row, ci_price))
             except (ValueError, TypeError):
-                errors.append(f"Zeile {imported + skipped + 3}: '{name}' - ung\u00fcltiger Preis '{raw_price}'")
+                errors.append(f"Zeile {line}: '{name}' - ung\u00fcltiger Preis '{cell(row, ci_price)}'")
                 skipped += 1
                 continue
-            data = {"name": name, "description": desc, "price_per_m2": price, "price_unit": unit, "note": note}
+            try:
+                length = to_float(cell(row, ci_len))
+            except (ValueError, TypeError):
+                length = 0.0
+            try:
+                width = to_float(cell(row, ci_wid))
+            except (ValueError, TypeError):
+                width = 0.0
+            data = {"name": name, "description": desc, "price_per_m2": price,
+                    "price_unit": unit, "length": length, "width": width, "note": note}
             self.material_save(data)
             imported += 1
         wb.close()
@@ -611,16 +685,16 @@ CREATE TABLE IF NOT EXISTS materials (
         try:
             like = f"%{query}%"
             rows = conn.execute("""
-                SELECT id, name, 'Arbeit' as item_type, price, price_unit, 0 as price_per_m2, '' as content
+                SELECT id, name, 'Arbeit' as item_type, price, price_unit, 0 as price_per_m2, '' as content, 0 as length, 0 as width
                 FROM arbeiten WHERE name LIKE ? OR description LIKE ?
                 UNION ALL
-                SELECT id, name, 'Werkzeug' as item_type, price, price_unit, 0 as price_per_m2, '' as content
+                SELECT id, name, 'Werkzeug' as item_type, price, price_unit, 0 as price_per_m2, '' as content, 0 as length, 0 as width
                 FROM tools WHERE name LIKE ? OR description LIKE ?
                 UNION ALL
-                SELECT id, name, 'Material' as item_type, price_per_m2 as price, price_unit, price_per_m2, '' as content
+                SELECT id, name, 'Material' as item_type, price_per_m2 as price, price_unit, price_per_m2, '' as content, length, width
                 FROM materials WHERE name LIKE ? OR description LIKE ?
                 UNION ALL
-                SELECT id, name, 'Text' as item_type, 0 as price, '' as price_unit, 0 as price_per_m2, content
+                SELECT id, name, 'Text' as item_type, 0 as price, '' as price_unit, 0 as price_per_m2, content, 0 as length, 0 as width
                 FROM texts WHERE name LIKE ?
                 ORDER BY name LIMIT 100
             """, (like, like, like, like, like, like, like)).fetchall()
@@ -691,12 +765,13 @@ CREATE TABLE IF NOT EXISTS materials (
                 doc_id = cur.lastrowid
             for i, pos in enumerate(positions):
                 conn.execute("""INSERT INTO positions (doc_id, pos_type, ref_id, description,
-                    quantity, unit, price_per_unit, total, sort_order, orig_price, orig_price_unit)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                    quantity, unit, price_per_unit, total, sort_order, orig_price, orig_price_unit, extra_data)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (doc_id, pos["pos_type"], pos.get("ref_id"), pos["description"],
                      pos.get("quantity", 1), pos.get("unit", ""),
                      pos.get("price_per_unit", 0), pos.get("total", 0), i,
-                     pos.get("orig_price", 0), pos.get("orig_price_unit", "")))
+                     pos.get("orig_price", 0), pos.get("orig_price_unit", ""),
+                     pos.get("extra_data", "")))
             conn.commit()
             return self.doc_get(doc_id)
         finally:
@@ -711,7 +786,14 @@ CREATE TABLE IF NOT EXISTS materials (
             doc = dict(r)
             doc["customer"] = self.customer_get(doc["customer_id"])
             pos_rows = conn.execute("SELECT * FROM positions WHERE doc_id=? ORDER BY sort_order", (doc_id,)).fetchall()
-            doc["positions"] = [dict(p) for p in pos_rows]
+            doc["positions"] = []
+            for p in pos_rows:
+                p = dict(p)
+                try:
+                    p["extra_data"] = json.loads(p.get("extra_data") or "{}")
+                except (ValueError, TypeError):
+                    p["extra_data"] = {}
+                doc["positions"].append(p)
             return doc
         finally:
             conn.close()

@@ -29,9 +29,9 @@ class MaterialDatabase(ctk.CTkToplevel):
         ctk.CTkButton(top, text="Löschen", command=self._delete, width=80,
                        fg_color="#5c0000", hover_color="#8b0000").pack(side="left", padx=5)
         ctk.CTkButton(top, text="Schließen", command=self.destroy, width=80).pack(side="right", padx=5)
-        cols = ("name", "beschreibung", "preis", "einheit")
-        heads = {"name": "Name", "beschreibung": "Beschreibung", "preis": "Preis", "einheit": "Einheit"}
-        widths = {"name": 200, "beschreibung": 250, "preis": 100, "einheit": 80}
+        cols = ("name", "beschreibung", "groesse", "preis", "einheit")
+        heads = {"name": "Name", "beschreibung": "Beschreibung", "groesse": "Gr\u00f6\u00dfe", "preis": "Preis", "einheit": "Einheit"}
+        widths = {"name": 170, "beschreibung": 210, "groesse": 90, "preis": 100, "einheit": 80}
         self.tree = ttk.Treeview(self, columns=cols, show="headings", selectmode="browse")
         for c in cols:
             align = "e" if c == "preis" else "w"
@@ -49,9 +49,26 @@ class MaterialDatabase(ctk.CTkToplevel):
             self.tree.delete(item)
         for m in self.db.material_search(self.search_var.get()):
             price = f"{m['price_per_m2']:.2f}".replace(".", ",")
+            groesse = ""
+            if float(m.get("length", 0) or 0) > 0 and float(m.get("width", 0) or 0) > 0:
+                l = self._fmt_num(m.get("length", 0))
+                b = self._fmt_num(m.get("width", 0))
+                groesse = f"{l}x{b}cm"
             self.tree.insert("", "end", values=(
-                m.get("name", ""), m.get("description", ""), f"{price}\u20ac", m.get("price_unit", "m\u00b2")
+                m.get("name", ""), m.get("description", ""), groesse, f"{price}\u20ac", m.get("price_unit", "m\u00b2")
             ), iid=str(m["id"]))
+
+    @staticmethod
+    def _fmt_num(value):
+        try:
+            v = float(value)
+        except (TypeError, ValueError):
+            return ""
+        if v <= 0:
+            return ""
+        if v == int(v):
+            return str(int(v))
+        return f"{v:g}".replace(".", ",")
 
     def _get_selected_id(self):
         sel = self.tree.selection()

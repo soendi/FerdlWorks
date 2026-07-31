@@ -9,7 +9,7 @@ class MaterialDialog(ctk.CTkToplevel):
         self.db = get_db()
         self.material_id = material_id
         self.title("Material bearbeiten" if material_id else "Neues Material")
-        self.geometry("500x320")
+        self.geometry("500x360")
         self.resizable(False, False)
         self.transient(master)
         self.grab_set()
@@ -46,6 +46,21 @@ class MaterialDialog(ctk.CTkToplevel):
         ctk.CTkOptionMenu(self, variable=self.price_unit_var, values=units, width=100).grid(row=i, column=1, padx=(130, 5), pady=5, sticky="w")
 
         i += 1
+        ctk.CTkLabel(self, text="Gr\u00f6\u00dfe (cm):", width=100, anchor="w").grid(row=i, column=0, padx=(15, 5), pady=5, sticky="w")
+        size_frame = ctk.CTkFrame(self, fg_color="transparent")
+        size_frame.grid(row=i, column=1, padx=5, pady=5, sticky="w")
+        ctk.CTkLabel(size_frame, text="L:", font=("Segoe UI", 12)).pack(side="left")
+        self.length_entry = ctk.CTkEntry(size_frame, width=80)
+        self.length_entry.insert(0, self._fmt_num(data.get("length", 0)))
+        self.length_entry.pack(side="left", padx=2)
+        ctk.CTkLabel(size_frame, text="B:", font=("Segoe UI", 12)).pack(side="left", padx=(8, 0))
+        self.width_entry = ctk.CTkEntry(size_frame, width=80)
+        self.width_entry.insert(0, self._fmt_num(data.get("width", 0)))
+        self.width_entry.pack(side="left", padx=2)
+        self.entries["length"] = self.length_entry
+        self.entries["width"] = self.width_entry
+
+        i += 1
         ctk.CTkLabel(self, text="Notiz:", width=100, anchor="w").grid(row=i, column=0, padx=(15, 5), pady=5, sticky="w")
         self.note_entry = ctk.CTkEntry(self, width=350)
         self.note_entry.insert(0, data.get("note", ""))
@@ -68,6 +83,8 @@ class MaterialDialog(ctk.CTkToplevel):
             "description": self.entries["description"].get(),
             "price_per_m2": price,
             "price_unit": self.price_unit_var.get(),
+            "length": self._parse_num(self.entries["length"].get()),
+            "width": self._parse_num(self.entries["width"].get()),
             "note": self.entries["note"].get(),
             "id": self.material_id,
         }
@@ -75,3 +92,22 @@ class MaterialDialog(ctk.CTkToplevel):
             return
         self.result = self.db.material_save(data)
         self.destroy()
+
+    @staticmethod
+    def _fmt_num(value):
+        try:
+            v = float(value)
+        except (TypeError, ValueError):
+            return ""
+        if v <= 0:
+            return ""
+        if v == int(v):
+            return str(int(v))
+        return f"{v:g}".replace(".", ",")
+
+    @staticmethod
+    def _parse_num(value):
+        try:
+            return float(str(value).strip().replace(",", "."))
+        except ValueError:
+            return 0

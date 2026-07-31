@@ -1,6 +1,7 @@
 import sys
 import os
 import math
+import json
 import subprocess
 import customtkinter as ctk
 import tkinter as tk
@@ -46,11 +47,14 @@ class FerdlWorksApp(ctk.CTk):
         super().__init__()
         self.logger = get_logger()
         self.db = get_db()
+        from lib.winstate import install_auto, WinState
+        install_auto(self.db)
+        self._winstate = WinState(self.db)
         self._master_mode = master_mode
         self.title(f"{APP_NAME} v{VERSION}")
         self._icon_path = create_icon()
-        self.minsize(800, 620)
-        self.geometry("1024x900")
+        self.minsize(1200, 900)
+        self.geometry("1200x900")
         self._current_doc_id = None
         self._positions = []
         self._editing_pos_idx = None
@@ -62,6 +66,7 @@ class FerdlWorksApp(ctk.CTk):
         self._new_doc()
         self.after(100, lambda: self._set_icon())
         self.after(500, self._check_overdue)
+        self._winstate.restore(self)
         self.logger.info(f"{APP_NAME} v{VERSION} gestartet (Master-Mode: {master_mode})")
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
@@ -243,9 +248,14 @@ class FerdlWorksApp(ctk.CTk):
         self.dl_width = ctk.CTkEntry(self._art_mat_f, width=55)
         self.dl_width.pack(side="left", padx=2)
         self.dl_width.bind("<KeyRelease>", lambda e: self._calc_detail_qm())
-        self.dl_width.bind("<Tab>", lambda e: (self._insert_article(), self.art_entry.focus_set()) or "break")
         ctk.CTkLabel(self._art_mat_f, text="cm", font=("Segoe UI", 13, "bold"),
                      text_color=("#666666", "#888888")).pack(side="left", padx=(0, 4))
+        ctk.CTkLabel(self._art_mat_f, text="Anzahl:", font=("Segoe UI", 13)).pack(side="left", padx=(6, 2))
+        self.dl_mat_qty = ctk.CTkEntry(self._art_mat_f, width=45)
+        self.dl_mat_qty.insert(0, "1")
+        self.dl_mat_qty.pack(side="left", padx=2)
+        self.dl_mat_qty.bind("<KeyRelease>", lambda e: self._calc_detail_qm())
+        self.dl_mat_qty.bind("<Tab>", lambda e: (self._insert_article(), self.art_entry.focus_set()) or "break")
         self.dl_qm_label = ctk.CTkLabel(self._art_mat_f, text="m\xb2:0,00", font=("Segoe UI", 13, "bold"),
                                         text_color=("#8b0000", "#8b0000"))
         self.dl_qm_label.pack(side="left", padx=2)
@@ -314,10 +324,11 @@ class FerdlWorksApp(ctk.CTk):
         self.doc_status_label = ctk.CTkLabel(pos_header, text="", font=("Segoe UI", 13),
                                              text_color=("#666666", "#888888"))
         self.doc_status_label.pack(side="right")
-        cols = ("pos", "beschreibung", "menge", "einheit", "ep", "gesamt")
-        heads = {"pos": "Pos.", "beschreibung": "Beschreibung", "menge": "Menge",
-                 "einheit": "Einheit", "ep": "EP", "gesamt": "Gesamt"}
-        widths = {"pos": 40, "beschreibung": 350, "menge": 60, "einheit": 60, "ep": 80, "gesamt": 90}
+        cols = ("pos", "beschreibung", "anzahl", "menge", "einheit", "ep", "gesamt")
+        heads = {"pos": "Pos.", "beschreibung": "Beschreibung", "anzahl": "Anzahl",
+                 "menge": "Einz.-Menge", "einheit": "Einheit", "ep": "EP", "gesamt": "Gesamt"}
+        widths = {"pos": 40, "beschreibung": 300, "anzahl": 60, "menge": 60,
+                  "einheit": 60, "ep": 80, "gesamt": 90}
         style = ttk.Style()
         style.theme_use("clam")
         style.configure("Treeview", background="#2a2a2a", foreground="#e0e0e0",
@@ -335,8 +346,9 @@ class FerdlWorksApp(ctk.CTk):
                         bordercolor="#2a2a2a", relief="flat", width=12)
         self.pos_tree = ttk.Treeview(pos_frame, columns=cols, show="headings", height=5)
         for c in cols:
-            self.pos_tree.heading(c, text=heads[c], anchor="w" if c == "beschreibung" else "e")
-            self.pos_tree.column(c, width=widths[c], minwidth=30, anchor="w" if c == "beschreibung" else "e")
+            align = "w" if c in ("beschreibung", "einheit") else "e"
+            self.pos_tree.heading(c, text=heads[c], anchor=align)
+            self.pos_tree.column(c, width=widths[c], minwidth=30, anchor=align)
         self.pos_tree.bind("<Delete>", lambda e: self._remove_selected_position())
         self.pos_tree.bind("<Double-1>", lambda e: self._edit_position())
         self.pos_tree.bind("<Button-3>", self._pos_context_menu)
@@ -378,10 +390,12 @@ class FerdlWorksApp(ctk.CTk):
         # --- Top-Right: Datum + Zahlungsziel ---
         tr = ctk.CTkFrame(bottom, fg_color="transparent")
         tr.grid(row=0, column=1, sticky="nsew", padx=(2, 0), pady=(0, 2))
+        tr.grid_columnconfigure((0, 1, 2), weight=1, uniform="topright")
+        tr.grid_rowconfigure((0, 1), weight=0)
 
         # Spalte 1: Rechnungsdatum
         col1 = ctk.CTkFrame(tr, fg_color="transparent")
-        col1.pack(side="left", fill="x", expand=True, anchor="n")
+        col1.grid(row=0, column=0, sticky="nsew")
         ctk.CTkLabel(col1, text="Rechnungsdatum:", font=("Segoe UI", 13, "bold"),
                      text_color="#8b0000").pack(anchor="w", padx=6, pady=(6, 2))
         dr = ctk.CTkFrame(col1, fg_color="transparent")
@@ -398,7 +412,7 @@ class FerdlWorksApp(ctk.CTk):
 
         # Spalte 2: Zahlungsziel (Tage)
         col2 = ctk.CTkFrame(tr, fg_color="transparent")
-        col2.pack(side="left", fill="x", expand=True, anchor="n")
+        col2.grid(row=0, column=1, sticky="nsew")
         ctk.CTkLabel(col2, text="Zahlungsziel:", font=("Segoe UI", 13, "bold"),
                      text_color="#8b0000").pack(anchor="w", padx=6, pady=(6, 2))
         zr = ctk.CTkFrame(col2, fg_color="transparent")
@@ -406,7 +420,7 @@ class FerdlWorksApp(ctk.CTk):
         settings = self.db.settings_get_all()
         default_payment = int(settings.get("payment_term", "30"))
         self.payment_term_var = ctk.StringVar(value=str(default_payment))
-        self.payment_term_entry = ctk.CTkEntry(zr, width=50, textvariable=self.payment_term_var)
+        self.payment_term_entry = ctk.CTkEntry(zr, width=55, textvariable=self.payment_term_var)
         self.payment_term_entry.pack(side="left")
         self.payment_term_var.trace_add("write", lambda *a: self._recalc_due_date())
         ctk.CTkButton(zr, text="\u25b2", width=25, command=lambda: self._adj_payment(1),
@@ -416,14 +430,41 @@ class FerdlWorksApp(ctk.CTk):
 
         # Spalte 3: Zu bezahlen bis
         col3 = ctk.CTkFrame(tr, fg_color="transparent")
-        col3.pack(side="left", fill="x", expand=True, anchor="n")
+        col3.grid(row=0, column=2, sticky="nsew")
         ctk.CTkLabel(col3, text="Zu bezahlen bis:", font=("Segoe UI", 13, "bold"),
                      text_color="#8b0000").pack(anchor="w", padx=6, pady=(6, 2))
         self.due_date_var = ctk.StringVar()
-        self.due_date_entry = ctk.CTkEntry(col3, width=105, textvariable=self.due_date_var,
+        self.due_date_entry = ctk.CTkEntry(col3, width=95, textvariable=self.due_date_var,
                                            state="readonly")
-        self.due_date_entry.pack(padx=6)
+        self.due_date_entry.pack(anchor="w", padx=6)
         self._recalc_due_date()
+
+        # Spalte 4: Rabatt (unter Rechnungsdatum)
+        col4 = ctk.CTkFrame(tr, fg_color="transparent")
+        col4.grid(row=1, column=0, sticky="nsew")
+        ctk.CTkLabel(col4, text="Rabatt:", font=("Segoe UI", 13, "bold"),
+                     text_color="#8b0000").pack(anchor="w", padx=6, pady=(6, 2))
+        rr = ctk.CTkFrame(col4, fg_color="transparent")
+        rr.pack(fill="x", padx=6)
+        self.discount_var = ctk.StringVar(value="0")
+        self.discount_entry = ctk.CTkEntry(rr, width=55, textvariable=self.discount_var)
+        self.discount_entry.pack(side="left")
+        self.discount_entry.bind("<KeyRelease>", lambda e: self._recalc_totals())
+        self.discount_type_var = ctk.StringVar(value="%")
+        ctk.CTkOptionMenu(rr, variable=self.discount_type_var, values=["%", "\u20ac"],
+                          width=55, command=lambda v: self._recalc_totals()).pack(side="left", padx=(1, 0))
+
+        # Spalte 5: Aufschlag (unter Zahlungsziel)
+        col5 = ctk.CTkFrame(tr, fg_color="transparent")
+        col5.grid(row=1, column=1, sticky="nsew")
+        ctk.CTkLabel(col5, text="Aufschlag in %:", font=("Segoe UI", 13, "bold"),
+                     text_color="#8b0000").pack(anchor="w", padx=6, pady=(6, 2))
+        ar = ctk.CTkFrame(col5, fg_color="transparent")
+        ar.pack(fill="x", padx=6)
+        self.aufschlag_var = ctk.StringVar(value="0")
+        self.aufschlag_entry = ctk.CTkEntry(ar, width=55, textvariable=self.aufschlag_var)
+        self.aufschlag_entry.pack(side="left")
+        self.aufschlag_var.trace_add("write", lambda *a: self._refresh_positions())
 
         # --- Bottom-Left: Checkboxen + Buttons ---
         bl = ctk.CTkFrame(bottom, fg_color="transparent")
@@ -620,6 +661,7 @@ class FerdlWorksApp(ctk.CTk):
             unit = self._selected_article.get("price_unit", "")
             if self._is_qm_unit(unit):
                 self._show_mat_qm()
+                self._prefill_mat_size(self._selected_article)
                 self.dl_length.focus_set()
             else:
                 self._show_mat_qty()
@@ -673,7 +715,7 @@ class FerdlWorksApp(ctk.CTk):
         for row in self.art_dropdown.get_children():
             self.art_dropdown.delete(row)
         for idx, item in enumerate(self._art_results):
-            self.art_dropdown.insert("", "end", iid=str(idx), values=(item["item_type"], item["name"]))
+            self.art_dropdown.insert("", "end", iid=str(idx), values=(item["item_type"], self._art_display_name(item)))
         if query and self._art_results:
             self._show_art_dropdown()
             self.art_text_btn.pack_forget()
@@ -683,6 +725,21 @@ class FerdlWorksApp(ctk.CTk):
         else:
             self._do_hide_art_dropdown()
             self.art_text_btn.pack_forget()
+
+    def _art_display_name(self, item):
+        name = item.get("name", "")
+        if item.get("item_type") != "Material":
+            return name
+        try:
+            length = float(item.get("length", 0) or 0)
+            width = float(item.get("width", 0) or 0)
+        except (TypeError, ValueError):
+            length = width = 0
+        if length > 0 and width > 0:
+            l = str(int(length)) if length == int(length) else f"{length:g}"
+            b = str(int(width)) if width == int(width) else f"{width:g}"
+            return f"{name} ({l}x{b}cm)"
+        return name
 
     def _show_art_dropdown(self):
         self._art_dropdown_idx = -1
@@ -713,6 +770,7 @@ class FerdlWorksApp(ctk.CTk):
             unit = self._selected_article.get("price_unit", "")
             if self._is_qm_unit(unit):
                 self._show_mat_qm()
+                self._prefill_mat_size(self._selected_article)
                 self.dl_length.focus_set()
             else:
                 self._show_mat_qty()
@@ -737,6 +795,8 @@ class FerdlWorksApp(ctk.CTk):
         self.art_insert_btn.configure(text="Übernehmen" if self._editing_pos_idx is not None else "Einfügen")
         self.dl_length.delete(0, "end")
         self.dl_width.delete(0, "end")
+        self.dl_mat_qty.delete(0, "end")
+        self.dl_mat_qty.insert(0, "1")
 
     def _show_mat_qty(self):
         self._art_mat_f.pack_forget()
@@ -758,11 +818,25 @@ class FerdlWorksApp(ctk.CTk):
         self._art_tool_f.pack_forget()
         self._art_qty_f.pack_forget()
 
+    def _prefill_mat_size(self, article):
+        try:
+            length = float(article.get("length", 0) or 0)
+            width = float(article.get("width", 0) or 0)
+        except (TypeError, ValueError):
+            length, width = 0, 0
+        self.dl_length.delete(0, "end")
+        self.dl_width.delete(0, "end")
+        if length > 0:
+            self.dl_length.insert(0, f"{length:g}".replace(".", ","))
+        if width > 0:
+            self.dl_width.insert(0, f"{width:g}".replace(".", ","))
+
     def _calc_detail_qm(self):
         try:
             length = float(self.dl_length.get().replace(",", ".")) / 100
             width = float(self.dl_width.get().replace(",", ".")) / 100
-            qm = length * width
+            qty = float(self.dl_mat_qty.get().replace(",", ".")) if self.dl_mat_qty.get() else 1
+            qm = length * width * qty
             self.dl_qm_label.configure(text=f"m\xb2:{qm:.2f}".replace(".", ","))
         except ValueError:
             self.dl_qm_label.configure(text="m\xb2:0,00")
@@ -793,6 +867,29 @@ class FerdlWorksApp(ctk.CTk):
         self.art_entry.delete(0, "end")
         self.art_text_btn.pack_forget()
 
+    def _mat_desc(self, name, qty, length, width):
+        if length > 0 and width > 0:
+            qm = qty * (length / 100) * (width / 100)
+            return f"{name} ({qty:g}x {length:g}x{width:g}cm, {qm:g}m\u00b2)"
+        return name
+
+    def _nonqm_mat_desc(self, item, qty, extra_data=None):
+        ed = dict(extra_data or {})
+        ed["qty"] = qty
+        try:
+            length = float(ed.get("length") or item.get("length", 0) or 0)
+        except (TypeError, ValueError):
+            length = 0
+        try:
+            width = float(ed.get("width") or item.get("width", 0) or 0)
+        except (TypeError, ValueError):
+            width = 0
+        desc = self._mat_desc(item.get("name", ""), qty, length, width)
+        if length > 0 and width > 0:
+            ed["length"] = length
+            ed["width"] = width
+        return desc, ed
+
     def _insert_article(self):
         if self._editing_pos_idx is not None:
             self._update_position()
@@ -815,20 +912,24 @@ class FerdlWorksApp(ctk.CTk):
                 try:
                     length = float(self.dl_length.get().replace(",", ".")) if self.dl_length.get() else 0
                     width = float(self.dl_width.get().replace(",", ".")) if self.dl_width.get() else 0
+                    qty = float(self.dl_mat_qty.get().replace(",", ".")) if self.dl_mat_qty.get() else 1
                 except ValueError:
                     length = width = 0
+                    qty = 1
                 price_m2 = item.get("price_per_m2", 0) or item.get("price", 0)
                 if length > 0 and width > 0:
-                    qm = (length / 100) * (width / 100)
-                    desc = f"{item['name']} ({length:.0f}x{width:.0f}cm)"
+                    single_qm = (length / 100) * (width / 100)
+                    qm = single_qm * qty
+                    desc = self._mat_desc(item['name'], qty, length, width)
                     total = qm * price_m2
                     self._positions.append(PositionItem(
                         "material", item["id"], desc, qm, mat_unit, price_m2, total,
-                        {"length": length, "width": width, "qty": 1}
+                        {"length": length, "width": width, "qty": qty}
                     ))
                 else:
                     self._positions.append(PositionItem(
-                        "material", item["id"], item["name"], 1, mat_unit, price_m2, price_m2
+                        "material", item["id"], item["name"], qty, mat_unit, price_m2,
+                        qty * price_m2, {"qty": qty}
                     ))
             else:
                 try:
@@ -837,10 +938,10 @@ class FerdlWorksApp(ctk.CTk):
                     qty = 1
                 price = item.get("price", 0)
                 total = qty * price
-                desc = item['name']
+                desc, ed = self._nonqm_mat_desc(item, qty, {"qty": qty})
                 self._positions.append(PositionItem(
                     "material", item["id"], desc, qty, mat_unit, price, total,
-                    {"qty": qty}
+                    ed
                 ))
         elif item["item_type"] == "Werkzeug":
             time_val, unit_label, price_per, total, _ = self._calc_tool_position(item)
@@ -879,32 +980,36 @@ class FerdlWorksApp(ctk.CTk):
                 try:
                     length = float(self.dl_length.get().replace(",", ".")) if self.dl_length.get() else 0
                     width = float(self.dl_width.get().replace(",", ".")) if self.dl_width.get() else 0
+                    qty = float(self.dl_mat_qty.get().replace(",", ".")) if self.dl_mat_qty.get() else 1
                 except ValueError:
                     length = width = 0
+                    qty = 1
                 price_m2 = item.get("price_per_m2", 0) or item.get("price", 0)
                 if length > 0 and width > 0:
-                    qm = (length / 100) * (width / 100)
-                    desc = f"{item['name']} ({length:.0f}x{width:.0f}cm)"
+                    single_qm = (length / 100) * (width / 100)
+                    qm = single_qm * qty
+                    desc = self._mat_desc(item['name'], qty, length, width)
                     total = qm * price_m2
                     self._positions[idx] = PositionItem(
                         "material", item["id"], desc, qm, mat_unit, price_m2, total,
-                        {"length": length, "width": width, "qty": 1}
+                        {"length": length, "width": width, "qty": qty}
                     )
                 else:
                     self._positions[idx] = PositionItem(
-                        "material", item["id"], item["name"], 1, mat_unit, price_m2, price_m2
+                        "material", item["id"], item["name"], qty, mat_unit, price_m2,
+                        qty * price_m2, {"qty": qty}
                     )
             else:
                 try:
                     qty = float(self.dl_qty.get().replace(",", ".")) if self.dl_qty.get() else 0
                 except ValueError:
                     qty = 1
-                price = item.get("price", 0)
+                price = item.get("price", 0) or item.get("price_per_m2", 0)
                 total = qty * price
-                desc = item['name']
+                desc, ed = self._nonqm_mat_desc(item, qty, self._positions[idx].extra_data)
                 self._positions[idx] = PositionItem(
                     "material", item["id"], desc, qty, mat_unit, price, total,
-                    {"qty": qty}
+                    ed
                 )
         elif item["item_type"] == "Werkzeug":
             time_val, unit_label, price_per, total, _ = self._calc_tool_position(item)
@@ -948,18 +1053,36 @@ class FerdlWorksApp(ctk.CTk):
     def _refresh_positions(self):
         for row in self.pos_tree.get_children():
             self.pos_tree.delete(row)
+        factor = self._surcharge_factor()
         for i, p in enumerate(self._positions):
             qty_str = f"{p.quantity:.2f}" if p.quantity != int(p.quantity) else str(int(p.quantity))
-            if p.pos_type == "tool" and p.extra_data and "price_unit" in p.extra_data:
-                ep_str = f"{p.extra_data['price']:.2f}\u20ac/{p.extra_data['price_unit']}"
+            ed = p.extra_data or {}
+            anzahl = ""
+            menge_str = qty_str
+            if p.pos_type == "material":
+                if self._is_qm_unit(p.unit):
+                    q = ed.get("qty", 1)
+                    anzahl = str(int(q)) if float(q) == int(float(q)) else f"{float(q):g}"
+                    length = ed.get("length")
+                    width = ed.get("width")
+                    if length and width:
+                        l = float(length)
+                        b = float(width)
+                        single_qm = (l / 100) * (b / 100)
+                        menge_str = f"{single_qm:g}"
+                else:
+                    anzahl = qty_str
+                    menge_str = "1"
+            if p.pos_type == "tool" and "price_unit" in ed:
+                ep_str = f"{ed['price'] * factor:.2f}\u20ac/{ed['price_unit']}"
             elif p.pos_type == "text":
                 ep_str = ""
             else:
-                ep_str = f"{p.price_per_unit:.2f}\u20ac/{p.unit.lower().replace('std.', 'h').replace('min.', 'min')}"
+                ep_str = f"{p.price_per_unit * factor:.2f}\u20ac/{p.unit.lower().replace('std.', 'h').replace('min.', 'min')}"
             if p.pos_type == "text":
-                vals = ("", p.description, "", "", "", "")
+                vals = ("", p.description, "", "", "", "", "")
             else:
-                vals = (str(i + 1), p.description, qty_str, p.unit, ep_str, f"{p.total:.2f}\u20ac")
+                vals = (str(i + 1), p.description, anzahl, menge_str, p.unit, ep_str, f"{p.total * factor:.2f}\u20ac")
             tag = "even" if i % 2 == 0 else "odd"
             self.pos_tree.insert("", "end", iid=str(i), values=vals, tags=(tag,))
         self._recalc_totals()
@@ -1027,6 +1150,7 @@ class FerdlWorksApp(ctk.CTk):
                 if found:
                     found["item_type"] = "Material"
                     found["price_per_m2"] = found.get("price_per_m2", 0) or found.get("price", 0)
+                    found["price"] = found.get("price_per_m2", 0)
             else:
                 found = self.db.tool_get(pos.ref_id)
                 if found:
@@ -1045,10 +1169,14 @@ class FerdlWorksApp(ctk.CTk):
                 ed = pos.extra_data or {}
                 if ed.get("length"):
                     self.dl_length.delete(0, "end")
-                    self.dl_length.insert(0, str(ed["length"]))
+                    self.dl_length.insert(0, f"{float(ed['length']):g}")
                 if ed.get("width"):
                     self.dl_width.delete(0, "end")
-                    self.dl_width.insert(0, str(ed["width"]))
+                    self.dl_width.insert(0, f"{float(ed['width']):g}")
+                if ed.get("qty"):
+                    q = ed["qty"]
+                    self.dl_mat_qty.delete(0, "end")
+                    self.dl_mat_qty.insert(0, str(int(q)) if q == int(q) else str(q))
                 self._calc_detail_qm()
             else:
                 self._show_mat_qty()
@@ -1068,9 +1196,20 @@ class FerdlWorksApp(ctk.CTk):
         self.art_insert_btn.configure(text="Übernehmen")
 
     # ===================== SUMMEN =====================
-    def _get_effective_net(self):
-        tool_sum = sum(p.total for p in self._positions if p.pos_type == "tool")
-        other_sum = sum(p.total for p in self._positions if p.pos_type != "tool")
+    def _surcharge_percent_value(self):
+        try:
+            return max(0, float(self.aufschlag_var.get().replace(",", ".")))
+        except (AttributeError, ValueError):
+            return 0
+
+    def _surcharge_factor(self):
+        pct = self._surcharge_percent_value()
+        return 1 + pct / 100 if pct > 0 else 1.0
+
+    def _get_effective_net(self, include_surcharge=False):
+        factor = self._surcharge_factor() if include_surcharge else 1.0
+        tool_sum = sum(p.total * factor for p in self._positions if p.pos_type == "tool")
+        other_sum = sum(p.total * factor for p in self._positions if p.pos_type != "tool")
         if self.round_tools_var.get():
             tool_sum = math.ceil(tool_sum / 10) * 10
         return tool_sum + other_sum
@@ -1078,7 +1217,7 @@ class FerdlWorksApp(ctk.CTk):
     def _recalc_totals(self):
         settings = self.db.settings_get_all()
         tax_rate = float(settings.get("tax_rate", "19"))
-        total_net = self._get_effective_net()
+        total_net = self._get_effective_net(include_surcharge=True)
         try:
             discount_val = float(self.discount_var.get().replace(",", "."))
         except ValueError:
@@ -1099,17 +1238,6 @@ class FerdlWorksApp(ctk.CTk):
     # ===================== TOTALISIERUNG =====================
     def _build_totals(self, parent):
         self._sum_labels = {}
-        r = ctk.CTkFrame(parent, fg_color="transparent")
-        r.pack(fill="x", padx=6, pady=(8, 2))
-        ctk.CTkLabel(r, text="Rabatt:", font=("Segoe UI", 15, "bold"),
-                     text_color="#8b0000", width=55, anchor="w").pack(side="left")
-        self.discount_var = ctk.StringVar(value="0")
-        self.discount_entry = ctk.CTkEntry(r, width=70, textvariable=self.discount_var)
-        self.discount_entry.pack(side="left", padx=2)
-        self.discount_entry.bind("<KeyRelease>", lambda e: self._recalc_totals())
-        self.discount_type_var = ctk.StringVar(value="%")
-        ctk.CTkOptionMenu(r, variable=self.discount_type_var, values=["%", "\u20ac"],
-                          width=60, command=lambda v: self._recalc_totals()).pack(side="left")
         for text, key in [("Netto:", "netto"), ("Rabatt:", "rabatt"), ("MwSt:", "mwst"), ("Brutto:", "brutto")]:
             f = ctk.CTkFrame(parent, fg_color="transparent")
             f.pack(fill="x", padx=6, pady=1)
@@ -1197,6 +1325,7 @@ class FerdlWorksApp(ctk.CTk):
         self.doc_internal_note.delete("1.0", "end")
         self.doc_date_var.set(datetime.now().strftime("%d.%m.%Y"))
         self.discount_var.set("0")
+        self.aufschlag_var.set("0")
         self.doc_type_var.set("RG")
         self._customer_id = None
         self.cust_btn_edit.configure(state="disabled")
@@ -1267,6 +1396,7 @@ class FerdlWorksApp(ctk.CTk):
                 "total": p.total,
                 "orig_price": ed.get("price") or ed.get("orig_price", 0),
                 "orig_price_unit": ed.get("price_unit") or ed.get("orig_price_unit", ""),
+                "extra_data": json.dumps(ed, ensure_ascii=False) if ed else "",
             })
         data["id"] = self._current_doc_id
         result = self.db.doc_save(data, pos_data)
@@ -1281,10 +1411,12 @@ class FerdlWorksApp(ctk.CTk):
     def _save_doc(self):
         self._do_save(silent=False)
 
-    def _load_doc(self, doc_id):
+    def _load_doc(self, doc_id, reset_surcharge=False):
         doc = self.db.doc_get(doc_id)
         if not doc:
             return
+        if reset_surcharge:
+            self.aufschlag_var.set("0")
         self._current_doc_id = doc["id"]
         self.doc_type_var.set(doc["doc_type"])
         self.doc_note.delete("1.0", "end")
@@ -1315,9 +1447,10 @@ class FerdlWorksApp(ctk.CTk):
             self._set_cust_display(customer)
         self._positions.clear()
         for p in doc.get("positions", []):
-            ed = {}
+            ed = dict(p.get("extra_data") or {})
             if p.get("orig_price_unit"):
-                ed = {"price_unit": p["orig_price_unit"], "price": float(p.get("orig_price", 0) or 0)}
+                ed.setdefault("price_unit", p["orig_price_unit"])
+                ed.setdefault("price", float(p.get("orig_price", 0) or 0))
             self._positions.append(PositionItem(
                 p["pos_type"], p["ref_id"], p["description"],
                 p["quantity"], p["unit"], p["price_per_unit"], p["total"], ed
@@ -1346,6 +1479,7 @@ class FerdlWorksApp(ctk.CTk):
         from tkinter import ttk
         top = ctk.CTkToplevel(self)
         top.title("Datum auswählen")
+        top._winstate_exclude = True
         top.geometry("280x250")
         top.transient(self)
         top.grab_set()
@@ -1418,6 +1552,7 @@ class FerdlWorksApp(ctk.CTk):
             messagebox.showerror("Fehler", "Dokument konnte nicht geladen werden.")
             return
         doc["app_name"] = APP_NAME
+        doc["surcharge_percent"] = self._surcharge_percent_value()
         try:
             path = generate_pdf(doc)
             if path:
@@ -1448,6 +1583,7 @@ class FerdlWorksApp(ctk.CTk):
         if not messagebox.askyesno("E-Mail", "Dokument per E-Mail verschicken?"):
             return
         doc["app_name"] = APP_NAME
+        doc["surcharge_percent"] = self._surcharge_percent_value()
         pdf_path = generate_pdf(doc)
         # Variablen ersetzen
         def _fmt(v):
@@ -1487,6 +1623,7 @@ class FerdlWorksApp(ctk.CTk):
         if not doc:
             return
         doc["app_name"] = APP_NAME
+        doc["surcharge_percent"] = self._surcharge_percent_value()
         pdf_path = generate_pdf(doc)
         try:
             os.startfile(pdf_path, "print")
@@ -1608,13 +1745,13 @@ class FerdlWorksApp(ctk.CTk):
             ws = wb.active
             ws.title = "Materialien"
             ws.page_setup.orientation = "landscape"
-            ws.merge_cells("A1:E1")
+            ws.merge_cells("A1:G1")
             c = ws["A1"]
             c.value = "Jede Zeile = ein Material. Einfach unterhalb der Beispiele eintragen."
             c.font = Font(italic=True, color="2F5496", size=10)
             c.alignment = Alignment(horizontal="left")
-            headers = ["Name", "Beschreibung", "Preis", "Einheit", "Notiz"]
-            widths = [30, 50, 15, 10, 40]
+            headers = ["Name", "Beschreibung", "Preis", "Einheit", "Länge (cm)", "Breite (cm)", "Notiz"]
+            widths = [30, 50, 15, 10, 14, 14, 40]
             hfont = Font(bold=True, color="FFFFFF", size=11)
             hfill = PatternFill("solid", fgColor="2F5496")
             halign = Alignment(horizontal="center", vertical="center")
@@ -1626,9 +1763,9 @@ class FerdlWorksApp(ctk.CTk):
                 c.font = hfont; c.fill = hfill; c.alignment = halign; c.border = border
                 ws.column_dimensions[openpyxl.utils.get_column_letter(ci)].width = w
             examples = [
-                ["Eiche Natur", "Massivholz Eiche, naturbelassen, 20mm", 89.50, "m\u00b2", "Innenbereich"],
-                ["Buche Hell", "Buche Leimholz, gehobelt, 18mm", 72.00, "m\u00b2", ""],
-                ["Schrauben 5x60", "Senkkopf, verzinkt, T20", 12.50, "Stk", "5er-Pack"],
+                ["Eiche Natur", "Massivholz Eiche, naturbelassen, 20mm", 89.50, "m\u00b2", 300, 100, "Innenbereich"],
+                ["Buche Hell", "Buche Leimholz, gehobelt, 18mm", 72.00, "m\u00b2", 200, 100, ""],
+                ["Schrauben 5x60", "Senkkopf, verzinkt, T20", 12.50, "Stk", "", "", "5er-Pack"],
             ]
             for ri, ex in enumerate(examples, 3):
                 for ci, v in enumerate(ex, 1):
@@ -1636,7 +1773,7 @@ class FerdlWorksApp(ctk.CTk):
                     c.border = border
                     if ri % 2 == 1:
                         c.fill = lfill
-                    if ci == 3:
+                    if ci in (3, 5, 6):
                         c.number_format = '#,##0.00'
             ws.freeze_panes = "A3"
             dst = os.path.join(os.environ["TEMP"], "materials_vorlage.xlsx")
@@ -1657,8 +1794,9 @@ class FerdlWorksApp(ctk.CTk):
             "material": {
                 "title": "Materialien",
                 "sheet": "Materialien",
-                "headers": ["Name", "Beschreibung", "Preis", "Einheit", "Notiz"],
-                "widths": [30, 50, 15, 10, 40],
+                "headers": ["Name", "Beschreibung", "Preis", "Einheit", "Länge (cm)", "Breite (cm)", "Notiz"],
+                "widths": [30, 50, 15, 10, 14, 14, 40],
+                "num_cols": (3, 5, 6),
                 "search_fn": self.db.material_search,
                 "filename": "materialien_export.xlsx",
             },
@@ -1675,6 +1813,7 @@ class FerdlWorksApp(ctk.CTk):
                 "sheet": "Werkzeuge",
                 "headers": ["Name", "Beschreibung", "Preis", "Einheit", "Notiz"],
                 "widths": [30, 50, 15, 10, 40],
+                "num_cols": (3,),
                 "search_fn": self.db.tool_search,
                 "filename": "werkzeuge_export.xlsx",
             },
@@ -1683,6 +1822,7 @@ class FerdlWorksApp(ctk.CTk):
                 "sheet": "Arbeiten",
                 "headers": ["Name", "Beschreibung", "Preis", "Einheit", "Notiz"],
                 "widths": [30, 50, 15, 10, 40],
+                "num_cols": (3,),
                 "search_fn": self.db.arbeit_search,
                 "filename": "arbeiten_export.xlsx",
             },
@@ -1720,7 +1860,9 @@ class FerdlWorksApp(ctk.CTk):
                 if list_type == "material":
                     row = [item.get("name", ""), item.get("description", ""),
                            item.get("price_per_m2", item.get("price", 0)),
-                           item.get("price_unit", ""), item.get("note", "")]
+                           item.get("price_unit", ""),
+                           item.get("length", 0) or 0, item.get("width", 0) or 0,
+                           item.get("note", "")]
                 elif list_type == "customer":
                     row = [item.get("company", ""), item.get("first_name", ""),
                            item.get("last_name", ""), item.get("street", ""),
@@ -1741,7 +1883,7 @@ class FerdlWorksApp(ctk.CTk):
                 for ci, v in enumerate(row, 1):
                     c = ws.cell(row=ri, column=ci, value=v)
                     c.border = border
-                    if list_type in ("material", "tool", "arbeit") and ci == 3:
+                    if ci in cfg.get("num_cols", ()):
                         c.number_format = '#,##0.00'
 
             ws.freeze_panes = "A2"
@@ -1800,12 +1942,13 @@ class FerdlWorksApp(ctk.CTk):
             "material": {
                 "title": "Materialien",
                 "sheet": "Materialien",
-                "headers": ["Name", "Beschreibung", "Preis", "Einheit", "Notiz"],
-                "widths": [30, 50, 15, 10, 40],
+                "headers": ["Name", "Beschreibung", "Preis", "Einheit", "Länge (cm)", "Breite (cm)", "Notiz"],
+                "widths": [30, 50, 15, 10, 14, 14, 40],
+                "num_cols": (3, 5, 6),
                 "examples": [
-                    ["Eiche Natur", "Massivholz Eiche, naturbelassen, 20mm", 89.50, "m²", "Innenbereich"],
-                    ["Buche Hell", "Buche Leimholz, gehobelt, 18mm", 72.00, "m²", ""],
-                    ["Schrauben 5x60", "Senkkopf, verzinkt, T20", 12.50, "Stk", "5er-Pack"],
+                    ["Eiche Natur", "Massivholz Eiche, naturbelassen, 20mm", 89.50, "m²", 300, 100, "Innenbereich"],
+                    ["Buche Hell", "Buche Leimholz, gehobelt, 18mm", 72.00, "m²", 200, 100, ""],
+                    ["Schrauben 5x60", "Senkkopf, verzinkt, T20", 12.50, "Stk", "", "", "5er-Pack"],
                 ],
                 "filename": "materialien_vorlage.xlsx",
             },
@@ -1825,6 +1968,7 @@ class FerdlWorksApp(ctk.CTk):
                 "sheet": "Werkzeuge",
                 "headers": ["Name", "Beschreibung", "Preis", "Einheit", "Notiz"],
                 "widths": [30, 50, 15, 10, 40],
+                "num_cols": (3,),
                 "examples": [
                     ["Bohrmaschine", "Akku-Bohrschrauber 18V", 45.00, "h", "Tagespreis"],
                     ["Schleifmaschine", "Exzenterschleifer 150mm", 35.00, "h", ""],
@@ -1837,6 +1981,7 @@ class FerdlWorksApp(ctk.CTk):
                 "sheet": "Arbeiten",
                 "headers": ["Name", "Beschreibung", "Preis", "Einheit", "Notiz"],
                 "widths": [30, 50, 15, 10, 40],
+                "num_cols": (3,),
                 "examples": [
                     ["Fliesenlegen", "Verlegen von Wand- und Bodenfliesen", 45.00, "m²", "inkl. Material"],
                     ["Malerarbeiten", "Streichen von Wänden und Decken", 18.00, "m²", ""],
@@ -1889,7 +2034,7 @@ class FerdlWorksApp(ctk.CTk):
                     c.border = border
                     if ri % 2 == 1:
                         c.fill = lfill
-                    if list_type in ("material", "tool") and ci == 3:
+                    if ci in cfg.get("num_cols", ()):
                         c.number_format = '#,##0.00'
 
             ws.freeze_panes = "A3"
@@ -1962,6 +2107,10 @@ class FerdlWorksApp(ctk.CTk):
 
     def _on_close(self):
         self.logger.info("Anwendung wird beendet")
+        try:
+            self._winstate.save(self)
+        except Exception:
+            pass
         self.destroy()
         sys.exit(0)
 
@@ -2085,7 +2234,7 @@ class DocSearchDialog(ctk.CTkToplevel):
         if not sel:
             return
         doc_id = int(sel[0])
-        self.app._load_doc(doc_id)
+        self.app._load_doc(doc_id, reset_surcharge=True)
         self.destroy()
 
 
