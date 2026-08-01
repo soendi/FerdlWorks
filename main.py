@@ -1582,14 +1582,9 @@ class FerdlWorksApp(ctk.CTk):
         if not recipient:
             messagebox.showwarning("E-Mail", "Kunde hat keine E-Mail-Adresse hinterlegt.")
             return
-        if not messagebox.askyesno("E-Mail", "Dokument per E-Mail verschicken?"):
-            return
         doc["app_name"] = APP_NAME
         doc["surcharge_percent"] = self._surcharge_percent_value()
-        pdf_path = generate_pdf(doc)
-        # Variablen ersetzen
-        def _fmt(v):
-            return v.replace(".", ",") if isinstance(v, str) else f"{v:.2f}\u20ac".replace(".", ",")
+        # Variablen ersetzen (vor dem Dialog, damit Betreff und Text angezeigt werden)
         raw_subject = settings.get("email_subject", "Ihre Rechnung {rgnr}")
         raw_body = settings.get("email_body", "")
         vars_map = {
@@ -1606,6 +1601,15 @@ class FerdlWorksApp(ctk.CTk):
             raw_body = raw_body.replace(key, str(val))
         subject = raw_subject
         body = raw_body
+        msg = (
+            f"Dokument per E-Mail verschicken?\n\n"
+            f"Empfänger:\n{recipient}\n\n"
+            f"Betreff:\n{subject}\n\n"
+            f"Text:\n{body}"
+        )
+        if not messagebox.askyesno("E-Mail", msg):
+            return
+        pdf_path = generate_pdf(doc)
         success, msg = send_email(recipient, subject, body, pdf_path)
         if success:
             messagebox.showinfo("E-Mail", msg)
