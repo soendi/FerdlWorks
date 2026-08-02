@@ -47,7 +47,7 @@ class PositionItem:
 class FerdlWorksApp(ctk.CTk):
     def __init__(self, master_mode=False):
         super().__init__()
-        self.withdraw()
+        self.attributes("-alpha", 0.0)
         self._splash = show_splash(self)
         self.logger = get_logger()
         self.db = get_db()
@@ -70,16 +70,19 @@ class FerdlWorksApp(ctk.CTk):
         self._build_ui()
         self.bind("<Button-1>", self._on_global_click, add="+")
         self._new_doc()
-        self.after(100, lambda: self._set_icon())
-        self.after(500, self._check_overdue)
         self._winstate.restore(self)
         start_timer(self, self.db)
         self.logger.info(f"{APP_NAME} v{VERSION} gestartet (Master-Mode: {master_mode})")
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+        self.after(3000, self._show_main)
+
+    def _show_main(self):
         self._close_splash()
-        self.deiconify()
+        self.attributes("-alpha", 1.0)
         self.lift()
         self.focus_force()
+        self.after(100, lambda: self._set_icon())
+        self.after(500, self._check_overdue)
 
     def _close_splash(self):
         if self._splash:

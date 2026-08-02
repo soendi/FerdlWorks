@@ -26,7 +26,6 @@ def show_splash(master=None):
         splash_win.geometry(f"{w}x{h}+{x}+{y}")
         splash_win.lift()
         splash_win.attributes("-topmost", True)
-        splash_win.after(2000, splash_win.destroy)
     except Exception:
         splash_win.destroy()
         return None
