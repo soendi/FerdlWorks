@@ -48,7 +48,7 @@ class FerdlWorksApp(ctk.CTk):
     def __init__(self, master_mode=False):
         super().__init__()
         self.attributes("-alpha", 0.0)
-        self._splash = show_splash(self)
+        self._splash = show_splash()
         self.logger = get_logger()
         self.db = get_db()
         from lib.winstate import install_auto, WinState
