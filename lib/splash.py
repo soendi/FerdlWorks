@@ -6,15 +6,8 @@ SPLASH_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file
 SPLASH_FILE = os.path.join(SPLASH_DIR, "splashscreen.jpg")
 
 
-def create_splash_window():
-    """Eigenständiger Splashscreen mit eigenem tk.Tk()-Root.
-
-    Gibt das Tk-Root-Fenster zurück (damit es später zerstört werden kann)
-    oder None bei Fehler.
-    """
-    root = tk.Tk()
-    root.withdraw()
-    win = tk.Toplevel(root)
+def create_splash_window(master=None):
+    win = tk.Toplevel(master)
     win.overrideredirect(True)
     win.attributes("-topmost", True)
     try:
@@ -24,7 +17,7 @@ def create_splash_window():
         max_w = min(sw // 2, 600)
         max_h = min(sh // 2, 500)
         img.thumbnail((max_w, max_h), Image.LANCZOS)
-        photo = ImageTk.PhotoImage(img, master=root)
+        photo = ImageTk.PhotoImage(img, master=win)
         label = tk.Label(win, image=photo, border=0)
         label.image = photo
         label.pack()
@@ -35,7 +28,7 @@ def create_splash_window():
         win.deiconify()
         win.lift()
         win.focus_force()
-        root.update()
+        win.update()
     except Exception as e:
         try:
             from lib.logger import get_logger
@@ -43,6 +36,5 @@ def create_splash_window():
         except Exception:
             pass
         win.destroy()
-        root.destroy()
         return None
-    return root
+    return win
