@@ -1,4 +1,4 @@
-name: Build FerdlWorks
+name: Build and Release
 
 on:
   push:
@@ -8,82 +8,38 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    permissions: write-all
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.14"
 
-      - name: Install Dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build EXE (onedir)
+        run: |
+          pyinstaller --onedir --windowed --icon="assets/ferdlworks.ico" --name="FerdlWorks" --add-data="assets/ferdlworks_theme.json;assets" --add-data="assets/splashscreen.jpg;assets" --add-data="assets/signaturesound.wav;assets" --add-data="assets/signaturesound.ogg;assets" --add-data="assets/ferdlworks.ico;." --hidden-import="PIL._tkinter_finder" --hidden-import="win32print" --hidden-import="packaging" --hidden-import="packaging.version" main.py
+
+      - name: Download Inno Setup
         shell: pwsh
         run: |
-          pip install -r requirements.txt pyinstaller
-
-      - name: Generate Icon
-        shell: pwsh
-        run: |
-          python -c "from lib.icon import create_icon; create_icon()"
-
-      - name: Build EXE with PyInstaller
-        shell: pwsh
-        run: |
-          # DLL finden und ins Projektverzeichnis kopieren
-          $dll = Get-ChildItem -Path "$env:Python_ROOT_DIR" -Filter "python3*.dll" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
-          if (-not $dll) { $dll = Get-ChildItem -Path "$env:RUNNER_TOOL_CACHE" -Filter "python3*.dll" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName }
-          if (-not $dll) { $dll = python -c "import sys,glob; r=glob.glob(sys.base_prefix+'/**/python3*.dll',recursive=True); print(r[0] if r else '')" }
-          if (-not $dll) { $dll = python -c "import subprocess,glob; p=subprocess.run(['where','python'],capture_output=True,text=True).stdout.strip().split('\r\n')[0]; d=glob.glob(os.path.dirname(p)+'/python3*.dll'); print(d[0] if d else '')" }
-          Write-Host "DLL found: $dll"
-          if ($dll) { Copy-Item -Path "$dll" -Destination "python314.dll" -Force }
-          $bundled = if (Test-Path "python314.dll") { "python314.dll" } else { $dll }
-          Write-Host "python DLL: $dll"
-          $args = @('--noconfirm','--onedir','--windowed','--name','FerdlWorks',
-            '--icon','assets\ferdlworks.ico',
-            '--add-data','assets\ferdlworks_theme.json;assets',
-            '--add-data','assets\ferdlworks.ico;.',
-            '--runtime-hook','runtime_hook.py',
-            '--hidden-import','customtkinter',
-            '--hidden-import','PIL._tkinter_finder',
-            '--hidden-import','win32print',
-            '--hidden-import','packaging',
-            '--hidden-import','packaging.version',
-            '--collect-all','reportlab')
-          if ($bundled) { $args += @('--add-binary',"$bundled;.") }
-          Write-Host "PyInstaller args: $args"
-          & pyinstaller @args main.py
-
-      - name: Install Inno Setup
-        shell: pwsh
-        run: |
-          choco install innosetup --no-progress -y
+          $url = "https://github.com/jrsoftware/issrc/releases/download/is-6_4_2/InnoSetup-6.4.2.exe"
+          $out = "$env:RUNNER_TEMP\is.exe"
+          Invoke-WebRequest -Uri $url -OutFile $out
+          Start-Process -FilePath $out -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /DIR=`"$env:ProgramFiles\Inno Setup 6`"" -Wait
 
       - name: Build Installer
         shell: pwsh
         run: |
-          $ver = python -c "exec(open('version.py').read()); print(VERSION)"
-          Write-Host "Version aus version.py: $ver"
-          $iscc = Get-ChildItem -Path "C:\Program Files*\Inno Setup*" -Filter "ISCC.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
-          if (-not $iscc) {
-            Write-Error "ISCC.exe nicht gefunden"
-            exit 1
-          }
-          Write-Host "ISCC gefunden: $iscc"
-          & $iscc "/dMyAppVersion=$ver" "installer\ferdlworks.iss"
-
-      - name: Upload Installer as Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: FerdlWorks-Setup
-          path: installer\FerdlWorks-Setup.exe
+          & "$env:ProgramFiles\Inno Setup 6\ISCC.exe" "installer\ferdlworks.iss"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          name: FerdlWorks ${{ github.ref_name }}
-          body_path: CHANGELOG.md
           files: installer\FerdlWorks-Setup.exe
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          generate_release_notes: true
