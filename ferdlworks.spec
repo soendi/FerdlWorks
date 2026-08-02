@@ -8,6 +8,9 @@ a = Analysis(
     datas=[
         ("assets/ferdlworks_theme.json", "assets"),
         ("assets/ferdlworks.ico", "."),
+        ("assets/splashscreen.jpg", "assets"),
+        ("assets/signaturesound.wav", "assets"),
+        ("assets/signaturesound.ogg", "assets"),
     ],
     hiddenimports=[
         "customtkinter",

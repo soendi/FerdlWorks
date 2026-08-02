@@ -137,24 +137,27 @@ class SettingsDialog(ctk.CTkToplevel):
         self.autostart_var = ctk.BooleanVar(value=autostart_is_enabled())
         ctk.CTkCheckBox(tab6, text="Autostart (mit Windows starten)", variable=self.autostart_var,
                         font=("Segoe UI", 13)).grid(row=0, column=0, columnspan=2, padx=15, pady=10, sticky="w")
+        self.koeppel_var = ctk.BooleanVar(value=self.settings.get("koeppel_sound", "1") == "1")
+        ctk.CTkCheckBox(tab6, text="Köppel sound", variable=self.koeppel_var,
+                        font=("Segoe UI", 13)).grid(row=1, column=0, columnspan=2, padx=15, pady=5, sticky="w")
         ctk.CTkLabel(tab6, text="Passwort-Schutz:", font=("Segoe UI", 13, "bold"),
-                     text_color=("#8b0000", "#8b0000")).grid(row=1, column=0, columnspan=2, padx=15, pady=(15, 5), sticky="w")
+                     text_color=("#8b0000", "#8b0000")).grid(row=2, column=0, columnspan=2, padx=15, pady=(15, 5), sticky="w")
         stored_hash = self.settings.get("user_password", "")
         has_password = bool(stored_hash)
-        ctk.CTkLabel(tab6, text="Aktuelles Passwort:", anchor="w").grid(row=2, column=0, padx=15, pady=3, sticky="w")
+        ctk.CTkLabel(tab6, text="Aktuelles Passwort:", anchor="w").grid(row=3, column=0, padx=15, pady=3, sticky="w")
         self.old_pw = ctk.CTkEntry(tab6, width=250, show="*")
-        self.old_pw.grid(row=2, column=1, padx=5, pady=3, sticky="w")
+        self.old_pw.grid(row=3, column=1, padx=5, pady=3, sticky="w")
         self.old_pw.bind("<KeyRelease>", lambda e: self._check_pw_access())
-        ctk.CTkLabel(tab6, text="Neues Passwort:", anchor="w").grid(row=3, column=0, padx=15, pady=3, sticky="w")
+        ctk.CTkLabel(tab6, text="Neues Passwort:", anchor="w").grid(row=4, column=0, padx=15, pady=3, sticky="w")
         self.new_pw = ctk.CTkEntry(tab6, width=250, show="*")
-        self.new_pw.grid(row=3, column=1, padx=5, pady=3, sticky="w")
+        self.new_pw.grid(row=4, column=1, padx=5, pady=3, sticky="w")
         self._pw_unlocked = False
         self._pw_unlock_label = ctk.CTkLabel(tab6, text="", font=("Segoe UI", 13, "bold"),
                                               text_color=("#8b0000", "#8b0000"))
-        self._pw_unlock_label.grid(row=4, column=0, columnspan=2, padx=15, pady=2, sticky="w")
+        self._pw_unlock_label.grid(row=5, column=0, columnspan=2, padx=15, pady=2, sticky="w")
 
         ctk.CTkLabel(tab6, text="(Leer lassen = Passwort löschen)", font=("Segoe UI", 13),
-                     text_color="#666666").grid(row=5, column=1, padx=5, pady=0, sticky="w")
+                     text_color="#666666").grid(row=6, column=1, padx=5, pady=0, sticky="w")
 
         # --- Buttons ---
         btn_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -207,6 +210,7 @@ class SettingsDialog(ctk.CTkToplevel):
         data["printer_name"] = self._printer_var.get()
         data["email_subject"] = self.email_subject_entry.get()
         data["email_body"] = self.email_body_text.get("1.0", "end-1c")
+        data["koeppel_sound"] = "1" if self.koeppel_var.get() else "0"
         old_pw = self.old_pw.get()
         new_pw = self.new_pw.get()
         stored_hash = self.settings.get("user_password", "")

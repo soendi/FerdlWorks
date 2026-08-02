@@ -19,6 +19,8 @@ class WinState:
         self._db = db
 
     def restore(self, win, default_geometry=None):
+        if getattr(win, "_winstate_exclude", False):
+            return
         try:
             settings = self._db.settings_get_all()
         except Exception:
@@ -147,6 +149,12 @@ def install_auto(db):
 
     def _patched_init(self, *args, **kwargs):
         _orig_init(self, *args, **kwargs)
+        # Generische Toplevel (z. B. der Kalender-Popup als nackte
+        # CTkToplevel/Toplevel) teilen sich denselben Klassenname-Key und
+        # setzen ihre Geometrie selbst – die automatische Wiederherstellung
+        # würde sonst eine alte (fremde) Geometrie nach 10 ms anwenden.
+        if type(self).__name__ in ("CTkToplevel", "Toplevel"):
+            return
         try:
             self.after(10, lambda: _safe(lambda: ws.restore(self)))
         except tk.TclError:

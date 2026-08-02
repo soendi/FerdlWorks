@@ -26,6 +26,8 @@ from lib.autostart import autostart_enable, autostart_disable, autostart_is_enab
 from lib.cloud_backup import gdrive_backup, gdrive_authorize, onedrive_backup, onedrive_authorize
 from version import VERSION, APP_NAME, COMPANY_NAME
 from lib.icon import set_window_icon, install_auto as install_icon_auto
+from lib.splash import show_splash
+from lib.sound import start_timer, stop_timer
 
 THEME_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "ferdlworks_theme.json")
 
@@ -45,6 +47,8 @@ class PositionItem:
 class FerdlWorksApp(ctk.CTk):
     def __init__(self, master_mode=False):
         super().__init__()
+        self.withdraw()
+        self._splash = show_splash(self)
         self.logger = get_logger()
         self.db = get_db()
         from lib.winstate import install_auto, WinState
@@ -69,8 +73,21 @@ class FerdlWorksApp(ctk.CTk):
         self.after(100, lambda: self._set_icon())
         self.after(500, self._check_overdue)
         self._winstate.restore(self)
+        start_timer(self, self.db)
         self.logger.info(f"{APP_NAME} v{VERSION} gestartet (Master-Mode: {master_mode})")
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+        self._close_splash()
+        self.deiconify()
+        self.lift()
+        self.focus_force()
+
+    def _close_splash(self):
+        if self._splash:
+            try:
+                self._splash.destroy()
+            except Exception:
+                pass
+            self._splash = None
 
     def _set_icon(self):
         paths = [self._icon_path]
@@ -1478,21 +1495,11 @@ class FerdlWorksApp(ctk.CTk):
             self._new_doc()
 
     def _open_calendar(self):
-        from tkinter import ttk
         top = ctk.CTkToplevel(self)
         top.title("Datum auswählen")
         top._winstate_exclude = True
-        top.geometry("280x250")
-        top.transient(self)
-        top.grab_set()
         top.resizable(False, False)
-        try:
-            bx = self._cal_btn.winfo_rootx()
-            by = self._cal_btn.winfo_rooty()
-            bh = self._cal_btn.winfo_height()
-            top.geometry(f"280x250+{bx}+{by + bh + 2}")
-        except:
-            pass
+        top.transient(self)
         now = datetime.now()
         m, y = now.month, now.year
         sel = self.doc_date_var.get()
@@ -1506,7 +1513,7 @@ class FerdlWorksApp(ctk.CTk):
             for w in top.winfo_children():
                 w.destroy()
             hf = ctk.CTkFrame(top, fg_color="transparent")
-            hf.pack(fill="x", padx=5, pady=5)
+            hf.pack(fill="x", padx=5, pady=(6, 2))
             ctk.CTkButton(hf, text="<", width=30, command=lambda: build(month-1 if month>1 else 12, year if month>1 else year-1)).pack(side="left")
             ctk.CTkLabel(hf, text=f"{month:02d}/{year}", font=("Segoe UI", 13, "bold")).pack(side="left", expand=True)
             ctk.CTkButton(hf, text=">", width=30, command=lambda: build(month+1 if month<12 else 1, year if month<12 else year+1)).pack(side="right")
@@ -1514,17 +1521,17 @@ class FerdlWorksApp(ctk.CTk):
             cf.pack(padx=5, pady=2)
             days = ["Mo","Di","Mi","Do","Fr","Sa","So"]
             for i, d in enumerate(days):
-                ctk.CTkLabel(cf, text=d, width=30, font=("Segoe UI", 9)).grid(row=0, column=i)
+                ctk.CTkLabel(cf, text=d, width=32, font=("Segoe UI", 9)).grid(row=0, column=i)
             import calendar
             cal = calendar.monthcalendar(year, month)
             for r, week in enumerate(cal, 1):
                 for c, day in enumerate(week):
                     if day == 0:
-                        ctk.CTkLabel(cf, text="", width=30).grid(row=r, column=c)
+                        ctk.CTkLabel(cf, text="", width=32).grid(row=r, column=c)
                     else:
                         is_today = (day == now.day and month == now.month and year == now.year)
                         fg = "#8b0000" if is_today else "#555555"
-                        btn = ctk.CTkButton(cf, text=str(day), width=30, height=25, fg_color=fg,
+                        btn = ctk.CTkButton(cf, text=str(day), width=32, height=26, fg_color=fg,
                                             command=lambda d=day, mo=month, yr=year: pick(d, mo, yr))
                         btn.grid(row=r, column=c, padx=1, pady=1)
 
@@ -1533,6 +1540,27 @@ class FerdlWorksApp(ctk.CTk):
             top.destroy()
 
         build(cm, cy)
+        top.update_idletasks()
+        w = top.winfo_reqwidth()
+        h = top.winfo_reqheight()
+        try:
+            bx = self._cal_btn.winfo_rootx()
+            by = self._cal_btn.winfo_rooty()
+            bh = self._cal_btn.winfo_height()
+            x = bx
+            y = by + bh + 2
+            sw = top.winfo_screenwidth()
+            sh = top.winfo_screenheight()
+            if y + h > sh:
+                y = max(0, by - h - 2)
+            if x + w > sw:
+                x = max(0, sw - w - 4)
+            top.geometry(f"{w}x{h}+{x}+{y}")
+        except Exception:
+            top.geometry(f"{w}x{h}")
+        top.grab_set()
+        top.focus_set()
+        top.lift()
 
     # ===================== PDF / E-MAIL / DRUCKEN =====================
     def _check_empty(self):
@@ -2113,6 +2141,7 @@ class FerdlWorksApp(ctk.CTk):
 
     def _on_close(self):
         self.logger.info("Anwendung wird beendet")
+        stop_timer(self)
         try:
             self._winstate.save(self)
         except Exception:
