@@ -6,10 +6,9 @@ SPLASH_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file
 SPLASH_FILE = os.path.join(SPLASH_DIR, "splashscreen.jpg")
 
 
-class SplashForm(tk.Toplevel):
+class SplashForm(tk.Tk):
     def __init__(self, duration_ms=3000):
         super().__init__()
-        self.master.withdraw()
         self.overrideredirect(True)
         self.attributes("-topmost", True)
         self.configure(bg="#2b2b2b")
@@ -40,18 +39,11 @@ class SplashForm(tk.Toplevel):
         x = (sw - w) // 2
         y = (sh - h) // 2
         self.geometry(f"{w}x{h}+{x}+{y}")
-        self.after(duration_ms, self._close)
-
-    def _close(self):
-        self.master.withdraw()
-        self._master = self.master
-        self.destroy()
+        self.after(duration_ms, self.destroy)
 
 
 def show_splash(duration_ms=3000):
     splash = SplashForm(duration_ms=duration_ms)
     splash.mainloop()
-    master_root = getattr(splash, "_master", None)
     import tkinter as tk
     tk._default_root = None
-    return master_root

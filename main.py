@@ -70,18 +70,8 @@ class FerdlWorksApp(ctk.CTk):
         self._new_doc()
         self._winstate.restore(self)
         start_timer(self, self.db)
-        self.logger.info(f"{APP_NAME} v{VERSION} gestartet (Master-Mode: {master_mode})")
+        self.logger.info(f"{APP_NAME} v{VERSION} gestartet (Master-Mode: {self._master_mode})")
         self.protocol("WM_DELETE_WINDOW", self._on_close)
-        if not bool(settings.get("user_password", "")):
-            self._master_mode = False
-            return
-        from lib.login_dialog import LoginDialog
-        login = LoginDialog(self)
-        self.wait_window(login)
-        if not login.is_authenticated():
-            self.destroy()
-            sys.exit(0)
-        self._master_mode = login.is_master_mode()
 
     def _set_icon(self):
         paths = [self._icon_path]
@@ -2302,7 +2292,7 @@ def run_app():
     setup_logger()
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme(THEME_PATH)
-    _splash_root = show_splash(duration_ms=3000)
+    show_splash(duration_ms=3000)
     root = ctk.CTk()
     root.withdraw()
     db = get_db()
@@ -2319,11 +2309,6 @@ def run_app():
         master_mode = login.is_master_mode()
     root.destroy()
     app = FerdlWorksApp(master_mode=master_mode)
-    if _splash_root:
-        try:
-            _splash_root.destroy()
-        except Exception:
-            pass
     app.mainloop()
 
 
