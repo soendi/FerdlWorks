@@ -9,6 +9,7 @@ SPLASH_FILE = os.path.join(SPLASH_DIR, "splashscreen.jpg")
 def show_splash(master=None):
     splash_win = tk.Toplevel(master)
     splash_win.overrideredirect(True)
+    splash_win.attributes("-topmost", True)
     try:
         img = Image.open(SPLASH_FILE)
         sw = splash_win.winfo_screenwidth()
@@ -24,8 +25,9 @@ def show_splash(master=None):
         x = (sw - w) // 2
         y = (sh - h) // 2
         splash_win.geometry(f"{w}x{h}+{x}+{y}")
+        splash_win.deiconify()
         splash_win.lift()
-        splash_win.attributes("-topmost", True)
+        splash_win.focus_force()
     except Exception:
         splash_win.destroy()
         return None

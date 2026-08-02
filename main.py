@@ -47,8 +47,9 @@ class PositionItem:
 class FerdlWorksApp(ctk.CTk):
     def __init__(self, master_mode=False):
         super().__init__()
-        self.attributes("-alpha", 0.0)
+        self.geometry("1200x900-99999-99999")
         self._splash = show_splash()
+        self.update()
         self.logger = get_logger()
         self.db = get_db()
         from lib.winstate import install_auto, WinState
@@ -78,7 +79,7 @@ class FerdlWorksApp(ctk.CTk):
 
     def _show_main(self):
         self._close_splash()
-        self.attributes("-alpha", 1.0)
+        self._winstate.restore(self)
         self.lift()
         self.focus_force()
         self.after(100, lambda: self._set_icon())
