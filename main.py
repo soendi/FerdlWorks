@@ -26,7 +26,7 @@ from lib.autostart import autostart_enable, autostart_disable, autostart_is_enab
 from lib.cloud_backup import gdrive_backup, gdrive_authorize, onedrive_backup, onedrive_authorize
 from version import VERSION, APP_NAME, COMPANY_NAME
 from lib.icon import set_window_icon, install_auto as install_icon_auto
-from lib.splash import create_splash_window as _create_splash
+from lib.splash import show_splash
 from lib.sound import start_timer, stop_timer
 
 THEME_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "ferdlworks_theme.json")
@@ -57,9 +57,6 @@ class FerdlWorksApp(ctk.CTk):
         self.title(f"{APP_NAME} v{VERSION}")
         self._icon_path = create_icon()
         self._set_icon()
-        self.withdraw()
-        self._splash = self._show_splash()
-        self._check_login()
         self.minsize(1200, 900)
         self.geometry("1200x900")
         self._current_doc_id = None
@@ -75,35 +72,6 @@ class FerdlWorksApp(ctk.CTk):
         start_timer(self, self.db)
         self.logger.info(f"{APP_NAME} v{VERSION} gestartet (Master-Mode: {master_mode})")
         self.protocol("WM_DELETE_WINDOW", self._on_close)
-        self.after(3000, self._show_main)
-
-    def _show_splash(self):
-        splash = _create_splash(self)
-        if splash:
-            self.logger.info("Splashscreen gestartet")
-        else:
-            self.logger.warning("Splashscreen fehlgeschlagen")
-        return splash
-
-    def _show_main(self):
-        self._close_splash()
-        self.deiconify()
-        self._winstate.restore(self)
-        self.lift()
-        self.focus_force()
-        self.after(100, lambda: self._set_icon())
-        self.after(500, self._check_overdue)
-
-    def _close_splash(self):
-        if self._splash:
-            try:
-                self._splash.destroy()
-            except Exception:
-                pass
-            self._splash = None
-
-    def _check_login(self):
-        settings = self.db.settings_get_all()
         if not bool(settings.get("user_password", "")):
             self._master_mode = False
             return
@@ -2334,11 +2302,13 @@ def run_app():
     setup_logger()
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme(THEME_PATH)
+    _splash_root = show_splash(duration_ms=3000)
     root = ctk.CTk()
     root.withdraw()
     db = get_db()
     settings = db.settings_get_all()
     has_password = bool(settings.get("user_password", ""))
+    master_mode = False
     if has_password:
         from lib.login_dialog import LoginDialog
         login = LoginDialog(root)
@@ -2347,10 +2317,13 @@ def run_app():
             root.destroy()
             return
         master_mode = login.is_master_mode()
-    else:
-        master_mode = False
     root.destroy()
     app = FerdlWorksApp(master_mode=master_mode)
+    if _splash_root:
+        try:
+            _splash_root.destroy()
+        except Exception:
+            pass
     app.mainloop()
 
 

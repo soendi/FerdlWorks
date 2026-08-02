@@ -1,22 +1,54 @@
 import os
+import sys
 import random
 import winsound
 
-_SOUND_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets")
-_WAV_PATH = os.path.join(_SOUND_DIR, "signaturesound.wav")
-_OGG_PATH = os.path.join(_SOUND_DIR, "signaturesound.ogg")
+_WAV_PATH = None
+
+
+def _find_wav():
+    candidates = [
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "signaturesound.wav"),
+    ]
+    if getattr(sys, "frozen", False):
+        base = os.path.dirname(sys.executable)
+        candidates += [
+            os.path.join(base, "assets", "signaturesound.wav"),
+            os.path.join(base, "_internal", "assets", "signaturesound.wav"),
+            os.path.join(base, "_internal", "signaturesound.wav"),
+        ]
+    for p in candidates:
+        if os.path.exists(p):
+            return p
+    return None
+
 
 _next_timer = None
 
 
 def _play():
-    if os.path.exists(_WAV_PATH):
+    global _WAV_PATH
+    if _WAV_PATH is None:
+        _WAV_PATH = _find_wav()
+    if _WAV_PATH and os.path.exists(_WAV_PATH):
         winsound.PlaySound(_WAV_PATH, winsound.SND_ASYNC | winsound.SND_FILENAME | winsound.SND_NODEFAULT)
+        _log("Köppel sound abgespielt: " + _WAV_PATH)
+    else:
+        _log("Köppel sound: WAV nicht gefunden")
+
+
+def _log(msg):
+    try:
+        from lib.logger import get_logger
+        get_logger().info(msg)
+    except Exception:
+        pass
 
 
 def _schedule(master, db):
     global _next_timer
-    delay = random.randint(270, 330) * 1000
+    delay = random.randint(240, 300) * 1000
+    _log(f"Köppel sound: naechster in {delay//1000}s")
     def _tick():
         global _next_timer
         _next_timer = None
