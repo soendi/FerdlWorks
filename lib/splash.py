@@ -6,29 +6,43 @@ SPLASH_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file
 SPLASH_FILE = os.path.join(SPLASH_DIR, "splashscreen.jpg")
 
 
-def show_splash(master=None):
-    splash_win = tk.Toplevel(master)
-    splash_win.overrideredirect(True)
-    splash_win.attributes("-topmost", True)
+def create_splash_window():
+    """Eigenständiger Splashscreen mit eigenem tk.Tk()-Root.
+
+    Gibt das Tk-Root-Fenster zurück (damit es später zerstört werden kann)
+    oder None bei Fehler.
+    """
+    root = tk.Tk()
+    root.withdraw()
+    win = tk.Toplevel(root)
+    win.overrideredirect(True)
+    win.attributes("-topmost", True)
     try:
         img = Image.open(SPLASH_FILE)
-        sw = splash_win.winfo_screenwidth()
-        sh = splash_win.winfo_screenheight()
+        sw = win.winfo_screenwidth()
+        sh = win.winfo_screenheight()
         max_w = min(sw // 2, 600)
         max_h = min(sh // 2, 500)
         img.thumbnail((max_w, max_h), Image.LANCZOS)
-        photo = ImageTk.PhotoImage(img)
-        label = tk.Label(splash_win, image=photo, border=0)
+        photo = ImageTk.PhotoImage(img, master=root)
+        label = tk.Label(win, image=photo, border=0)
         label.image = photo
         label.pack()
         w, h = img.size
         x = (sw - w) // 2
         y = (sh - h) // 2
-        splash_win.geometry(f"{w}x{h}+{x}+{y}")
-        splash_win.deiconify()
-        splash_win.lift()
-        splash_win.focus_force()
-    except Exception:
-        splash_win.destroy()
+        win.geometry(f"{w}x{h}+{x}+{y}")
+        win.deiconify()
+        win.lift()
+        win.focus_force()
+        root.update()
+    except Exception as e:
+        try:
+            from lib.logger import get_logger
+            get_logger().error(f"Splash-Fehler: {e}")
+        except Exception:
+            pass
+        win.destroy()
+        root.destroy()
         return None
-    return splash_win
+    return root

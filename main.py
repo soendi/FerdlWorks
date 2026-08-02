@@ -26,7 +26,7 @@ from lib.autostart import autostart_enable, autostart_disable, autostart_is_enab
 from lib.cloud_backup import gdrive_backup, gdrive_authorize, onedrive_backup, onedrive_authorize
 from version import VERSION, APP_NAME, COMPANY_NAME
 from lib.icon import set_window_icon, install_auto as install_icon_auto
-from lib.splash import show_splash
+from lib.splash import create_splash_window
 from lib.sound import start_timer, stop_timer
 
 THEME_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "ferdlworks_theme.json")
@@ -45,11 +45,9 @@ class PositionItem:
 
 
 class FerdlWorksApp(ctk.CTk):
-    def __init__(self, master_mode=False):
+    def __init__(self, master_mode=False, splash_tk=None):
         super().__init__()
-        self.geometry("1200x900-99999-99999")
-        self._splash = show_splash()
-        self.update()
+        self._splash_tk = splash_tk
         self.logger = get_logger()
         self.db = get_db()
         from lib.winstate import install_auto, WinState
@@ -72,26 +70,36 @@ class FerdlWorksApp(ctk.CTk):
         self.bind("<Button-1>", self._on_global_click, add="+")
         self._new_doc()
         self._winstate.restore(self)
+        if self._splash_tk:
+            self._pump_splash()
         start_timer(self, self.db)
         self.logger.info(f"{APP_NAME} v{VERSION} gestartet (Master-Mode: {master_mode})")
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         self.after(3000, self._show_main)
 
     def _show_main(self):
-        self._close_splash()
+        self._destroy_splash()
         self._winstate.restore(self)
         self.lift()
         self.focus_force()
         self.after(100, lambda: self._set_icon())
         self.after(500, self._check_overdue)
 
-    def _close_splash(self):
-        if self._splash:
+    def _destroy_splash(self):
+        if self._splash_tk:
             try:
-                self._splash.destroy()
+                self._splash_tk.destroy()
             except Exception:
                 pass
-            self._splash = None
+            self._splash_tk = None
+
+    def _pump_splash(self):
+        if self._splash_tk:
+            try:
+                self._splash_tk.update()
+            except Exception:
+                pass
+            self.after(50, self._pump_splash)
 
     def _set_icon(self):
         paths = [self._icon_path]
@@ -2327,8 +2335,13 @@ def run_app():
         master_mode = login.is_master_mode()
     else:
         master_mode = False
+    splash_tk = create_splash_window()
+    if splash_tk:
+        get_logger().info("Splashscreen gestartet")
+    else:
+        get_logger().warning("Splashscreen fehlgeschlagen")
     root.destroy()
-    app = FerdlWorksApp(master_mode=master_mode)
+    app = FerdlWorksApp(master_mode=master_mode, splash_tk=splash_tk)
     app.mainloop()
 
 
