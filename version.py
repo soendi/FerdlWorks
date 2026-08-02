@@ -1,4 +1,4 @@
-VERSION = "1.5.7"
+VERSION = "1.5.8"
 APP_NAME = "FerdlWorks"
 COMPANY_NAME = "SondereggerSoftware"
 COMPANY_REG_PATH = "SondereggerSoftware"
