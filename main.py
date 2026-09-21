@@ -1110,6 +1110,16 @@ class FerdlWorksApp(ctk.CTk):
             dst = int(target_iid)
             item = self._positions.pop(src)
             self._positions.insert(dst, item)
+            # Laufenden Edit-Vorgang mitverschieben, sonst zeigt
+            # _editing_pos_idx nach dem Umsortieren auf die falsche Zeile.
+            if self._editing_pos_idx is not None:
+                edit = self._editing_pos_idx
+                if edit == src:
+                    self._editing_pos_idx = dst
+                elif src < edit <= dst:
+                    self._editing_pos_idx = edit - 1
+                elif dst <= edit < src:
+                    self._editing_pos_idx = edit + 1
             self._refresh_positions()
             self.pos_tree.selection_set(str(dst))
         self._drag_data["item"] = None
@@ -1132,6 +1142,15 @@ class FerdlWorksApp(ctk.CTk):
             idx = int(sel[0])
             if 0 <= idx < len(self._positions):
                 self._positions.pop(idx)
+                # Laufenden Edit-Vorgang nachziehen, sonst zeigt
+                # _editing_pos_idx auf die falsche Zeile (oder ins Leere
+                # -> IndexError beim naechsten Uebernehmen).
+                if self._editing_pos_idx is not None:
+                    if self._editing_pos_idx == idx:
+                        self._editing_pos_idx = None
+                        self.art_insert_btn.configure(text="Einfügen")
+                    elif self._editing_pos_idx > idx:
+                        self._editing_pos_idx -= 1
                 self._refresh_positions()
 
     def _edit_position(self):
@@ -1575,6 +1594,7 @@ class FerdlWorksApp(ctk.CTk):
             else:
                 messagebox.showerror("Fehler", "PDF konnte nicht erstellt werden.")
         except Exception as ex:
+            self.logger.exception(f"PDF-Fehler: {ex}")
             messagebox.showerror("Fehler", f"PDF-Fehler: {ex}")
 
     def _send_email_doc(self):

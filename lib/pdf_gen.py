@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, KeepTogether
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
 from lib.database import get_db
@@ -137,7 +137,8 @@ def _build_elements(doc_data, settings, db):
             elements.append(Spacer(1, 2*mm))
 
     unit_labels = {"h": "Std.", "min": "Min.", "m": "m", "qm": "m\u00b2", "Stk": "Stk.", "m\u00b2": "m\u00b2"}
-    table_data = [["Pos.", "Beschreibung", "Anz.", "E-Mg.", "Einh.", "EP", "Gesamt"]]
+    header_row = ["Pos.", "Beschreibung", "Anz.", "E-Mg.", "Einh.", "EP", "Gesamt"]
+    body_rows = []
     for i, pos in enumerate(table_rows, 1):
         desc = pos.get("description", "")
         qty = pos.get("quantity", 1)
@@ -188,7 +189,7 @@ def _build_elements(doc_data, settings, db):
         else:
             ep_str = f"{ppu:.2f} \u20ac"
         total = pos.get("total", 0) * factor
-        table_data.append([
+        body_rows.append([
             str(i),
             Paragraph(desc, style_normal),
             anzahl,
@@ -204,7 +205,7 @@ def _build_elements(doc_data, settings, db):
         if round_tools:
             tool_total = math.ceil(tool_total / 10) * 10
         i = len(table_rows) + 1
-        table_data.append([
+        body_rows.append([
             str(i),
             Paragraph(merge_tool_name, style_normal),
             "", "", "", "",
@@ -221,7 +222,6 @@ def _build_elements(doc_data, settings, db):
 
     avail_width = (210*mm - 20*mm - 15*mm) * 0.98
     col_widths = [10*mm, avail_width-10*mm-12*mm-15*mm-14*mm-24*mm-23*mm, 12*mm, 15*mm, 14*mm, 24*mm, 23*mm]
-    pos_table = Table(table_data, colWidths=col_widths)
     pos_style = [
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
         ("FONTSIZE", (0, 0), (-1, -1), 9),
@@ -236,8 +236,13 @@ def _build_elements(doc_data, settings, db):
         ("TOPPADDING", (0, 0), (-1, -1), 3),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
     ]
+
+    # Obere Tabelle (Produkte): darf sich über mehrere Seiten erstrecken.
+    # Der Tabellenkopf wird auf jeder Fortsetzungsseite wiederholt (repeatRows).
+    pos_table = Table([header_row] + body_rows, colWidths=col_widths, repeatRows=1)
     pos_table.setStyle(TableStyle(pos_style))
     elements.append(pos_table)
+    # Immer untereinander: zuerst Produkte, darunter die Preise.
     elements.append(Spacer(1, 8*mm))
 
     # Summen (rechtsbündig) – use displayed positions
@@ -281,8 +286,11 @@ def _build_elements(doc_data, settings, db):
         ("LINEBELOW", (0, -2), (-1, -2), 0.5, colors.HexColor("#cccccc")),
         ("LINEABOVE", (0, -1), (-1, -1), 1.5, colors.HexColor("#8b0000")),
     ]))
-    elements.append(sum_table)
-    elements.append(Spacer(1, 8*mm))
+    # Untere Tabelle (Preiszusammenfassung): passt sie nicht mehr komplett
+    # auf die Seite, wird der ganze Block auf die nächste Seite verschoben.
+    elements.append(KeepTogether([sum_table]))
+    # Eine Zeile Abstand zwischen Produkttabelle und Notiz
+    elements.append(Spacer(1, 12))
     # Notiz auf Rechnung (nur wenn print_note=1)
     if doc_data.get("print_note", "1") == "1":
         note = doc_data.get("note", "").strip()

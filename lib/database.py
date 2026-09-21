@@ -36,14 +36,6 @@ class Database:
     def _create_tables(self):
         conn = self._connect()
         try:
-            # Migration: add missing columns for older DBs
-            for col, dtype in [("merge_tools", "TEXT DEFAULT '1'"),
-                               ("merge_tool_name", "TEXT DEFAULT 'Werkzeug'"),
-                               ("round_tools", "TEXT DEFAULT '1'")]:
-                try:
-                    conn.execute(f"ALTER TABLE documents ADD COLUMN {col} {dtype}")
-                except sqlite3.OperationalError:
-                    pass  # column already exists
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS customers (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -150,6 +142,15 @@ class Database:
                     value TEXT NOT NULL
                 );
             """)
+            # Migration: merge_*-Spalten (muss NACH dem CREATE laufen, sonst
+            # existiert documents auf einer frischen DB noch nicht)
+            for col, dtype in [("merge_tools", "TEXT DEFAULT '1'"),
+                               ("merge_tool_name", "TEXT DEFAULT 'Werkzeug'"),
+                               ("round_tools", "TEXT DEFAULT '1'")]:
+                try:
+                    conn.execute(f"ALTER TABLE documents ADD COLUMN {col} {dtype}")
+                except sqlite3.OperationalError:
+                    pass  # column already exists
             # Migration: documents – paid, due_date, discount_type, print_note
             for col in ("paid", "due_date", "print_note", "internal_note"):
                 try:
@@ -764,6 +765,9 @@ class Database:
                      "1" if data.get("round_tools", False) else "0"))
                 doc_id = cur.lastrowid
             for i, pos in enumerate(positions):
+                extra = pos.get("extra_data", "")
+                if isinstance(extra, dict):
+                    extra = json.dumps(extra, ensure_ascii=False)
                 conn.execute("""INSERT INTO positions (doc_id, pos_type, ref_id, description,
                     quantity, unit, price_per_unit, total, sort_order, orig_price, orig_price_unit, extra_data)
                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
@@ -771,7 +775,7 @@ class Database:
                      pos.get("quantity", 1), pos.get("unit", ""),
                      pos.get("price_per_unit", 0), pos.get("total", 0), i,
                      pos.get("orig_price", 0), pos.get("orig_price_unit", ""),
-                     pos.get("extra_data", "")))
+                     extra))
             conn.commit()
             return self.doc_get(doc_id)
         finally:
