@@ -1057,6 +1057,7 @@ class FerdlWorksApp(ctk.CTk):
         for row in self.pos_tree.get_children():
             self.pos_tree.delete(row)
         factor = self._surcharge_factor()
+        number = 0  # fortlaufende Positionsnummer (Texte zaehlen nicht mit)
         for i, p in enumerate(self._positions):
             qty_str = f"{p.quantity:.2f}" if p.quantity != int(p.quantity) else str(int(p.quantity))
             ed = p.extra_data or {}
@@ -1085,7 +1086,8 @@ class FerdlWorksApp(ctk.CTk):
             if p.pos_type == "text":
                 vals = ("", p.description, "", "", "", "", "")
             else:
-                vals = (str(i + 1), p.description, anzahl, menge_str, p.unit, ep_str, f"{p.total * factor:.2f}\u20ac")
+                number += 1
+                vals = (str(number), p.description, anzahl, menge_str, p.unit, ep_str, f"{p.total * factor:.2f}\u20ac")
             tag = "even" if i % 2 == 0 else "odd"
             self.pos_tree.insert("", "end", iid=str(i), values=vals, tags=(tag,))
         self._recalc_totals()
