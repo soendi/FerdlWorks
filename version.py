@@ -1,7 +1,8 @@
-﻿VERSION = "1.5.9"
+﻿VERSION = "1.5.10"
 APP_NAME = "FerdlWorks"
 COMPANY_NAME = "SondereggerSoftware"
 COMPANY_REG_PATH = "SondereggerSoftware"
 GITHUB_REPO = "FerdlWorks"
 GITHUB_OWNER = "soendi"
+
 
