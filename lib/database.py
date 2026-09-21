@@ -183,27 +183,43 @@ class Database:
                     conn.execute(f"ALTER TABLE materials ADD COLUMN {col} REAL DEFAULT 0")
                 except sqlite3.OperationalError:
                     pass
-            # Migration: pos_type CHECK um 'text' und 'arbeit' erweitern + Spalten ergänzen
-            conn.execute("PRAGMA foreign_keys=OFF")
-            try:
-                conn.execute("INSERT INTO positions (doc_id, pos_type, description) VALUES (-2, 'arbeit', '__migrate__')")
-                conn.execute("DELETE FROM positions WHERE description='__migrate__'")
-            except sqlite3.IntegrityError:
-                cur = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='positions'")
-                old_sql = cur.fetchone()["sql"]
-                new_sql = old_sql.replace(
-                    "CHECK(pos_type IN('tool','material','text'))",
-                    "CHECK(pos_type IN('tool','material','text','arbeit'))"
-                )
-                if "orig_price" not in old_sql:
-                    new_sql = new_sql.replace(
-                        "sort_order INTEGER DEFAULT 0",
-                        "sort_order INTEGER DEFAULT 0,\n                    orig_price TEXT DEFAULT '',\n                    orig_price_unit TEXT DEFAULT ''"
-                    )
-                conn.execute("PRAGMA writable_schema=ON")
-                conn.execute("UPDATE sqlite_master SET sql=? WHERE type='table' AND name='positions'", (new_sql,))
-                conn.execute("PRAGMA writable_schema=OFF")
-            conn.execute("PRAGMA foreign_keys=ON")
+            # Migration: pos_type CHECK um 'arbeit' erweitern (sauberer Neuaufbau).
+            # HINWEIS: Der fruehere sqlite_master-Hack (UPDATE ohne COMMIT)
+            # wurde beim Schliessen still zurueckgerollt und nie wirksam.
+            cur = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='positions'")
+            row = cur.fetchone()
+            if row and "'arbeit'" not in (row["sql"] or ""):
+                conn.execute("PRAGMA foreign_keys=OFF")
+                try:
+                    cols = [r["name"] for r in conn.execute("PRAGMA table_info(positions)").fetchall()]
+                    full = ["id", "doc_id", "pos_type", "ref_id", "description",
+                            "quantity", "unit", "price_per_unit", "total",
+                            "sort_order", "orig_price", "orig_price_unit", "extra_data"]
+                    copy_cols = [c for c in full if c in cols]
+                    conn.execute("""CREATE TABLE positions_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        doc_id INTEGER NOT NULL,
+                        pos_type TEXT NOT NULL CHECK(pos_type IN('tool','material','text','arbeit')),
+                        ref_id INTEGER,
+                        description TEXT NOT NULL,
+                        quantity REAL NOT NULL DEFAULT 1,
+                        unit TEXT DEFAULT '',
+                        price_per_unit REAL DEFAULT 0,
+                        total REAL DEFAULT 0,
+                        sort_order INTEGER DEFAULT 0,
+                        orig_price TEXT DEFAULT '',
+                        orig_price_unit TEXT DEFAULT '',
+                        extra_data TEXT DEFAULT '',
+                        FOREIGN KEY (doc_id) REFERENCES documents(id) ON DELETE CASCADE
+                    )""")
+                    collist = ", ".join(copy_cols)
+                    conn.execute(f"INSERT INTO positions_new ({collist}) SELECT {collist} FROM positions")
+                    conn.execute("DROP TABLE positions")
+                    conn.execute("ALTER TABLE positions_new RENAME TO positions")
+                    conn.commit()
+                finally:
+                    conn.execute("PRAGMA foreign_keys=ON")
+            conn.commit()
         finally:
             conn.close()
 

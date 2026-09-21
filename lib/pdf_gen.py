@@ -117,29 +117,30 @@ def _build_elements(doc_data, settings, db):
     merge_tool_name = doc_data.get("merge_tool_name", "Werkzeug")
     round_tools = str(doc_data.get("round_tools", "0")) == "1"
 
-    # Separate positions into groups
-    table_rows = []  # material or standalone tool
-    text_rows = []   # text entries (rendered as paragraphs)
+    # Reihenfolge aus pos_data bleibt erhalten: Texte stehen inline in der
+    # Produkttabelle (1. Spalte leer, restliche Spalten verbunden), alle
+    # anderen Positionen werden fortlaufend nummeriert.
+    table_rows = []  # material, arbeit oder standalone tool (nummeriert)
     tool_rows = []   # tool entries (for merging)
-    for pos in pos_data:
-        if pos.get("pos_type") == "text":
-            text_rows.append(pos)
-        elif merge_tools and pos.get("pos_type") == "tool":
-            tool_rows.append(pos)
-        else:
-            table_rows.append(pos)
-
-    # Add text entries as plain paragraphs BEFORE the table
-    for pos in text_rows:
-        txt = pos.get("description", "")
-        if txt.strip():
-            elements.append(Paragraph(txt, style_normal))
-            elements.append(Spacer(1, 2*mm))
-
     unit_labels = {"h": "Std.", "min": "Min.", "m": "m", "qm": "m\u00b2", "Stk": "Stk.", "m\u00b2": "m\u00b2"}
     header_row = ["Pos.", "Beschreibung", "Anz.", "E-Mg.", "Einh.", "EP", "Gesamt"]
     body_rows = []
-    for i, pos in enumerate(table_rows, 1):
+    text_span_rows = []  # Tabellenzeilen-Indizes (inkl. Kopfzeile) mit Spanzelle
+    number = 0
+    for pos in pos_data:
+        if pos.get("pos_type") == "text":
+            txt = pos.get("description", "") or ""
+            if not txt.strip():
+                continue
+            body_rows.append(["", Paragraph(txt, style_normal), "", "", "", "", ""])
+            text_span_rows.append(len(body_rows))  # Kopfzeile = Zeile 0
+            continue
+        if merge_tools and pos.get("pos_type") == "tool":
+            tool_rows.append(pos)
+            continue
+        number += 1
+        table_rows.append(pos)
+        i = number
         desc = pos.get("description", "")
         qty = pos.get("quantity", 1)
         unit = pos.get("unit", "")
@@ -204,7 +205,7 @@ def _build_elements(doc_data, settings, db):
         tool_total = sum(p.get("total", 0) for p in tool_rows) * factor
         if round_tools:
             tool_total = math.ceil(tool_total / 10) * 10
-        i = len(table_rows) + 1
+        i = number + 1
         body_rows.append([
             str(i),
             Paragraph(merge_tool_name, style_normal),
@@ -221,7 +222,10 @@ def _build_elements(doc_data, settings, db):
         pos_data_displayed_total = math.ceil(all_tool / 10) * 10 + all_other
 
     avail_width = (210*mm - 20*mm - 15*mm) * 0.98
-    col_widths = [10*mm, avail_width-10*mm-12*mm-15*mm-14*mm-24*mm-23*mm, 12*mm, 15*mm, 14*mm, 24*mm, 23*mm]
+    PX = 25.4 / 96  # mm pro Pixel (96 dpi)
+    einh_width = 14*mm + 20*PX  # Einh. 20 px breiter ...
+    desc_width = avail_width-10*mm-12*mm-15*mm-einh_width-24*mm-23*mm  # ... dafuer Beschreibung 20 px schmaler
+    col_widths = [10*mm, desc_width, 12*mm, 15*mm, einh_width, 24*mm, 23*mm]
     pos_style = [
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
         ("FONTSIZE", (0, 0), (-1, -1), 9),
@@ -236,6 +240,9 @@ def _build_elements(doc_data, settings, db):
         ("TOPPADDING", (0, 0), (-1, -1), 3),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
     ]
+    # Textzeilen: Spalten Beschreibung bis Gesamt verbinden
+    for r in text_span_rows:
+        pos_style.append(("SPAN", (1, r), (-1, r)))
 
     # Obere Tabelle (Produkte): darf sich über mehrere Seiten erstrecken.
     # Der Tabellenkopf wird auf jeder Fortsetzungsseite wiederholt (repeatRows).
